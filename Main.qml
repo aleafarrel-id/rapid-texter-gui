@@ -108,7 +108,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: 100
                     easing.type: Easing.OutCubic
                 }
             }
@@ -117,7 +117,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: 80
                 }
             }
             popEnter: Transition {
@@ -125,7 +125,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: 100
                     easing.type: Easing.OutCubic
                 }
             }
@@ -134,7 +134,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: 80
                 }
             }
         }
@@ -149,6 +149,8 @@ ApplicationWindow {
         Rectangle {
             color: Theme.bgPrimary
             focus: true
+
+            StackView.onActivating: forceActiveFocus()
 
             Keys.onPressed: function (event) {
                 switch (event.key) {
@@ -256,6 +258,8 @@ ApplicationWindow {
             color: Theme.bgPrimary
             focus: true
 
+            StackView.onActivating: forceActiveFocus()
+
             Keys.onPressed: function (event) {
                 switch (event.key) {
                 case Qt.Key_1:
@@ -347,6 +351,8 @@ ApplicationWindow {
         Rectangle {
             color: Theme.bgPrimary
             focus: true
+
+            StackView.onActivating: forceActiveFocus()
 
             Keys.onPressed: function (event) {
                 switch (event.key) {
@@ -630,6 +636,8 @@ ApplicationWindow {
         Rectangle {
             color: Theme.bgPrimary
             focus: true
+
+            StackView.onActivating: forceActiveFocus()
 
             Keys.onPressed: function (event) {
                 switch (event.key) {
@@ -960,6 +968,78 @@ ApplicationWindow {
                         horizontalAlignment: Text.AlignHCenter
                     }
 
+                    // Congratulations banner for Hard completion
+                    Rectangle {
+                        id: congratsBanner
+                        Layout.fillWidth: true
+                        Layout.bottomMargin: 20
+                        Layout.preferredHeight: 70
+                        visible: (refreshTrigger, GameBackend.isLevelCompleted(mainWindow.currentLanguage, "hard"))
+
+                        // Premium gradient background
+                        gradient: Gradient {
+                            GradientStop {
+                                position: 0.0
+                                color: "#0d2818"
+                            }
+                            GradientStop {
+                                position: 0.5
+                                color: "#1a4730"
+                            }
+                            GradientStop {
+                                position: 1.0
+                                color: "#0d2818"
+                            }
+                        }
+                        border.width: 2
+                        border.color: Theme.accentGreen
+                        radius: 12
+
+                        // Subtle inner glow
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            radius: 10
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(0.2, 0.8, 0.4, 0.3)
+                        }
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 16
+
+                            // Left trophy with green color
+                            Item {
+                                width: 32
+                                height: 32
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Image {
+                                    id: trophyLeft
+                                    source: "qrc:/qt/qml/rapid_texter/assets/icons/trophy.svg"
+                                    anchors.fill: parent
+                                    visible: false
+                                }
+                                ColorOverlay {
+                                    anchors.fill: trophyLeft
+                                    source: trophyLeft
+                                    color: Theme.accentGreen
+                                }
+                            }
+
+                            Text {
+                                text: "CONGRATULATIONS! All levels completed!"
+                                color: Theme.accentGreen
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeL
+                                font.bold: true
+                                font.letterSpacing: 1
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                    }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.spacingSM
@@ -1062,6 +1142,8 @@ ApplicationWindow {
         Rectangle {
             color: Theme.bgPrimary
             focus: true
+
+            StackView.onActivating: forceActiveFocus()
 
             // Function to return to setup page (skip gameplay)
             function returnToSetup() {
@@ -1287,6 +1369,7 @@ ApplicationWindow {
 
             // Reload data when returning to this page (e.g., after clearing history)
             StackView.onActivating: {
+                forceActiveFocus();
                 loadHistory();
             }
 

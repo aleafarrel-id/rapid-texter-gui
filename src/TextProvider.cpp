@@ -33,6 +33,15 @@
 #include <random>
 #include <ctime>
 
+// Qt includes for resource file support
+#ifdef QT_CORE_LIB
+#include <QFile>
+#include <QTextStream>
+#include <QString>
+#include <QStringList>
+#include <QRegularExpression>
+#endif
+
 // ============================================================================
 // ANONYMOUS NAMESPACE - Helper Functions
 // ============================================================================
@@ -118,7 +127,7 @@ TextProvider::TextProvider() {
  * yang diindeks berdasarkan kode bahasa.
  * 
  * @param language Kode bahasa untuk mengindeks database ("id", "en", "prog")
- * @param filename Path ke file database kata (relatif atau absolut)
+ * @param filename Path ke file database kata (bisa Qt resource path ":/..." atau file path biasa)
  * @return true jika file berhasil dibaca
  * @return false jika file tidak dapat dibuka
  * 
@@ -129,39 +138,67 @@ TextProvider::TextProvider() {
  * - Newline (satu kata per baris)
  * 
  * @par Proses Loading
- * 1. Buka file menggunakan ifstream
- * 2. Baca kata per kata menggunakan operator >>
- * 3. Sanitize setiap kata (hapus karakter non-ASCII)
- * 4. Simpan kata yang valid ke vector
- * 5. Masukkan vector ke map dengan key = language
- * 
- * @par Contoh Penggunaan
- * @code
- * TextProvider provider;
- * provider.loadWords("id", "assets/id.txt");
- * provider.loadWords("en", "assets/en.txt");
- * provider.loadWords("prog", "assets/prog.txt");
- * @endcode
- * 
- * @warning Jika file tidak ditemukan, pesan error akan dicetak ke stderr
- * 
- * @see sanitizeWord()
+ * 1. Cek apakah path adalah Qt resource (dimulai dengan ":/")
+ * 2. Jika Qt resource, gunakan QFile; jika tidak, gunakan ifstream
+ * 3. Baca kata per kata menggunakan operator >>
+ * 4. Sanitize setiap kata (hapus karakter non-ASCII)
+ * 5. Simpan kata yang valid ke vector
+ * 6. Masukkan vector ke map dengan key = language
  */
 bool TextProvider::loadWords(const std::string& language, const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filename << std::endl;
-        return false;
-    }
-
-    std::string word;
     std::vector<std::string> words;
-    // Baca kata per kata (dipisahkan spasi/newline)
-    while (file >> word) {
-        if (!word.empty()) {
-            std::string cleaned = sanitizeWord(word);
-            if (!cleaned.empty()) {  // Pastikan masih ada isi setelah cleaning
-                words.push_back(cleaned);
+    
+    // Check if this is a Qt resource path
+    if (filename.substr(0, 2) == ":/" || filename.substr(0, 4) == "qrc:") {
+        // Use Qt resource handling
+        #ifdef QT_CORE_LIB
+        QString qFilename = QString::fromStdString(filename);
+        // Remove "qrc" prefix if present
+        if (qFilename.startsWith("qrc:")) {
+            qFilename = qFilename.mid(3);
+        }
+        
+        QFile file(qFilename);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            std::cerr << "Failed to open Qt resource: " << filename << std::endl;
+            return false;
+        }
+        
+        QTextStream stream(&file);
+        while (!stream.atEnd()) {
+            QString line = stream.readLine();
+            QStringList lineWords = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+            for (const QString& w : lineWords) {
+                std::string word = w.toStdString();
+                if (!word.empty()) {
+                    std::string cleaned = sanitizeWord(word);
+                    if (!cleaned.empty()) {
+                        words.push_back(cleaned);
+                    }
+                }
+            }
+        }
+        file.close();
+        #else
+        std::cerr << "Qt resource path used but Qt not available: " << filename << std::endl;
+        return false;
+        #endif
+    } else {
+        // Use standard file handling
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open file: " << filename << std::endl;
+            return false;
+        }
+
+        std::string word;
+        // Baca kata per kata (dipisahkan spasi/newline)
+        while (file >> word) {
+            if (!word.empty()) {
+                std::string cleaned = sanitizeWord(word);
+                if (!cleaned.empty()) {
+                    words.push_back(cleaned);
+                }
             }
         }
     }

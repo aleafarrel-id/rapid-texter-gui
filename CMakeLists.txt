@@ -6,14 +6,39 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2)
+# Find Qt packages
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia)
 
 qt_standard_project_setup(REQUIRES 6.8)
 qt_policy(SET QTP0004 OLD)
 
+# C++ Source files for game logic
+set(GAME_LOGIC_SOURCES
+    src/GameBackend.cpp
+    src/TextProvider.cpp
+    src/HistoryManager.cpp
+    src/ProgressManager.cpp
+    src/SettingsManager.cpp
+)
+
+# Header files
+set(GAME_LOGIC_HEADERS
+    include/GameBackend.h
+    include/TextProvider.h
+    include/HistoryManager.h
+    include/ProgressManager.h
+    include/SettingsManager.h
+    include/Stats.h
+)
+
 qt_add_executable(RapidTexterGUI
     main.cpp
+    ${GAME_LOGIC_SOURCES}
+    ${GAME_LOGIC_HEADERS}
 )
+
+# Add include directory for headers
+target_include_directories(RapidTexterGUI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Mark Theme.qml as a singleton
 set_source_files_properties(qml/components/Theme.qml PROPERTIES
@@ -45,7 +70,16 @@ qt_add_qml_module(RapidTexterGUI
         qml/pages/ResetProgressPage.qml
         qml/pages/GameplayPage.qml
     RESOURCES
+        # Fonts
         assets/font/JetBrainsMono.ttf
+        # Word banks
+        assets/en.txt
+        assets/id.txt
+        assets/prog.txt
+        # SFX
+        assets/sfx/true.wav
+        assets/sfx/false.wav
+        # Icons
         assets/icons/globe.svg
         assets/icons/clock.svg
         assets/icons/gamepad.svg
@@ -88,5 +122,5 @@ set_target_properties(RapidTexterGUI PROPERTIES
 )
 
 target_link_libraries(RapidTexterGUI
-    PRIVATE Qt6::Quick Qt6::QuickControls2
+    PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia
 )

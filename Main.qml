@@ -31,7 +31,9 @@ ApplicationWindow {
     property string currentLanguage: "-"
     property string currentTime: "-"
     property string currentMode: "-"
-    property bool sfxEnabled: true
+    property string currentDifficulty: "easy"  // Default difficulty for TextProvider
+    property int currentTargetWPM: 60          // Target WPM for manual mode
+    property bool sfxEnabled: GameBackend.sfxEnabled
 
     property int currentDuration: {
         if (currentTime === "∞")
@@ -52,6 +54,12 @@ ApplicationWindow {
     property bool mediumPassed: false
     property bool hardPassed: false
     property bool programmerCertified: false
+
+    // Last game results (for results page)
+    property real lastWpm: 0
+    property real lastAccuracy: 0
+    property int lastErrors: 0
+    property real lastTimeElapsed: 0
 
     ColumnLayout {
         anchors.fill: parent
@@ -79,6 +87,9 @@ ApplicationWindow {
             initialItem: mainMenuComponent
 
             onCurrentItemChanged: {
+                // Play navigation sound when page changes
+                GameBackend.playCorrectSound();
+
                 // Reset status bar when returning to main menu
                 if (stackView.depth === 1) {
                     mainWindow.resetStatusBar();
@@ -693,6 +704,9 @@ ApplicationWindow {
 
             Keys.onPressed: function (event) {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    // Save WPM and difficulty to mainWindow before starting game
+                    mainWindow.currentTargetWPM = parseInt(wpmInput.text) || 60;
+                    mainWindow.currentDifficulty = "easy";  // Manual mode uses easy difficulty
                     stackView.push(gameplayComponent);
                     event.accepted = true;
                 } else if (event.key === Qt.Key_Escape) {
@@ -790,7 +804,12 @@ ApplicationWindow {
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-right.svg"
                             labelText: "Confirm (ENTER)"
                             variant: "primary"
-                            onClicked: stackView.push(gameplayComponent)
+                            onClicked: {
+                                // Save WPM and difficulty to mainWindow before starting game
+                                mainWindow.currentTargetWPM = parseInt(wpmInput.text) || 60;
+                                mainWindow.currentDifficulty = "easy";
+                                stackView.push(gameplayComponent);
+                            }
                         }
                     }
                 }
@@ -805,11 +824,22 @@ ApplicationWindow {
         id: gameplayComponent
 
         GameplayPage {
-            targetText: "darah salah tidak mulut ada di situ berbunyi melihat sekali lagi"
+            // Get text from word bank using GameBackend
+            // Convert language and difficulty to lowercase for backend
+            targetText: GameBackend.getRandomText(mainWindow.currentLanguage.toLowerCase(), mainWindow.currentDifficulty.toLowerCase(), 30  // Word count
+            )
             timeLimit: mainWindow.currentDuration
             timeRemaining: mainWindow.currentDuration
 
             onGameCompleted: function (wpm, accuracy, errors, timeElapsed) {
+                // Store results for results page
+                mainWindow.lastWpm = wpm;
+                mainWindow.lastAccuracy = accuracy;
+                mainWindow.lastErrors = errors;
+                mainWindow.lastTimeElapsed = timeElapsed;
+
+                // Save to history via GameBackend
+                GameBackend.saveGameResult(wpm, accuracy, errors, mainWindow.currentTargetWPM, mainWindow.currentDifficulty, mainWindow.currentLanguage, mainWindow.currentMode);
                 stackView.push(resultsComponent);
             }
 
@@ -960,11 +990,18 @@ ApplicationWindow {
             color: Theme.bgPrimary
             focus: true
 
+            // Function to return to setup page (skip gameplay)
+            function returnToSetup() {
+                // Pop twice: result -> gameplay -> setup page
+                stackView.pop();  // Pop result page
+                stackView.pop();  // Pop gameplay page
+            }
+
             Keys.onPressed: function (event) {
                 switch (event.key) {
                 case Qt.Key_Return:
                 case Qt.Key_Enter:
-                    stackView.pop();
+                    returnToSetup();
                     event.accepted = true;
                     break;
                 case Qt.Key_H:
@@ -972,7 +1009,7 @@ ApplicationWindow {
                     event.accepted = true;
                     break;
                 case Qt.Key_Escape:
-                    stackView.pop();
+                    returnToSetup();
                     event.accepted = true;
                     break;
                 }
@@ -1015,7 +1052,7 @@ ApplicationWindow {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "84 WPM"
+                            text: Math.round(mainWindow.lastWpm) + " WPM"
                             color: Theme.accentGreen
                             font.family: Theme.fontFamily
                             font.pixelSize: 48
@@ -1033,17 +1070,17 @@ ApplicationWindow {
                             model: [
                                 {
                                     label: "ACCURACY",
-                                    value: "99%",
+                                    value: mainWindow.lastAccuracy.toFixed(1) + "%",
                                     color: Theme.textPrimary
                                 },
                                 {
                                     label: "TIME",
-                                    value: "15.0s",
+                                    value: mainWindow.lastTimeElapsed.toFixed(1) + "s",
                                     color: Theme.textPrimary
                                 },
                                 {
                                     label: "ERRORS",
-                                    value: "1",
+                                    value: mainWindow.lastErrors.toString(),
                                     color: Theme.accentRed
                                 }
                             ]
@@ -1134,7 +1171,7 @@ ApplicationWindow {
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-right.svg"
                             labelText: "Continue (ENTER)"
                             variant: "primary"
-                            onClicked: stackView.pop()
+                            onClicked: returnToSetup()
                         }
                         NavBtn {
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/history.svg"
@@ -1158,6 +1195,23 @@ ApplicationWindow {
             color: Theme.bgPrimary
             focus: true
 
+            // History data from backend
+            property var historyData: []
+            property int currentPage: 1
+            property int totalPages: 1
+            property int totalEntries: 0
+
+            // Load history data from backend
+            function loadHistory() {
+                historyData = GameBackend.getHistoryPage(currentPage, 10);
+                totalPages = GameBackend.getHistoryTotalPages(10);
+                totalEntries = GameBackend.getHistoryTotalEntries();
+            }
+
+            Component.onCompleted: {
+                loadHistory();
+            }
+
             Keys.onPressed: function (event) {
                 switch (event.key) {
                 case Qt.Key_Escape:
@@ -1166,6 +1220,20 @@ ApplicationWindow {
                     break;
                 case Qt.Key_C:
                     stackView.push(resetHistoryComponent);
+                    event.accepted = true;
+                    break;
+                case Qt.Key_1:  // Previous page (per original TUI)
+                    if (currentPage > 1) {
+                        currentPage--;
+                        loadHistory();
+                    }
+                    event.accepted = true;
+                    break;
+                case Qt.Key_2:  // Next page (per original TUI)
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        loadHistory();
+                    }
                     event.accepted = true;
                     break;
                 }
@@ -1214,14 +1282,14 @@ ApplicationWindow {
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Page 1 of 2"
+                        text: "Page " + currentPage + " of " + Math.max(1, totalPages)
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSizeM
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "7 total entries"
+                        text: totalEntries + " total entries"
                         color: Theme.textMuted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSizeS
@@ -1343,41 +1411,7 @@ ApplicationWindow {
                             width: parent.width
                             height: parent.height - 40
                             clip: true
-                            model: [
-                                {
-                                    wpm: 84.8,
-                                    acc: 99.1,
-                                    target: 40,
-                                    errors: 1,
-                                    difficulty: "Easy",
-                                    lang: "ID",
-                                    mode: "Campaign",
-                                    date: "03/01/2026 15:48",
-                                    passed: true
-                                },
-                                {
-                                    wpm: 70.0,
-                                    acc: 93.6,
-                                    target: 40,
-                                    errors: 12,
-                                    difficulty: "Easy",
-                                    lang: "ID",
-                                    mode: "Campaign",
-                                    date: "03/01/2026 14:58",
-                                    passed: true
-                                },
-                                {
-                                    wpm: 69.6,
-                                    acc: 93.0,
-                                    target: 70,
-                                    errors: 13,
-                                    difficulty: "Hard",
-                                    lang: "ID",
-                                    mode: "Campaign",
-                                    date: "02/01/2026 17:58",
-                                    passed: false
-                                }
-                            ]
+                            model: historyData
 
                             delegate: Rectangle {
                                 width: ListView.view.width
@@ -1393,7 +1427,7 @@ ApplicationWindow {
                                 Rectangle {
                                     width: 2
                                     height: parent.height
-                                    color: modelData.passed ? Theme.accentGreen : Theme.accentRed
+                                    color: modelData.wpm >= modelData.targetWPM ? Theme.accentGreen : Theme.accentRed
                                 }
 
                                 RowLayout {
@@ -1406,7 +1440,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 60
                                         text: modelData.wpm.toFixed(1)
-                                        color: modelData.passed ? Theme.accentGreen : Theme.accentRed
+                                        color: modelData.wpm >= modelData.targetWPM ? Theme.accentGreen : Theme.accentRed
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
                                         font.bold: true
@@ -1415,7 +1449,7 @@ ApplicationWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 80
-                                        text: modelData.acc.toFixed(1) + "%"
+                                        text: modelData.accuracy.toFixed(1) + "%"
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
@@ -1424,7 +1458,7 @@ ApplicationWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 60
-                                        text: modelData.target
+                                        text: modelData.targetWPM
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
@@ -1451,7 +1485,7 @@ ApplicationWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 50
-                                        text: modelData.lang
+                                        text: modelData.language
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
@@ -1469,7 +1503,7 @@ ApplicationWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 130
-                                        text: modelData.date
+                                        text: modelData.timestamp
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
@@ -1487,21 +1521,36 @@ ApplicationWindow {
                     }
                 }
 
-                // Pagination
+                // Pagination navigation
                 Row {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: Theme.spacingL
                     spacing: Theme.spacingM
+                    visible: totalPages > 1
 
                     NavBtn {
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
-                        labelText: "Previous"
-                        enabled: false
-                        opacity: 0.4
+                        labelText: "Previous [1]"
+                        enabled: currentPage > 1
+                        opacity: enabled ? 1.0 : 0.4
+                        onClicked: {
+                            if (currentPage > 1) {
+                                currentPage--;
+                                loadHistory();
+                            }
+                        }
                     }
                     NavBtn {
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-right.svg"
-                        labelText: "Next"
+                        labelText: "Next [2]"
+                        enabled: currentPage < totalPages
+                        opacity: enabled ? 1.0 : 0.4
+                        onClicked: {
+                            if (currentPage < totalPages) {
+                                currentPage++;
+                                loadHistory();
+                            }
+                        }
                     }
                 }
 

@@ -1998,15 +1998,51 @@ ApplicationWindow {
         id: resetHistoryComponent
 
         Rectangle {
+            id: resetHistoryPage
             color: Theme.bgPrimary
             focus: true
 
+            // State machine for loading animation
+            property string pageState: "confirm" // "confirm", "processing", "success"
+
+            // Timer for processing delay (500ms like TUI)
+            Timer {
+                id: rhProcessingTimer
+                interval: 500
+                repeat: false
+                onTriggered: {
+                    resetHistoryPage.pageState = "success";
+                    rhSuccessTimer.start();
+                }
+            }
+
+            // Timer for success display (1 second like TUI)
+            Timer {
+                id: rhSuccessTimer
+                interval: 1000
+                repeat: false
+                onTriggered: {
+                    stackView.pop();
+                }
+            }
+
+            function startProcessing() {
+                pageState = "processing";
+                GameBackend.clearHistory();
+                rhProcessingTimer.start();
+            }
+
             Keys.onPressed: function (event) {
+                // Disable keyboard input during processing/success
+                if (pageState !== "confirm") {
+                    event.accepted = true;
+                    return;
+                }
+
                 switch (event.key) {
                 case Qt.Key_Return:
                 case Qt.Key_Enter:
-                    GameBackend.clearHistory();
-                    stackView.pop();
+                    startProcessing();
                     event.accepted = true;
                     break;
                 case Qt.Key_Escape:
@@ -2016,10 +2052,20 @@ ApplicationWindow {
                 }
             }
 
+            // Confirmation UI (existing)
             Item {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - Theme.paddingHuge * 2, Theme.maxContentWidth)
                 height: rhCol.implicitHeight
+                visible: resetHistoryPage.pageState === "confirm"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
 
                 ColumnLayout {
                     id: rhCol
@@ -2113,11 +2159,138 @@ ApplicationWindow {
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/trash.svg"
                             labelText: "Confirm (ENTER)"
                             variant: "danger"
-                            onClicked: {
-                                GameBackend.clearHistory();
-                                stackView.pop();
+                            onClicked: resetHistoryPage.startProcessing()
+                        }
+                    }
+                }
+            }
+
+            // Processing Overlay
+            Item {
+                anchors.centerIn: parent
+                visible: resetHistoryPage.pageState === "processing"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Theme.spacingXL
+
+                    // Spinning loader
+                    Item {
+                        width: 48
+                        height: 48
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            id: rhLoaderIcon
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
+                            anchors.fill: parent
+                            sourceSize: Qt.size(48, 48)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            id: rhLoaderOverlay
+                            anchors.fill: rhLoaderIcon
+                            source: rhLoaderIcon
+                            color: Theme.accentYellow
+
+                            RotationAnimation on rotation {
+                                from: 0
+                                to: 360
+                                duration: 1000
+                                loops: Animation.Infinite
+                                running: resetHistoryPage.pageState === "processing"
                             }
                         }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Clearing history..."
+                        color: Theme.accentYellow
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXL
+                        font.bold: true
+                    }
+                }
+            }
+
+            // Success Overlay
+            Item {
+                anchors.centerIn: parent
+                visible: resetHistoryPage.pageState === "success"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Theme.spacingXL
+
+                    // Checkmark icon with glow
+                    Item {
+                        width: 48
+                        height: 48
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        // Glow effect
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 64
+                            height: 64
+                            radius: 32
+                            color: Theme.accentGreen
+                            opacity: 0.2
+
+                            SequentialAnimation on scale {
+                                running: resetHistoryPage.pageState === "success"
+                                loops: Animation.Infinite
+                                NumberAnimation {
+                                    to: 1.2
+                                    duration: 500
+                                    easing.type: Easing.OutQuad
+                                }
+                                NumberAnimation {
+                                    to: 1.0
+                                    duration: 500
+                                    easing.type: Easing.InQuad
+                                }
+                            }
+                        }
+
+                        Image {
+                            id: rhSuccessIcon
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/check.svg"
+                            anchors.fill: parent
+                            sourceSize: Qt.size(48, 48)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: rhSuccessIcon
+                            source: rhSuccessIcon
+                            color: Theme.accentGreen
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "History cleared successfully!"
+                        color: Theme.accentGreen
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXL
+                        font.bold: true
                     }
                 }
             }
@@ -2131,15 +2304,51 @@ ApplicationWindow {
         id: resetProgressComponent
 
         Rectangle {
+            id: resetProgressPage
             color: Theme.bgPrimary
             focus: true
 
+            // State machine for loading animation
+            property string pageState: "confirm" // "confirm", "processing", "success"
+
+            // Timer for processing delay (500ms like TUI)
+            Timer {
+                id: rpProcessingTimer
+                interval: 500
+                repeat: false
+                onTriggered: {
+                    resetProgressPage.pageState = "success";
+                    rpSuccessTimer.start();
+                }
+            }
+
+            // Timer for success display (1 second like TUI)
+            Timer {
+                id: rpSuccessTimer
+                interval: 1000
+                repeat: false
+                onTriggered: {
+                    stackView.pop();
+                }
+            }
+
+            function startProcessing() {
+                pageState = "processing";
+                GameBackend.resetProgress();
+                rpProcessingTimer.start();
+            }
+
             Keys.onPressed: function (event) {
+                // Disable keyboard input during processing/success
+                if (pageState !== "confirm") {
+                    event.accepted = true;
+                    return;
+                }
+
                 switch (event.key) {
                 case Qt.Key_Return:
                 case Qt.Key_Enter:
-                    GameBackend.resetProgress();
-                    stackView.pop();
+                    startProcessing();
                     event.accepted = true;
                     break;
                 case Qt.Key_Escape:
@@ -2149,10 +2358,20 @@ ApplicationWindow {
                 }
             }
 
+            // Confirmation UI (existing)
             Item {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - Theme.paddingHuge * 2, Theme.maxContentWidth)
                 height: rpCol.implicitHeight
+                visible: resetProgressPage.pageState === "confirm"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
 
                 ColumnLayout {
                     id: rpCol
@@ -2253,11 +2472,138 @@ ApplicationWindow {
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                             labelText: "Confirm (ENTER)"
                             variant: "danger"
-                            onClicked: {
-                                GameBackend.resetProgress();
-                                stackView.pop();
+                            onClicked: resetProgressPage.startProcessing()
+                        }
+                    }
+                }
+            }
+
+            // Processing Overlay
+            Item {
+                anchors.centerIn: parent
+                visible: resetProgressPage.pageState === "processing"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Theme.spacingXL
+
+                    // Spinning loader
+                    Item {
+                        width: 48
+                        height: 48
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            id: rpLoaderIcon
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
+                            anchors.fill: parent
+                            sourceSize: Qt.size(48, 48)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            id: rpLoaderOverlay
+                            anchors.fill: rpLoaderIcon
+                            source: rpLoaderIcon
+                            color: Theme.accentYellow
+
+                            RotationAnimation on rotation {
+                                from: 0
+                                to: 360
+                                duration: 1000
+                                loops: Animation.Infinite
+                                running: resetProgressPage.pageState === "processing"
                             }
                         }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Resetting progress..."
+                        color: Theme.accentYellow
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXL
+                        font.bold: true
+                    }
+                }
+            }
+
+            // Success Overlay
+            Item {
+                anchors.centerIn: parent
+                visible: resetProgressPage.pageState === "success"
+                opacity: visible ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Theme.spacingXL
+
+                    // Checkmark icon with glow
+                    Item {
+                        width: 48
+                        height: 48
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        // Glow effect
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 64
+                            height: 64
+                            radius: 32
+                            color: Theme.accentGreen
+                            opacity: 0.2
+
+                            SequentialAnimation on scale {
+                                running: resetProgressPage.pageState === "success"
+                                loops: Animation.Infinite
+                                NumberAnimation {
+                                    to: 1.2
+                                    duration: 500
+                                    easing.type: Easing.OutQuad
+                                }
+                                NumberAnimation {
+                                    to: 1.0
+                                    duration: 500
+                                    easing.type: Easing.InQuad
+                                }
+                            }
+                        }
+
+                        Image {
+                            id: rpSuccessIcon
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/check.svg"
+                            anchors.fill: parent
+                            sourceSize: Qt.size(48, 48)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: rpSuccessIcon
+                            source: rpSuccessIcon
+                            color: Theme.accentGreen
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Progress reset successfully!"
+                        color: Theme.accentGreen
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXL
+                        font.bold: true
                     }
                 }
             }

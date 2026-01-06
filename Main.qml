@@ -1399,7 +1399,23 @@ ApplicationWindow {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: mainWindow.lastLevelPassed ? (mainWindow.currentMode === "Campaign" ? "✓ LEVEL PASSED!" : "✓ TARGET REACHED!") : (mainWindow.currentMode === "Campaign" ? "✗ LEVEL FAILED" : "✗ TARGET NOT REACHED")
+                                text: {
+                                    if (mainWindow.currentMode === "Campaign") {
+                                        if (mainWindow.lastLevelPassed) {
+                                            if (mainWindow.currentDifficulty === "hard") {
+                                                return "HARD COMPLETED!";
+                                            } else if (mainWindow.currentDifficulty === "programmer") {
+                                                return "PROGRAMMER MODE COMPLETED!";
+                                            } else {
+                                                return "✓ LEVEL PASSED!";
+                                            }
+                                        } else {
+                                            return "✗ LEVEL FAILED";
+                                        }
+                                    } else {
+                                        return mainWindow.lastLevelPassed ? "✓ TARGET REACHED!" : "✗ TARGET NOT REACHED";
+                                    }
+                                }
                                 color: mainWindow.lastLevelPassed ? Theme.accentGreen : Theme.accentRed
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeXXL
@@ -1408,10 +1424,43 @@ ApplicationWindow {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: mainWindow.lastLevelPassed ? "Great job! You've achieved the requirements." : (mainWindow.currentMode === "Campaign" ? "Keep practicing to unlock the next level." : "Keep practicing to reach your target WPM.")
+                                text: {
+                                    if (mainWindow.currentMode === "Campaign") {
+                                        if (mainWindow.lastLevelPassed) {
+                                            // Success messages based on difficulty
+                                            if (mainWindow.currentDifficulty === "easy") {
+                                                return "Medium level is now unlocked! Ready for a bigger challenge?";
+                                            } else if (mainWindow.currentDifficulty === "medium") {
+                                                return "Hard level is now unlocked! You're almost at the top!";
+                                            } else if (mainWindow.currentDifficulty === "hard") {
+                                                return "Congratulations! You've mastered the Campaign mode!";
+                                            } else if (mainWindow.currentDifficulty === "programmer") {
+                                                return "Amazing! You've conquered the Programmer Mode challenge!";
+                                            }
+                                            return "Great job! You've achieved the requirements.";
+                                        } else {
+                                            // Failure messages based on difficulty
+                                            if (mainWindow.currentDifficulty === "easy") {
+                                                return "You need 40 WPM with 80% accuracy to unlock Medium level.";
+                                            } else if (mainWindow.currentDifficulty === "medium") {
+                                                return "You need 60 WPM with 90% accuracy to unlock Hard level.";
+                                            } else if (mainWindow.currentDifficulty === "hard") {
+                                                return "You need 70 WPM with 95% accuracy to complete Hard level.";
+                                            } else if (mainWindow.currentDifficulty === "programmer") {
+                                                return "You need 50 WPM with 85% accuracy to complete Programmer Mode.";
+                                            }
+                                            return "Keep practicing to unlock the next level.";
+                                        }
+                                    } else {
+                                        return mainWindow.lastLevelPassed ? "Great job! You've reached your target WPM." : "Keep practicing to reach your target WPM.";
+                                    }
+                                }
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeM
+                                wrapMode: Text.WordWrap
+                                horizontalAlignment: Text.AlignHCenter
+                                Layout.fillWidth: true
                             }
                         }
                     }
@@ -2049,7 +2098,28 @@ ApplicationWindow {
             // Mode Filter Dropdown Overlay - placed at Rectangle level for proper z-ordering
             Rectangle {
                 id: modeDropdownMenu
-                visible: showModeDropdown
+                visible: dropdownOpacity > 0
+                property real dropdownOpacity: showModeDropdown ? 1 : 0
+                property real dropdownScale: showModeDropdown ? 1 : 0.95
+
+                opacity: dropdownOpacity
+                scale: dropdownScale
+                transformOrigin: Item.Top
+
+                Behavior on dropdownOpacity {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Behavior on dropdownScale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
                 x: {
                     // Get position relative to the Rectangle
                     var pos = modeHeaderItem.mapToItem(parent, 0, 0);
@@ -2083,10 +2153,17 @@ ApplicationWindow {
                         Text {
                             anchors.centerIn: parent
                             text: "All"
-                            color: modeFilter === "All" ? Theme.accentBlue : Theme.textPrimary
+                            color: allOpt2Mouse.containsMouse ? Theme.accentBlue : (modeFilter === "All" ? Theme.accentBlue : Theme.textPrimary)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeS
                             font.bold: modeFilter === "All"
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
                         }
 
                         MouseArea {
@@ -2108,10 +2185,17 @@ ApplicationWindow {
                         Text {
                             anchors.centerIn: parent
                             text: "Manual"
-                            color: modeFilter === "Manual" ? Theme.accentBlue : Theme.textPrimary
+                            color: manualOpt2Mouse.containsMouse ? Theme.accentBlue : (modeFilter === "Manual" ? Theme.accentBlue : Theme.textPrimary)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeS
                             font.bold: modeFilter === "Manual"
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
                         }
 
                         MouseArea {
@@ -2133,10 +2217,17 @@ ApplicationWindow {
                         Text {
                             anchors.centerIn: parent
                             text: "Campaign"
-                            color: modeFilter === "Campaign" ? Theme.accentBlue : Theme.textPrimary
+                            color: campaignOpt2Mouse.containsMouse ? Theme.accentBlue : (modeFilter === "Campaign" ? Theme.accentBlue : Theme.textPrimary)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeS
                             font.bold: modeFilter === "Campaign"
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
                         }
 
                         MouseArea {

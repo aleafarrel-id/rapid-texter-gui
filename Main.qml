@@ -1571,13 +1571,26 @@ ApplicationWindow {
             property string sortBy: GameBackend.historySortBy
             property bool sortAscending: GameBackend.historySortAscending
 
-            // Mode filter (session-only, not persisted)
+            // Filters (session-only, not persisted)
             property string modeFilter: "All"
+            property string languageFilter: "All"
+            property string difficultyFilter: "All"
+
+            // Dropdown visibility states
             property bool showModeDropdown: false
+            property bool showLanguageDropdown: false
+            property bool showDifficultyDropdown: false
+
+            // Close all dropdowns
+            function closeAllDropdowns() {
+                showModeDropdown = false;
+                showLanguageDropdown = false;
+                showDifficultyDropdown = false;
+            }
 
             // Load history data from backend with sorting and filtering
             function loadHistory() {
-                historyData = GameBackend.getHistoryPageSorted(currentPage, 10, sortBy, sortAscending, modeFilter);
+                historyData = GameBackend.getHistoryPageSorted(currentPage, 10, sortBy, sortAscending, modeFilter, languageFilter, difficultyFilter);
                 totalPages = GameBackend.getHistoryTotalPages(10);
                 totalEntries = GameBackend.getHistoryTotalEntries();
             }
@@ -1592,7 +1605,7 @@ ApplicationWindow {
                     // New column, set default direction
                     sortBy = column;
                     GameBackend.historySortBy = column;
-                    // Default: date = descending (newest first), wpm = descending (highest first)
+                    // Default: descending (highest/newest first)
                     sortAscending = false;
                     GameBackend.historySortAscending = false;
                 }
@@ -1603,8 +1616,24 @@ ApplicationWindow {
             // Set mode filter
             function setModeFilter(mode) {
                 modeFilter = mode;
-                showModeDropdown = false;
+                closeAllDropdowns();
                 currentPage = 1; // Reset to first page
+                loadHistory();
+            }
+
+            // Set language filter
+            function setLanguageFilter(lang) {
+                languageFilter = lang;
+                closeAllDropdowns();
+                currentPage = 1;
+                loadHistory();
+            }
+
+            // Set difficulty filter
+            function setDifficultyFilter(diff) {
+                difficultyFilter = diff;
+                closeAllDropdowns();
+                currentPage = 1;
                 loadHistory();
             }
 
@@ -1781,20 +1810,61 @@ ApplicationWindow {
                                         onClicked: toggleSort("wpm")
                                     }
                                 }
-                                Text {
+                                // ACCURACY Header - Sortable
+                                Item {
                                     Layout.fillWidth: true
                                     Layout.preferredWidth: 80
-                                    text: "ACCURACY"
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeS
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
+                                    height: parent.height
+
+                                    property bool isHovered: accuracyHeaderMouse.containsMouse
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: "ACCURACY"
+                                            color: parent.parent.isHovered ? Theme.accentBlue : (sortBy === "accuracy" ? Theme.accentBlue : Theme.textSecondary)
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSizeS
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        // Sort indicator
+                                        Item {
+                                            width: 12
+                                            height: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: sortBy === "accuracy"
+
+                                            Image {
+                                                id: accuracySortIcon
+                                                source: sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                                                anchors.fill: parent
+                                                sourceSize: Qt.size(12, 12)
+                                                visible: false
+                                            }
+                                            ColorOverlay {
+                                                anchors.fill: accuracySortIcon
+                                                source: accuracySortIcon
+                                                color: Theme.accentBlue
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: accuracyHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: toggleSort("accuracy")
+                                    }
                                 }
                                 Text {
                                     Layout.fillWidth: true
-                                    Layout.preferredWidth: 60
-                                    text: "TARGET"
+                                    Layout.preferredWidth: 70
+                                    text: "TARGET WPM"
                                     color: Theme.textSecondary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSizeS
@@ -1811,25 +1881,113 @@ ApplicationWindow {
                                     font.bold: true
                                     horizontalAlignment: Text.AlignHCenter
                                 }
-                                Text {
+                                // DIFFICULTY Header - Filterable
+                                Item {
+                                    id: difficultyHeaderItem
                                     Layout.fillWidth: true
                                     Layout.preferredWidth: 80
-                                    text: "DIFFICULTY"
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeS
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
+                                    height: parent.height
+
+                                    property bool isHovered: difficultyHeaderMouse.containsMouse
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: difficultyFilter === "All" ? "DIFFICULTY" : difficultyFilter.toUpperCase()
+                                            color: difficultyHeaderItem.isHovered ? Theme.accentBlue : (difficultyFilter !== "All" ? Theme.accentBlue : Theme.textSecondary)
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSizeS
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        // Dropdown indicator
+                                        Item {
+                                            width: 12
+                                            height: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Image {
+                                                id: difficultyDropdownIcon
+                                                source: showDifficultyDropdown ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                                                anchors.fill: parent
+                                                sourceSize: Qt.size(12, 12)
+                                                visible: false
+                                            }
+                                            ColorOverlay {
+                                                anchors.fill: difficultyDropdownIcon
+                                                source: difficultyDropdownIcon
+                                                color: difficultyHeaderItem.isHovered ? Theme.accentBlue : (difficultyFilter !== "All" ? Theme.accentBlue : Theme.textSecondary)
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: difficultyHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            closeAllDropdowns();
+                                            showDifficultyDropdown = !showDifficultyDropdown;
+                                        }
+                                    }
                                 }
-                                Text {
+                                // LANG Header - Filterable
+                                Item {
+                                    id: languageHeaderItem
                                     Layout.fillWidth: true
                                     Layout.preferredWidth: 50
-                                    text: "LANG"
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeS
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
+                                    height: parent.height
+
+                                    property bool isHovered: languageHeaderMouse.containsMouse
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: languageFilter === "All" ? "LANG" : languageFilter.toUpperCase()
+                                            color: languageHeaderItem.isHovered ? Theme.accentBlue : (languageFilter !== "All" ? Theme.accentBlue : Theme.textSecondary)
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSizeS
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        // Dropdown indicator
+                                        Item {
+                                            width: 12
+                                            height: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Image {
+                                                id: languageDropdownIcon
+                                                source: showLanguageDropdown ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                                                anchors.fill: parent
+                                                sourceSize: Qt.size(12, 12)
+                                                visible: false
+                                            }
+                                            ColorOverlay {
+                                                anchors.fill: languageDropdownIcon
+                                                source: languageDropdownIcon
+                                                color: languageHeaderItem.isHovered ? Theme.accentBlue : (languageFilter !== "All" ? Theme.accentBlue : Theme.textSecondary)
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: languageHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            closeAllDropdowns();
+                                            showLanguageDropdown = !showLanguageDropdown;
+                                        }
+                                    }
                                 }
                                 // MODE Header - Filterable
                                 Item {
@@ -1879,7 +2037,10 @@ ApplicationWindow {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: showModeDropdown = !showModeDropdown
+                                        onClicked: {
+                                            closeAllDropdowns();
+                                            showModeDropdown = !showModeDropdown;
+                                        }
                                     }
                                 }
                                 // DATE/TIME Header - Sortable
@@ -2017,7 +2178,7 @@ ApplicationWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 60
-                                        text: modelData.wpm.toFixed(1)
+                                        text: Math.round(modelData.wpm)
                                         color: modelData.wpm >= modelData.targetWPM ? Theme.accentGreen : Theme.accentRed
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM
@@ -2035,7 +2196,7 @@ ApplicationWindow {
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        Layout.preferredWidth: 60
+                                        Layout.preferredWidth: 70
                                         text: modelData.targetWPM
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
@@ -2154,9 +2315,9 @@ ApplicationWindow {
             MouseArea {
                 id: dropdownBackgroundOverlay
                 anchors.fill: parent
-                visible: showModeDropdown
+                visible: showModeDropdown || showLanguageDropdown || showDifficultyDropdown
                 z: 9998
-                onClicked: showModeDropdown = false
+                onClicked: closeAllDropdowns()
             }
 
             // Mode Filter Dropdown Overlay - placed at Rectangle level for proper z-ordering
@@ -2300,6 +2461,164 @@ ApplicationWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: setModeFilter("Campaign")
+                        }
+                    }
+                }
+            }
+
+            // Language Filter Dropdown
+            Rectangle {
+                id: languageDropdownMenu
+                visible: langDropdownOpacity > 0
+                property real langDropdownOpacity: showLanguageDropdown ? 1 : 0
+                property real langDropdownScale: showLanguageDropdown ? 1 : 0.95
+
+                opacity: langDropdownOpacity
+                scale: langDropdownScale
+                transformOrigin: Item.Top
+
+                Behavior on langDropdownOpacity {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+                Behavior on langDropdownScale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                x: {
+                    var pos = languageHeaderItem.mapToItem(parent, 0, 0);
+                    return pos.x + (languageHeaderItem.width - width) / 2;
+                }
+                y: {
+                    var pos = languageHeaderItem.mapToItem(parent, 0, 0);
+                    return pos.y + languageHeaderItem.height + 4;
+                }
+                width: 90
+                height: langDropdownCol.implicitHeight + Theme.paddingM * 2
+                color: Theme.bgSecondary
+                border.width: 1
+                border.color: Theme.borderPrimary
+                radius: 6
+                z: 9999
+
+                Column {
+                    id: langDropdownCol
+                    anchors.fill: parent
+                    anchors.margins: Theme.paddingM
+                    spacing: 2
+
+                    Repeater {
+                        model: ["All", "ID", "EN"]
+                        Rectangle {
+                            width: langDropdownCol.width
+                            height: 30
+                            color: langOptMouse.containsMouse ? Theme.bgHover : "transparent"
+                            radius: 4
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData
+                                color: langOptMouse.containsMouse ? Theme.accentBlue : (languageFilter === modelData ? Theme.accentBlue : Theme.textPrimary)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeS
+                                font.bold: languageFilter === modelData
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutQuad
+                                    }
+                                }
+                            }
+                            MouseArea {
+                                id: langOptMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: setLanguageFilter(modelData)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Difficulty Filter Dropdown
+            Rectangle {
+                id: difficultyDropdownMenu
+                visible: diffDropdownOpacity > 0
+                property real diffDropdownOpacity: showDifficultyDropdown ? 1 : 0
+                property real diffDropdownScale: showDifficultyDropdown ? 1 : 0.95
+
+                opacity: diffDropdownOpacity
+                scale: diffDropdownScale
+                transformOrigin: Item.Top
+
+                Behavior on diffDropdownOpacity {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+                Behavior on diffDropdownScale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                x: {
+                    var pos = difficultyHeaderItem.mapToItem(parent, 0, 0);
+                    return pos.x + (difficultyHeaderItem.width - width) / 2;
+                }
+                y: {
+                    var pos = difficultyHeaderItem.mapToItem(parent, 0, 0);
+                    return pos.y + difficultyHeaderItem.height + 4;
+                }
+                width: 110
+                height: diffDropdownCol.implicitHeight + Theme.paddingM * 2
+                color: Theme.bgSecondary
+                border.width: 1
+                border.color: Theme.borderPrimary
+                radius: 6
+                z: 9999
+
+                Column {
+                    id: diffDropdownCol
+                    anchors.fill: parent
+                    anchors.margins: Theme.paddingM
+                    spacing: 2
+
+                    Repeater {
+                        model: ["All", "Easy", "Medium", "Hard", "Programmer"]
+                        Rectangle {
+                            width: diffDropdownCol.width
+                            height: 30
+                            color: diffOptMouse.containsMouse ? Theme.bgHover : "transparent"
+                            radius: 4
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData
+                                color: diffOptMouse.containsMouse ? Theme.accentBlue : (difficultyFilter === modelData ? Theme.accentBlue : Theme.textPrimary)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeS
+                                font.bold: difficultyFilter === modelData
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutQuad
+                                    }
+                                }
+                            }
+                            MouseArea {
+                                id: diffOptMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: setDifficultyFilter(modelData)
+                            }
                         }
                     }
                 }

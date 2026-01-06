@@ -263,7 +263,7 @@ QVariantList GameBackend::getHistoryPage(int pageNumber, int pageSize)
     return result;
 }
 
-QVariantList GameBackend::getHistoryPageSorted(int pageNumber, int pageSize, const QString& sortBy, bool ascending, const QString& modeFilter)
+QVariantList GameBackend::getHistoryPageSorted(int pageNumber, int pageSize, const QString& sortBy, bool ascending, const QString& modeFilter, const QString& languageFilter, const QString& difficultyFilter)
 {
     // Get all entries first, then filter, sort, then paginate
     int totalEntries = m_historyManager.getTotalEntries();
@@ -275,17 +275,33 @@ QVariantList GameBackend::getHistoryPageSorted(int pageNumber, int pageSize, con
     int allPageSize = totalEntries;
     std::vector<HistoryEntry> allEntries = m_historyManager.getPage(1, allPageSize);
     
-    // Filter by mode if not "All"
+    // Filter by mode, language, and difficulty
     std::vector<HistoryEntry> filteredEntries;
-    if (modeFilter != "All" && !modeFilter.isEmpty()) {
-        std::string modeStr = modeFilter.toStdString();
-        for (const auto& entry : allEntries) {
-            if (entry.mode == modeStr) {
-                filteredEntries.push_back(entry);
+    for (const auto& entry : allEntries) {
+        // Mode filter
+        if (modeFilter != "All" && !modeFilter.isEmpty()) {
+            if (entry.mode != modeFilter.toStdString()) {
+                continue;
             }
         }
-    } else {
-        filteredEntries = allEntries;
+        
+        // Language filter (case-insensitive)
+        if (languageFilter != "All" && !languageFilter.isEmpty()) {
+            QString entryLang = QString::fromStdString(entry.language).toUpper();
+            if (entryLang != languageFilter.toUpper()) {
+                continue;
+            }
+        }
+        
+        // Difficulty filter (case-insensitive) 
+        if (difficultyFilter != "All" && !difficultyFilter.isEmpty()) {
+            QString entryDiff = QString::fromStdString(entry.difficulty).toLower();
+            if (entryDiff != difficultyFilter.toLower()) {
+                continue;
+            }
+        }
+        
+        filteredEntries.push_back(entry);
     }
     
     if (filteredEntries.empty()) {
@@ -297,6 +313,11 @@ QVariantList GameBackend::getHistoryPageSorted(int pageNumber, int pageSize, con
         std::sort(filteredEntries.begin(), filteredEntries.end(),
             [ascending](const HistoryEntry& a, const HistoryEntry& b) {
                 return ascending ? (a.wpm < b.wpm) : (a.wpm > b.wpm);
+            });
+    } else if (sortBy == "accuracy") {
+        std::sort(filteredEntries.begin(), filteredEntries.end(),
+            [ascending](const HistoryEntry& a, const HistoryEntry& b) {
+                return ascending ? (a.accuracy < b.accuracy) : (a.accuracy > b.accuracy);
             });
     } else {
         // Sort by date (timestamp) - default

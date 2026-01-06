@@ -137,15 +137,17 @@ public:
     Q_INVOKABLE QVariantList getHistoryPage(int pageNumber, int pageSize = 5);
 
     /**
-     * @brief Mendapatkan halaman history dengan sorting
+     * @brief Mendapatkan halaman history dengan sorting dan filtering
      * @param pageNumber Nomor halaman (1-based)
      * @param pageSize Jumlah entry per halaman
-     * @param sortBy Field untuk sorting ("date" atau "wpm")
+     * @param sortBy Field untuk sorting ("date", "wpm", atau "accuracy")
      * @param ascending true untuk ascending, false untuk descending
      * @param modeFilter Filter mode ("All", "Manual", "Campaign")
+     * @param languageFilter Filter bahasa ("All", "ID", "EN", "PROG")
+     * @param difficultyFilter Filter difficulty ("All", "Easy", "Medium", "Hard", "Programmer")
      * @return List of sorted history entries sebagai QVariantList
      */
-    Q_INVOKABLE QVariantList getHistoryPageSorted(int pageNumber, int pageSize, const QString& sortBy, bool ascending, const QString& modeFilter = "All");
+    Q_INVOKABLE QVariantList getHistoryPageSorted(int pageNumber, int pageSize, const QString& sortBy, bool ascending, const QString& modeFilter = "All", const QString& languageFilter = "All", const QString& difficultyFilter = "All");
 
     /**
      * @brief Mendapatkan total halaman history

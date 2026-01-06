@@ -7,123 +7,123 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**Uji kecepatan jari dan ketepatan pikiran Anda dengan tampilan modern.** Rapid Texter kini hadir dengan antarmuka **GUI (Graphical User Interface)** yang memukau, animasi halus, dan pengalaman pengguna yang lebih intuitif.
+**Test your finger speed and mental accuracy with a modern interface.** Rapid Texter now features a stunning **GUI (Graphical User Interface)**, smooth animations, and a more intuitive user experience.
 
-[Fitur](#-fitur-utama) • [Download](#-download--instalasi) • [Cara Build](#%EF%B8%8F-cara-build-dari-source) • [Kontribusi](#-lisensi)
+[Features](#-key-features) • [Download](#-download--installation) • [Build](#%EF%B8%8F-build-from-source) • [Contribute](#-license)
 
 </div>
 
 ---
 
-## ⚡ Fitur Utama
+## ⚡ Key Features
 
-* **✨ Modern GUI:** Dibangun menggunakan **Qt/QML 6.8**, menghadirkan tampilan yang estetis dan responsif.
-* **🌐 Multi-Bahasa:** Tersedia mode Bahasa Indonesia & Bahasa Inggris.
-* **💻 Mode Programmer:** Latih pengetikan simbol dan sintaks koding (`#include`, `std::vector`, dll).
-* **📊 Statistik Visual:** Pantau WPM (*Words Per Minute*), Akurasi, dan Grafik Progress dengan tampilan visual yang menarik.
-* **🎨 Tema & Animasi:** Transisi antar menu yang halus dan desain antarmuka yang nyaman di mata.
-* **🎵 Sound Effects:** Umpan balik audio yang memuaskan saat mengetik benar (ding!) atau salah.
-* **🖱️ Mouse & Keyboard Friendly:** Navigasi menu bisa menggunakan mouse atau tetap dengan keyboard untuk kecepatan.
+* **✨ Modern GUI:** Built with **Qt/QML 6.8**, delivering an aesthetic and responsive interface.
+* **🌐 Multi-Language:** Available in Indonesian & English modes.
+* **💻 Programmer Mode:** Practice typing symbols and coding syntax (`#include`, `std::vector`, etc.).
+* **📊 Visual Statistics:** Monitor WPM (*Words Per Minute*), Accuracy, and Progress Charts with attractive visuals.
+* **🎨 Themes & Animations:** Smooth menu transitions and eye-comfortable interface design.
+* **🎵 Sound Effects:** Satisfying audio feedback when typing correctly (ding!) or incorrectly.
+* **🖱️ Mouse & Keyboard Friendly:** Navigate menus using the mouse or stick to the keyboard for speed.
 
 ---
 
-## 📥 Download & Instalasi
+## 📥 Download & Installation
 
-Cara termudah untuk menggunakan Rapid Texter adalah dengan mengunduh installer yang sudah kami sediakan.
+The easiest way to use Rapid Texter is by downloading the provided installer.
 
 ### 🪟 Windows (Recommended)
-1. Buka halaman **[Releases](https://github.com/aleafarrel-id/rapidtexter-gui/releases)** terbaru.
-2. Download file `RapidTexterGUI_win64-Setup.exe`.
-3. Jalankan file `.exe` dan ikuti petunjuk instalasi.
-4. Aplikasi siap digunakan! Shortcut akan tersedia di Desktop dan Start Menu.
+1. Go to the latest **[Releases](https://github.com/aleafarrel-id/rapidtexter-gui/releases)** page.
+2. Download the `RapidTexterGUI_win64-Setup.exe` file.
+3. Run the `.exe` file and follow the installation instructions.
+4. The application is ready to use! A shortcut will be available on your Desktop and Start Menu.
 
 ### 🐧 Linux (AppImage)
-1. Download file `.AppImage` dari halaman Releases.
-2. Berikan izin eksekusi: `chmod +x RapidTexterGUI-x86_64.AppImage`.
-3. Jalankan aplikasinya!
+1. Download the `.AppImage` file from the Releases page.
+2. Grant execution permission: `chmod +x RapidTexterGUI-x86_64.AppImage`.
+3. Run the application!
 
 ---
 
-## 🎮 Cara Menggunakan Aplikasi
+## 🎮 How to Use
 
-### 1. Menu Utama
-Tampilan awal yang elegan memudahkan Anda memilih mode:
-- **Play Game**: Mulai permainan baru.
-- **History**: Lihat grafik perkembangan kecepatan mengetik Anda.
-- **Settings**: Atur efek suara dan preferensi lainnya.
+### 1. Main Menu
+An elegant start screen allows you to choose your mode:
+- **Play Game**: Start a new game.
+- **History**: View your typing speed progress charts.
+- **Settings**: Adjust sound effects and other preferences.
 
-### 2. Kustomisasi Permainan
-Sebelum mulai, Anda bisa mengatur:
-- **Bahasa**: Indonesia (ID) atau English (EN).
-- **Waktu**: 15s, 30s, 60s, atau Custom.
+### 2. Game Customization
+Before starting, you can configure:
+- **Language**: Indonesia (ID) or English (EN).
+- **Time**: 15s, 30s, 60s, or Custom.
 - **Mode**:
-    - **Manual**: Target WPM bebas.
-    - **Campaign**: Level bertingkat (Easy, Medium, Hard, Programmer).
+    - **Manual**: Free WPM target.
+    - **Campaign**: Progressive levels (Easy, Medium, Hard, Programmer).
 
 ### 3. Gameplay
-Ketik teks yang muncul di layar.
-- **Hijau**: Huruf benar.
-- **Merah**: Huruf salah.
-- **Backspace**: Bisa digunakan untuk meralat kesalahan sebelumnya.
+Type the text that appears on the screen.
+- **Green**: Correct letter.
+- **Red**: Incorrect letter.
+- **Backspace**: Can be used to correct previous mistakes.
 
-### 4. Hasil & Evaluasi
-Di akhir sesi, Anda akan melihat kartu hasil yang menampilkan:
-- **WPM Besar**: Angka kecepatan utama.
-- **Akurasi**: Persentase ketepatan.
-- **Grafik**: Perbandingan dengan sesi sebelumnya (jika ada).
+### 4. Results & Evaluation
+At the end of the session, you will see a result card displaying:
+- **Big WPM**: Main speed score.
+- **Accuracy**: Typing precision percentage.
+- **Chart**: Comparison with previous sessions (if available).
 
 ---
 
-## 🛠️ Cara Build dari Source
+## 🛠️ Build from Source
 
-Bagi developer yang ingin mengembangkan atau memodifikasi kode sumber.
+For developers who want to contribute or modify the source code.
 
-### Prasyarat
-1.  **Qt 6.8** (Install via Qt Online Installer, pilih komponen **Qt Quick**, **Qt Quick Controls 2**, **Qt Multimedia**).
-2.  **C++ Compiler** (MSVC 2019+ atau GCC//Clang terbaru).
-3.  **CMake** versi 3.16 ke atas.
+### Prerequisites
+1.  **Qt 6.8** (Install via Qt Online Installer, select **Qt Quick**, **Qt Quick Controls 2**, **Qt Multimedia** components).
+2.  **C++ Compiler** (MSVC 2019+ or latest GCC/Clang).
+3.  **CMake** version 3.16 or higher.
 
-### Langkah Build
+### Build Steps
 
-Clone repository ini:
+Clone this repository:
 ```bash
 git clone https://github.com/aleafarrel-id/rapidtexter-gui.git
 cd rapidtexter-gui
 ```
 
-Lakukan build menggunakan CMake:
+Build using CMake:
 
 ```bash
-# 1. Konfigurasi (Pastikan path Qt 6.8 sudah benar/terdeteksi)
+# 1. Configure (Ensure Qt 6.8 path is correct/detected)
 cmake -S . -B build
 
 # 2. Compile
 cmake --build build --config Release
 ```
 
-### Jalankan Aplikasi
-Hasil build akan ada di folder `build/Release/` (Windows) atau `build/` (Linux).
+### Run Application
+The build result will be in the `build/Release/` (Windows) or `build/` (Linux) folder.
 
 ---
 
-## 📂 Struktur Project
+## 📂 Project Structure
 
 ```text
 rapidtexter-gui/
 ├── assets/             # Word banks, fonts, icons, sfx
 ├── src/                # C++ Backend logic (GameBackend, Stats, etc.)
 ├── include/            # Header files C++
-├── qml/                # Antarmuka Pengguna (Qt Quick/QML)
-│   ├── components/     # Komponen UI reusable (Button, Card, etc.)
-│   └── pages/          # Halaman layar (Menu, Game, Result)
+├── qml/                # User Interface (Qt Quick/QML)
+│   ├── components/     # Reusable UI components (Button, Card, etc.)
+│   └── pages/          # Screen pages (Menu, Game, Result)
 ├── resources/          # Resource definition (.rc and icons)
-├── CMakeLists.txt      # Konfigurasi Build CMake
-└── README.md           # Dokumentasi ini
+├── CMakeLists.txt      # CMake Build Configuration
+└── README.md           # This documentation
 ```
 
-## 📜 Lisensi
+## 📜 License
 
-Project ini dilisensikan di bawah **MIT License**. Bebas untuk digunakan, dimodifikasi, dan didistribusikan.
+This project is licensed under the **MIT License**. Free to use, modify, and distribute.
 
 ---
 <div align="center">

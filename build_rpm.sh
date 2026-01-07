@@ -91,6 +91,7 @@ Requires:       qt6-qtbase
 Requires:       qt6-qtdeclarative
 Requires:       qt6-qtmultimedia
 Requires:       qt6-qtsvg
+Requires:       qt6-qt5compat
 
 %description
 RapidTexter is a typing practice application built with Qt/QML.

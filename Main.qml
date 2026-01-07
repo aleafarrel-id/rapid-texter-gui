@@ -61,9 +61,16 @@ ApplicationWindow {
         source: "assets/font/JetBrainsMono.ttf"
     }
 
-    // Set theme font after font is loaded
+    // Application ready state for splash screen
+    property bool applicationReady: false
+
+    // Set theme font after font is loaded and mark app ready
     Component.onCompleted: {
         Theme.fontFamily = jetBrainsMono.name;
+        // Mark application as ready after a small delay to ensure everything is initialized
+        Qt.callLater(function () {
+            applicationReady = true;
+        });
     }
 
     // Application state
@@ -201,6 +208,21 @@ ApplicationWindow {
                     easing.type: Easing.InQuart
                 }
             }
+        }
+    }
+
+    // ========================================================================
+    // SPLASH SCREEN OVERLAY
+    // ========================================================================
+    SplashScreen {
+        id: splashScreen
+        anchors.fill: parent
+        z: 1000  // Ensure splash is on top of everything
+        visible: opacity > 0
+        applicationReady: mainWindow.applicationReady
+
+        onFinished: {
+            splashScreen.destroy();
         }
     }
 

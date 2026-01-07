@@ -4,6 +4,7 @@ singleton Theme 1.0 components/Theme.qml
 MenuItemC 1.0 components/MenuItemC.qml
 NavBtn 1.0 components/NavBtn.qml
 StatusBar 1.0 components/StatusBar.qml
+SplashScreen 1.0 components/SplashScreen.qml
 
 MainMenuPage 1.0 pages/MainMenuPage.qml
 LanguageMenuPage 1.0 pages/LanguageMenuPage.qml

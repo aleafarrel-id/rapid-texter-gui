@@ -322,6 +322,11 @@ QVariantList GameBackend::getHistoryPageSorted(int pageNumber, int pageSize, con
             [ascending](const HistoryEntry& a, const HistoryEntry& b) {
                 return ascending ? (a.accuracy < b.accuracy) : (a.accuracy > b.accuracy);
             });
+    } else if (sortBy == "time") {
+        std::sort(filteredEntries.begin(), filteredEntries.end(),
+            [ascending](const HistoryEntry& a, const HistoryEntry& b) {
+                return ascending ? (a.timeElapsed < b.timeElapsed) : (a.timeElapsed > b.timeElapsed);
+            });
     } else {
         // Sort by date (timestamp) - default
         // Timestamp format: DD/MM/YYYY HH:MM:SS

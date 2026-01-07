@@ -40,17 +40,17 @@ Rectangle {
     /** @signal close @brief Emitted when overlay should be closed. */
     signal close
 
-    /** @function formatTime @brief Formats seconds into human readable time (e.g., "15s" or "1m 30s") */
+    /** @function formatTime @brief Formats seconds into human readable time (e.g., "15.3s" or "1m 30.5s") */
     function formatTime(seconds) {
         if (seconds === undefined || seconds === null || seconds === 0)
             return "-";
-        var secs = Math.round(seconds);
-        if (secs < 60) {
-            return secs + "s";
+        // Show 1 decimal place for better precision
+        if (seconds < 60) {
+            return seconds.toFixed(1) + "s";
         } else {
-            var mins = Math.floor(secs / 60);
-            var remainingSecs = secs % 60;
-            return mins + "m " + remainingSecs + "s";
+            var mins = Math.floor(seconds / 60);
+            var remainingSecs = seconds % 60;
+            return mins + "m " + remainingSecs.toFixed(1) + "s";
         }
     }
 

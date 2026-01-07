@@ -1897,6 +1897,57 @@ ApplicationWindow {
                                         onClicked: toggleSort("accuracy")
                                     }
                                 }
+                                // TIME Header - Sortable
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 60
+                                    height: parent.height
+
+                                    property bool isHovered: timeHeaderMouse.containsMouse
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Text {
+                                            text: "TIME"
+                                            color: parent.parent.isHovered ? Theme.accentBlue : (sortBy === "time" ? Theme.accentBlue : Theme.textSecondary)
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSizeS
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        // Sort indicator
+                                        Item {
+                                            width: 12
+                                            height: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: sortBy === "time"
+
+                                            Image {
+                                                id: timeSortIcon
+                                                source: sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                                                anchors.fill: parent
+                                                sourceSize: Qt.size(12, 12)
+                                                visible: false
+                                            }
+                                            ColorOverlay {
+                                                anchors.fill: timeSortIcon
+                                                source: timeSortIcon
+                                                color: Theme.accentBlue
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: timeHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: toggleSort("time")
+                                    }
+                                }
                                 Text {
                                     Layout.fillWidth: true
                                     Layout.preferredWidth: 70
@@ -2225,6 +2276,15 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         Layout.preferredWidth: 80
                                         text: modelData.accuracy.toFixed(1) + "%"
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSizeM
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 60
+                                        text: modelData.timeElapsed.toFixed(1) + "s"
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSizeM

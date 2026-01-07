@@ -50,29 +50,54 @@ The easiest way to use Rapid Texter is by downloading the provided installer.
 > [!TIP]
 > **Recommended for all Linux distributions!** Works on Debian, Ubuntu, Arch, Fedora, openSUSE, and more.
 
-1. Make sure Flatpak is installed on your system:
-   ```bash
-   # Fedora
-   sudo dnf install flatpak
-   
-   # Ubuntu/Debian
-   sudo apt install flatpak
-   
-   # Arch
-   sudo pacman -S flatpak
-   ```
+**Step 1: Install Flatpak** (skip if already installed)
+```bash
+# Fedora
+sudo dnf install flatpak
 
-2. Download the `.flatpak` file from the **[Releases](https://github.com/aleafarrel-id/rapidtexter-gui/releases)** page.
+# Ubuntu/Debian
+sudo apt install flatpak
 
-3. Install via terminal:
+# Arch
+sudo pacman -S flatpak
+```
+
+**Step 2: Add Flathub repository** (required for runtime dependencies)
+```bash
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+```
+
+**Step 3: Install Qt6 runtime** (required, ~800MB, shared with other Qt apps)
+```bash
+flatpak install --user flathub org.kde.Platform//6.8
+```
+
+**Step 4: Download & Install RapidTexter**
+1. Download `RapidTexterGUI.flatpak` from **[Releases](https://github.com/aleafarrel/rapidtexter-gui/releases)**
+2. Install via terminal:
    ```bash
    flatpak install --user RapidTexterGUI.flatpak
    ```
 
-4. Run the application:
-   ```bash
-   flatpak run io.github.aleafarrel.RapidTexter
-   ```
+**Step 5: Run the application**
+```bash
+flatpak run io.github.aleafarrel.RapidTexter
+```
+
+> [!NOTE]
+> After installation, RapidTexter will also appear in your application menu.
+
+> [!WARNING]
+> **Ubuntu/Debian users:** If the app doesn't appear in your application menu, install the desktop portal:
+> ```bash
+> sudo apt install xdg-desktop-portal-gtk
+> ```
+> Then logout and login again.
+
+**Uninstall:**
+```bash
+flatpak uninstall io.github.aleafarrel.RapidTexter
+```
 
 ---
 

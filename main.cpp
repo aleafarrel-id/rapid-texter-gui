@@ -10,6 +10,7 @@
  *
  * @see GameBackend For the C++ backend handling game state, history,
  *      word generation, and sound effects.
+ * @see NetworkManager For the multiplayer networking backend.
  * @see Main.qml For the main QML application window and UI components.
  */
 
@@ -17,6 +18,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "GameBackend.h"
+#include "NetworkManager.h"
 
 /**
  * @brief Application entry point.
@@ -54,6 +56,12 @@ int main(int argc, char *argv[])
      * instance exists throughout the application lifecycle.
      */
     GameBackend* backend = GameBackend::instance();
+    
+    /*
+     * Create NetworkManager singleton for multiplayer functionality.
+     * Handles UDP discovery, WebSocket lobby, and UDP multicast gameplay.
+     */
+    NetworkManager* networkManager = NetworkManager::instance();
 
     QQmlApplicationEngine engine;
 
@@ -65,6 +73,11 @@ int main(int argc, char *argv[])
      * After this, QML can access it via: import rapid_texter 1.0
      */
     qmlRegisterSingletonInstance("rapid_texter", 1, 0, "GameBackend", backend);
+    
+    /*
+     * Register NetworkManager as a QML singleton for multiplayer.
+     */
+    qmlRegisterSingletonInstance("rapid_texter", 1, 0, "NetworkManager", networkManager);
 
     /*
      * Connect to objectCreationFailed signal to handle QML loading errors.

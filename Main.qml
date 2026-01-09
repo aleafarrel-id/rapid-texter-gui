@@ -246,6 +246,10 @@ ApplicationWindow {
                     event.accepted = true;
                     break;
                 case Qt.Key_2:
+                    stackView.push(multiplayerMenuComponent);
+                    event.accepted = true;
+                    break;
+                case Qt.Key_3:
                     stackView.push(historyComponent);
                     event.accepted = true;
                     break;
@@ -307,6 +311,13 @@ ApplicationWindow {
                         }
                         MenuItemC {
                             keyText: "[2]"
+                            iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
+                            labelText: "Multiplayer"
+                            accentType: "blue"
+                            onClicked: stackView.push(multiplayerMenuComponent)
+                        }
+                        MenuItemC {
+                            keyText: "[3]"
                             iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/history.svg"
                             labelText: "Show History"
                             accentType: "yellow"
@@ -331,6 +342,137 @@ ApplicationWindow {
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
+            }
+        }
+    }
+
+    // ========================================================================
+    // MULTIPLAYER MENU PAGE
+    // ========================================================================
+    Component {
+        id: multiplayerMenuComponent
+
+        MultiplayerMenuPage {
+            StackView.onActivating: forceActiveFocus()
+
+            onCreateGameClicked: {
+                stackView.push(playerNameForHostComponent);
+            }
+            onJoinGameClicked: {
+                stackView.push(playerNameForJoinComponent);
+            }
+            onBackClicked: {
+                stackView.pop();
+            }
+        }
+    }
+
+    // Player name page for hosting
+    Component {
+        id: playerNameForHostComponent
+
+        PlayerNamePage {
+            isCreating: true
+            StackView.onActivating: forceActiveFocus()
+
+            onConfirmed: function (name) {
+                NetworkManager.createRoom();
+                stackView.push(lobbyComponent);
+            }
+            onBackClicked: {
+                stackView.pop();
+            }
+        }
+    }
+
+    // Player name page for joining
+    Component {
+        id: playerNameForJoinComponent
+
+        PlayerNamePage {
+            isCreating: false
+            StackView.onActivating: forceActiveFocus()
+
+            onConfirmed: function (name) {
+                stackView.push(gameBrowserComponent);
+            }
+            onBackClicked: {
+                stackView.pop();
+            }
+        }
+    }
+
+    // Game browser page
+    Component {
+        id: gameBrowserComponent
+
+        GameBrowserPage {
+            StackView.onActivating: forceActiveFocus()
+
+            onGameSelected: function (hostIp, port) {
+                NetworkManager.joinRoom(hostIp, port);
+            }
+            onJoinSuccess: {
+                stackView.push(lobbyComponent);
+            }
+            onBackClicked: {
+                stackView.pop();
+            }
+        }
+    }
+
+    // Lobby page
+    Component {
+        id: lobbyComponent
+
+        LobbyPage {
+            StackView.onActivating: forceActiveFocus()
+
+            onStartGameClicked: {
+                stackView.push(raceGameplayComponent);
+            }
+            onLeaveClicked: {
+                stackView.pop(null);
+                stackView.push(mainMenuComponent);
+            }
+        }
+    }
+
+    // Race gameplay page
+    Component {
+        id: raceGameplayComponent
+
+        RaceGameplayPage {
+            StackView.onActivating: forceActiveFocus()
+
+            onRaceCompleted: function (wpm, accuracy, errors) {
+                stackView.replace(raceResultsComponent, {
+                    "localWpm": wpm,
+                    "localAccuracy": accuracy,
+                    "localErrors": errors,
+                    "rankings": NetworkManager.rankings
+                });
+            }
+            onExitClicked: {
+                stackView.pop(null);
+                stackView.push(mainMenuComponent);
+            }
+        }
+    }
+
+    // Race results page
+    Component {
+        id: raceResultsComponent
+
+        RaceResultsPage {
+            StackView.onActivating: forceActiveFocus()
+
+            onPlayAgainClicked: {
+                stackView.replace(lobbyComponent);
+            }
+            onExitClicked: {
+                stackView.pop(null);
+                stackView.push(mainMenuComponent);
             }
         }
     }

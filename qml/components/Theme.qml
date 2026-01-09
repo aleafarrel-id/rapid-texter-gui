@@ -296,4 +296,17 @@ QtObject {
      * @details Used for hover transitions, color changes, translations.
      */
     readonly property int animationDuration: 150
+
+    /* ========================================================================
+     * BORDER RADIUS
+     * ======================================================================== */
+
+    /** @property radiusS @brief Small radius (4px) - buttons, badges */
+    readonly property int radiusS: 4
+
+    /** @property radiusM @brief Medium radius (8px) - cards, inputs */
+    readonly property int radiusM: 8
+
+    /** @property radiusL @brief Large radius (12px) - modals, panels */
+    readonly property int radiusL: 12
 }

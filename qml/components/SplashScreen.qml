@@ -239,6 +239,7 @@ Rectangle {
 
         // Loading status text
         Text {
+            id: loadingText
             anchors.horizontalCenter: parent.horizontalCenter
             text: splashRoot.loadingMessages[splashRoot.loadingStep]
             color: Theme.textMuted

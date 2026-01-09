@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 # Find Qt packages
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 qt_policy(SET QTP0004 OLD)
@@ -19,6 +19,7 @@ set(GAME_LOGIC_SOURCES
     src/HistoryManager.cpp
     src/ProgressManager.cpp
     src/SettingsManager.cpp
+    src/NetworkManager.cpp
 )
 
 # Header files
@@ -29,6 +30,7 @@ set(GAME_LOGIC_HEADERS
     include/ProgressManager.h
     include/SettingsManager.h
     include/Stats.h
+    include/NetworkManager.h
 )
 
 # Windows application icon (only include on Windows)
@@ -77,6 +79,17 @@ qt_add_qml_module(RapidTexterGUI
         qml/pages/ResetHistoryPage.qml
         qml/pages/ResetProgressPage.qml
         qml/pages/GameplayPage.qml
+        # Multiplayer Pages
+        qml/pages/MultiplayerMenuPage.qml
+        qml/pages/PlayerNamePage.qml
+        qml/pages/GameBrowserPage.qml
+        qml/pages/LobbyPage.qml
+        qml/pages/RaceGameplayPage.qml
+        qml/pages/RaceResultsPage.qml
+        # Multiplayer Components
+        qml/components/RaceTrack.qml
+        qml/components/RaceLane.qml
+        qml/components/CountdownOverlay.qml
     RESOURCES
         # Fonts
         assets/font/JetBrainsMono.ttf
@@ -132,7 +145,7 @@ set_target_properties(RapidTexterGUI PROPERTIES
 )
 
 target_link_libraries(RapidTexterGUI
-    PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia
+    PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Network
 )
 
 # --- Installation Rules (untuk Flatpak dan RPM) ---

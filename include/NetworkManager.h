@@ -33,6 +33,7 @@ class NetworkManager : public QObject {
     
     // === QML PROPERTIES ===
     Q_PROPERTY(bool isAuthority READ isAuthority NOTIFY authorityChanged)
+    Q_PROPERTY(bool isRoomCreator READ isRoomCreator NOTIFY authorityChanged)
     Q_PROPERTY(bool isConnected READ isConnected NOTIFY connectionChanged)
     Q_PROPERTY(bool isScanning READ isScanning NOTIFY scanningChanged)
     Q_PROPERTY(bool isInGame READ isInGame NOTIFY gameStateChanged)
@@ -49,6 +50,7 @@ class NetworkManager : public QObject {
     Q_PROPERTY(QVariantList availableInterfaces READ availableInterfaces CONSTANT)
     Q_PROPERTY(bool isConnecting READ isConnecting NOTIFY connectingChanged)
     Q_PROPERTY(QString selectedInterface READ selectedInterface WRITE setSelectedInterface NOTIFY selectedInterfaceChanged)
+    Q_PROPERTY(bool isWaitingForReady READ isWaitingForReady NOTIFY waitingForReadyChanged)
     
 public:
     static NetworkManager* instance();
@@ -64,7 +66,9 @@ public:
         GAME_TEXT,
         COUNTDOWN,
         PLAYER_LEFT,
-        RACE_RESULTS
+        RACE_RESULTS,
+        READY_CHECK,
+        READY_RESPONSE
     };
     Q_ENUM(PacketType)
     
@@ -105,11 +109,13 @@ public:
     Q_INVOKABLE void finishRace(int wpm, double accuracy, int errors);
     
     // === GETTERS ===
-    bool isAuthority() const { return m_isAuthority; }
+    bool isAuthority() const { return m_isRoomCreator; }  // Authority = room creator
+    bool isRoomCreator() const { return m_isRoomCreator; }
     bool isConnected() const { return m_isConnected; }
     bool isScanning() const { return m_isScanning; }
     bool isInGame() const { return m_isInGame; }
     bool isInLobby() const { return m_isInLobby; }
+    bool isWaitingForReady() const { return m_isWaitingForReady; }
     QString localIpAddress() const;
     QString playerId() const { return m_playerId; }
     QString playerName() const { return m_playerName; }
@@ -140,6 +146,8 @@ signals:
     void gameLanguageChanged();
     void connectionErrorChanged();
     void peersChanged();
+    void waitingForReadyChanged();
+    void allPlayersReady();
     
     // Game flow signals
     void playerJoined(const QString& name);
@@ -175,7 +183,8 @@ private:
     inline static const char* APP_IDENTIFIER = "RapidTexterP2P";
     
     // === STATE ===
-    bool m_isAuthority = false;
+    bool m_isAuthority = false;      // Deprecated, use m_isRoomCreator
+    bool m_isRoomCreator = false;    // True if this client created the room (HOST)
     bool m_isConnected = false;
     bool m_isScanning = false;
     bool m_isInGame = false;
@@ -189,6 +198,12 @@ private:
     QString m_pendingJoinIp;
     int m_pendingJoinPort = 0;
     QString m_selectedInterface;  // Selected interface IP for broadcasting
+    QString m_hostUuid;           // UUID of the room creator/host
+    
+    // Ready check state
+    bool m_isWaitingForReady = false;
+    QMap<QString, bool> m_playersReady;
+    QTimer* m_readyCheckTimer = nullptr;
     
     // === TCP (Mesh) ===
     QTcpServer* m_tcpServer = nullptr;
@@ -278,8 +293,7 @@ private:
     void sendToPeer(PeerConnection* peer, const Packet& packet);
     Packet createPacket(PacketType type, const QJsonObject& payload = {});
     
-    // Authority
-    bool determineAuthority();
+    // Authority (room creator based)
     void updateAuthority();
     
     // Game Logic
@@ -290,8 +304,12 @@ private:
     void handleCountdown(const Packet& packet);
     void handlePlayerLeft(const Packet& packet);
     void handleRaceResults(const Packet& packet);
+    void handleReadyCheck(const Packet& packet);
+    void handleReadyResponse(const Packet& packet);
     void sendProgressUpdate();
     void checkRaceCompletion();
+    void beginCountdown();  // Actually start countdown after ready check
+    void onReadyCheckTimeout();
     
     // Utilities
     void setConnectionError(const QString& error);

@@ -54,6 +54,11 @@ NetworkManager::NetworkManager(QObject* parent)
         }
     });
     
+    // Ready check timer (5 seconds timeout for all players to respond)
+    m_readyCheckTimer = new QTimer(this);
+    m_readyCheckTimer->setSingleShot(true);
+    connect(m_readyCheckTimer, &QTimer::timeout, this, &NetworkManager::onReadyCheckTimeout);
+    
     qDebug() << "[NetworkManager] Initialized with UUID:" << m_playerId;
 }
 
@@ -671,6 +676,8 @@ void NetworkManager::sendHello(PeerConnection* peer) {
     QJsonObject payload;
     payload["name"] = m_playerName;
     payload["port"] = m_tcpServer ? m_tcpServer->serverPort() : TCP_PORT;
+    payload["isRoomCreator"] = m_isRoomCreator;
+    payload["hostUuid"] = m_hostUuid.isEmpty() ? m_playerId : m_hostUuid;
     
     Packet packet = createPacket(PacketType::HELLO, payload);
     sendToPeer(peer, packet);
@@ -682,7 +689,18 @@ void NetworkManager::handleHello(PeerConnection* peer, const Packet& packet) {
     peer->port = packet.payload["port"].toInt();
     peer->handshakeComplete = true;
     
-    qDebug() << "[NetworkManager] Received HELLO from" << peer->name << "(" << peer->uuid << ")";
+    // Learn about host from the packet
+    bool peerIsRoomCreator = packet.payload["isRoomCreator"].toBool();
+    QString peerHostUuid = packet.payload["hostUuid"].toString();
+    
+    qDebug() << "[NetworkManager] Received HELLO from" << peer->name << "(" << peer->uuid << ")"
+             << "isRoomCreator:" << peerIsRoomCreator << "hostUuid:" << peerHostUuid;
+    
+    // If we don't know who the host is yet (we're a guest joining), learn it
+    if (!m_isRoomCreator && m_hostUuid.isEmpty() && !peerHostUuid.isEmpty()) {
+        m_hostUuid = peerHostUuid;
+        qDebug() << "[NetworkManager] Learned host UUID:" << m_hostUuid;
+    }
     
     // Move from temporary key to UUID key if needed
     QString tempKey;
@@ -749,7 +767,17 @@ void NetworkManager::handleHello(PeerConnection* peer, const Packet& packet) {
     // Send peer list to complete mesh
     sendPeerList(peer);
     
-    // Update authority
+    // If we are the room creator (host), send the current game text to the new player
+    if (m_isRoomCreator && !m_gameText.isEmpty()) {
+        QJsonObject textPayload;
+        textPayload["text"] = m_gameText;
+        textPayload["language"] = m_gameLanguage;
+        Packet textPacket = createPacket(PacketType::GAME_TEXT, textPayload);
+        sendToPeer(peer, textPacket);
+        qDebug() << "[NetworkManager] Sent game text to new player" << peer->name;
+    }
+    
+    // Update authority (no-op now since it's based on room creator, but emit signal)
     updateAuthority();
 }
 
@@ -843,6 +871,12 @@ void NetworkManager::processPacket(PeerConnection* peer, const Packet& packet) {
         case PacketType::RACE_RESULTS:
             handleRaceResults(packet);
             break;
+        case PacketType::READY_CHECK:
+            handleReadyCheck(packet);
+            break;
+        case PacketType::READY_RESPONSE:
+            handleReadyResponse(packet);
+            break;
     }
 }
 
@@ -866,26 +900,17 @@ void NetworkManager::sendToPeer(PeerConnection* peer, const Packet& packet) {
 }
 
 // ============================================================================
-// AUTHORITY
+// AUTHORITY (Room Creator Based)
 // ============================================================================
 
-bool NetworkManager::determineAuthority() {
-    // I am authority if my UUID is the smallest
-    for (auto it = m_peers.begin(); it != m_peers.end(); ++it) {
-        if (!it.value()->handshakeComplete) continue;
-        if (it.value()->uuid < m_playerId) {
-            return false;  // Someone has a smaller UUID
-        }
-    }
-    return true;  // I have the smallest UUID
-}
-
 void NetworkManager::updateAuthority() {
+    // Authority is now simply based on being the room creator
+    // m_isRoomCreator is set in createRoom() and never changes during session
     bool wasAuthority = m_isAuthority;
-    m_isAuthority = determineAuthority();
+    m_isAuthority = m_isRoomCreator;
     
     if (wasAuthority != m_isAuthority) {
-        qDebug() << "[NetworkManager] Authority changed. I am now" << (m_isAuthority ? "AUTHORITY" : "NOT authority");
+        qDebug() << "[NetworkManager] Authority status:" << (m_isAuthority ? "HOST (Room Creator)" : "GUEST");
         emit authorityChanged();
     }
 }
@@ -902,7 +927,9 @@ bool NetworkManager::createRoom() {
     
     m_isInLobby = true;
     m_isConnected = true;
-    m_isAuthority = true;  // Creator is initially authority
+    m_isRoomCreator = true;   // We created the room, we are the HOST
+    m_isAuthority = true;      // Room creator is always authority
+    m_hostUuid = m_playerId;   // We are the host
     
     // Add self to players
     PlayerInfo self;
@@ -917,7 +944,7 @@ bool NetworkManager::createRoom() {
     emit authorityChanged();
     emit playersChanged();
     
-    qDebug() << "[NetworkManager] Room created. I am the initial authority.";
+    qDebug() << "[NetworkManager] Room created. I am the HOST (room creator).";
     
     return true;
 }
@@ -955,8 +982,11 @@ bool NetworkManager::joinRoom(const QString& hostIp, int port) {
     m_pendingJoinIp = hostIp;
     m_pendingJoinPort = port;
     
-    // Set connecting state
+    // Set connecting state - we are joining, NOT creating
     m_isConnecting = true;
+    m_isRoomCreator = false;  // We are a GUEST, not the host
+    m_isAuthority = false;     // Guests never have authority
+    m_hostUuid.clear();        // Will be learned from host's HELLO
     emit connectingChanged();
     
     stopScanning();
@@ -996,7 +1026,7 @@ void NetworkManager::leaveRoom() {
 // ============================================================================
 
 void NetworkManager::setGameText(const QString& text) {
-    if (!m_isAuthority) return;
+    if (!m_isRoomCreator) return;  // Only host can set game text
     
     m_gameText = text;
     emit gameTextChanged();
@@ -1010,7 +1040,7 @@ void NetworkManager::setGameText(const QString& text) {
 }
 
 void NetworkManager::setGameLanguage(const QString& language) {
-    if (!m_isAuthority) return;
+    if (!m_isRoomCreator) return;  // Only host can change language
     if (m_gameLanguage == language) return;
     
     m_gameLanguage = language;
@@ -1021,7 +1051,7 @@ void NetworkManager::setGameLanguage(const QString& language) {
 }
 
 void NetworkManager::refreshGameText() {
-    if (!m_isAuthority) return;
+    if (!m_isRoomCreator) return;  // Only host can refresh text
     
     // Use GameBackend to generate text based on language
     GameBackend* backend = GameBackend::instance();
@@ -1033,11 +1063,21 @@ void NetworkManager::refreshGameText() {
 }
 
 void NetworkManager::startCountdown() {
-    if (!m_isAuthority) return;
+    if (!m_isRoomCreator) {
+        qDebug() << "[NetworkManager] Only room creator (host) can start the game";
+        return;
+    }
     
     // Ensure we have game text
     if (m_gameText.isEmpty()) {
         qDebug() << "[NetworkManager] Cannot start: no game text set";
+        return;
+    }
+    
+    // If no other players, start immediately
+    if (m_peers.isEmpty()) {
+        qDebug() << "[NetworkManager] Solo mode - starting immediately";
+        beginCountdown();
         return;
     }
     
@@ -1054,41 +1094,116 @@ void NetworkManager::startCountdown() {
     }
     emit playersChanged();
     
-    // First, ensure all players have the latest text
-    // Re-broadcast text with language to ensure sync
-    QJsonObject textPayload;
-    textPayload["text"] = m_gameText;
-    textPayload["language"] = m_gameLanguage;
-    Packet textPacket = createPacket(PacketType::GAME_TEXT, textPayload);
-    broadcastToAllPeers(textPacket);
+    // Initialize ready check state
+    m_playersReady.clear();
+    m_playersReady[m_playerId] = true;  // Host is ready
+    m_isWaitingForReady = true;
+    emit waitingForReadyChanged();
     
-    // Small delay to ensure text arrives before countdown
-    QTimer::singleShot(100, this, [this]() {
-        // Broadcast countdown start
-        QJsonObject payload;
-        payload["seconds"] = 3;
+    // Send READY_CHECK to all peers with the game text to ensure sync
+    QJsonObject payload;
+    payload["text"] = m_gameText;
+    payload["language"] = m_gameLanguage;
+    
+    Packet packet = createPacket(PacketType::READY_CHECK, payload);
+    broadcastToAllPeers(packet);
+    
+    qDebug() << "[NetworkManager] Sent READY_CHECK to" << m_peers.size() << "peers, waiting for responses...";
+    
+    // Start timeout timer (5 seconds to respond)
+    m_readyCheckTimer->start(5000);
+}
+
+void NetworkManager::handleReadyCheck(const Packet& packet) {
+    // Guest received ready check from host
+    // Sync the game text and language
+    QString text = packet.payload["text"].toString();
+    QString lang = packet.payload["language"].toString();
+    
+    if (m_gameText != text) {
+        m_gameText = text;
+        emit gameTextChanged();
+    }
+    if (m_gameLanguage != lang) {
+        m_gameLanguage = lang;
+        emit gameLanguageChanged();
+    }
+    
+    qDebug() << "[NetworkManager] Received READY_CHECK, synced text (" << text.length() << "chars), sending READY_RESPONSE";
+    
+    // Send ready response back
+    Packet response = createPacket(PacketType::READY_RESPONSE);
+    broadcastToAllPeers(response);
+}
+
+void NetworkManager::handleReadyResponse(const Packet& packet) {
+    if (!m_isRoomCreator || !m_isWaitingForReady) {
+        return;  // Only host should process ready responses during ready check
+    }
+    
+    QString senderId = packet.senderUuid;
+    m_playersReady[senderId] = true;
+    
+    qDebug() << "[NetworkManager] Received READY_RESPONSE from" << senderId 
+             << "(" << m_playersReady.size() << "/" << m_players.size() << "ready)";
+    
+    // Check if all players are ready
+    if (m_playersReady.size() >= m_players.size()) {
+        m_readyCheckTimer->stop();
+        m_isWaitingForReady = false;
+        emit waitingForReadyChanged();
+        emit allPlayersReady();
         
-        Packet packet = createPacket(PacketType::COUNTDOWN, payload);
-        broadcastToAllPeers(packet);
-        emit countdownStarted(3);
+        qDebug() << "[NetworkManager] All players ready! Starting countdown.";
+        beginCountdown();
+    }
+}
+
+void NetworkManager::onReadyCheckTimeout() {
+    if (!m_isWaitingForReady) return;
+    
+    qDebug() << "[NetworkManager] Ready check timeout! Only" << m_playersReady.size() 
+             << "/" << m_players.size() << "players responded.";
+    
+    // Start anyway with whoever responded
+    m_isWaitingForReady = false;
+    emit waitingForReadyChanged();
+    
+    // Log who didn't respond
+    for (const auto& player : m_players) {
+        if (!m_playersReady.contains(player.uuid)) {
+            qDebug() << "[NetworkManager] Player did not respond:" << player.name;
+        }
+    }
+    
+    beginCountdown();
+}
+
+void NetworkManager::beginCountdown() {
+    // Broadcast countdown start to all peers
+    QJsonObject payload;
+    payload["seconds"] = 3;
+    
+    Packet packet = createPacket(PacketType::COUNTDOWN, payload);
+    broadcastToAllPeers(packet);
+    emit countdownStarted(3);
+    
+    // After 3 seconds, start game
+    QTimer::singleShot(3000, this, [this]() {
+        m_isInGame = true;
+        emit gameStateChanged();
         
-        // After 3 seconds, start game
-        QTimer::singleShot(3000, this, [this]() {
-            m_isInGame = true;
-            emit gameStateChanged();
-            
-            Packet startPacket = createPacket(PacketType::GAME_START);
-            broadcastToAllPeers(startPacket);
-            emit gameStarted();
-            
-            // Start sending progress updates
-            m_progressTimer->start(PROGRESS_UPDATE_MS);
-        });
+        Packet startPacket = createPacket(PacketType::GAME_START);
+        broadcastToAllPeers(startPacket);
+        emit gameStarted();
+        
+        // Start sending progress updates
+        m_progressTimer->start(PROGRESS_UPDATE_MS);
     });
 }
 
 void NetworkManager::kickPlayer(const QString& uuid) {
-    if (!m_isAuthority) return;
+    if (!m_isRoomCreator) return;  // Only host can kick players
     if (!m_peers.contains(uuid)) return;
     
     PeerConnection* peer = m_peers[uuid];
@@ -1318,7 +1433,12 @@ QVariantList NetworkManager::players() const {
         QVariantMap map;
         map["id"] = player.uuid;
         map["name"] = player.name;
-        map["isHost"] = (player.uuid == m_playerId && m_isAuthority);
+        // A player is the host if they are the room creator (m_hostUuid)
+        // If we know the hostUuid, compare against it; otherwise for self-check use m_isRoomCreator
+        bool isPlayerHost = (m_hostUuid.isEmpty()) 
+            ? (player.uuid == m_playerId && m_isRoomCreator)
+            : (player.uuid == m_hostUuid);
+        map["isHost"] = isPlayerHost;
         map["isLocal"] = (player.uuid == m_playerId);
         map["progress"] = player.totalChars > 0 ? 
                          static_cast<double>(player.position) / player.totalChars : 0.0;
@@ -1344,9 +1464,11 @@ void NetworkManager::setConnectionError(const QString& error) {
 
 void NetworkManager::resetState() {
     m_isAuthority = false;
+    m_isRoomCreator = false;
     m_isConnected = false;
     m_isInGame = false;
     m_isInLobby = false;
+    m_hostUuid.clear();
     m_players.clear();
     m_gameText.clear();
     m_currentPosition = 0;
@@ -1355,6 +1477,13 @@ void NetworkManager::resetState() {
     m_localFinished = false;
     m_finishedCount = 0;
     m_pendingConnections.clear();
+    
+    // Ready check state
+    m_isWaitingForReady = false;
+    m_playersReady.clear();
+    if (m_readyCheckTimer) {
+        m_readyCheckTimer->stop();
+    }
     
     m_progressTimer->stop();
     
@@ -1365,6 +1494,7 @@ void NetworkManager::resetState() {
     emit playersChanged();
     emit gameTextChanged();
     emit peersChanged();
+    emit waitingForReadyChanged();
 }
 
 void NetworkManager::setSelectedInterface(const QString& ip) {

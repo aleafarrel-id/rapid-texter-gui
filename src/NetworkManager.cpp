@@ -911,6 +911,12 @@ void NetworkManager::processPacket(PeerConnection* peer, const Packet& packet) {
         case PacketType::READY_RESPONSE:
             handleReadyResponse(packet);
             break;
+        case PacketType::PLAY_AGAIN_INVITE:
+            handlePlayAgainInvite(packet);
+            break;
+        case PacketType::PLAY_AGAIN_RESPONSE:
+            handlePlayAgainResponse(peer, packet);
+            break;
     }
 }
 
@@ -984,13 +990,29 @@ bool NetworkManager::createRoom() {
 }
 
 void NetworkManager::closeRoom() {
-    if (!m_isInLobby) return;
+    // CRITICAL: Stop timers FIRST to prevent callbacks during cleanup
+    m_progressTimer->stop();
+    if (m_readyCheckTimer) {
+        m_readyCheckTimer->stop();
+    }
+    if (m_connectionTimeoutTimer) {
+        m_connectionTimeoutTimer->stop();
+    }
+    
+    // Improved guard: only cleanup if we have state to cleanup
+    if (!m_isInLobby && !m_isInGame && !m_isConnected) {
+        qDebug() << "[NetworkManager] closeRoom: No state to cleanup";
+        return;
+    }
+    
+    qDebug() << "[NetworkManager] Closing room...";
     
     stopAnnouncing();
     
     // Disconnect all peers
     for (auto it = m_peers.begin(); it != m_peers.end(); ++it) {
         if (it.value()->socket) {
+            it.value()->socket->disconnect();  // Disconnect signals first
             it.value()->socket->close();
             it.value()->socket->deleteLater();
         }
@@ -1000,6 +1022,8 @@ void NetworkManager::closeRoom() {
     
     stopTcpServer();
     resetState();
+    
+    qDebug() << "[NetworkManager] Room closed successfully";
 }
 
 bool NetworkManager::joinRoom(const QString& hostIp, int port) {
@@ -1588,5 +1612,130 @@ void NetworkManager::setSelectedInterface(const QString& ip) {
     // If already hosting, restart announcing on new interface
     if (m_isInLobby && m_isAuthority) {
         sendAnnounce();
+    }
+}
+
+// ============================================================================
+// PLAY AGAIN FUNCTIONALITY
+// ============================================================================
+
+void NetworkManager::returnToLobby() {
+    qDebug() << "[NetworkManager] Returning to lobby (keeping connection)";
+    
+    // Reset game state but keep connection alive
+    m_isInGame = false;
+    m_localFinished = false;
+    m_finishedCount = 0;
+    m_currentPosition = 0;
+    m_currentTotal = 0;
+    m_currentWpm = 0;
+    
+    // Reset player race state while keeping player info
+    for (auto& player : m_players) {
+        player.position = 0;
+        player.totalChars = 0;
+        player.wpm = 0;
+        player.accuracy = 100.0;
+        player.finished = false;
+        player.racePosition = 0;
+        player.finishTime = 0;
+    }
+    
+    // Stop progress timer
+    m_progressTimer->stop();
+    
+    // Clear rankings
+    m_rankings.clear();
+    
+    // Generate new text for next race
+    if (m_isRoomCreator) {
+        refreshGameText();
+    }
+    
+    emit gameStateChanged();
+    emit playersChanged();
+    emit rankingsChanged();
+    emit returnedToLobby();
+    
+    qDebug() << "[NetworkManager] Returned to lobby successfully";
+}
+
+void NetworkManager::sendPlayAgainInvite() {
+    if (!m_isRoomCreator) {
+        qDebug() << "[NetworkManager] Only host can send play again invite";
+        return;
+    }
+    
+    qDebug() << "[NetworkManager] Sending play again invite to guests";
+    
+    // Return host to lobby first
+    returnToLobby();
+    
+    // Broadcast invite to all peers
+    Packet packet = createPacket(PacketType::PLAY_AGAIN_INVITE);
+    broadcastToAllPeers(packet);
+}
+
+void NetworkManager::acceptPlayAgain() {
+    qDebug() << "[NetworkManager] Accepting play again invite";
+    
+    // Return to lobby
+    returnToLobby();
+    
+    // Send response to host
+    QJsonObject payload;
+    payload["accepted"] = true;
+    payload["name"] = m_playerName;
+    
+    Packet packet = createPacket(PacketType::PLAY_AGAIN_RESPONSE, payload);
+    broadcastToAllPeers(packet);
+}
+
+void NetworkManager::declinePlayAgain() {
+    qDebug() << "[NetworkManager] Declining play again invite";
+    
+    // Send decline response first
+    QJsonObject payload;
+    payload["accepted"] = false;
+    payload["name"] = m_playerName;
+    
+    Packet packet = createPacket(PacketType::PLAY_AGAIN_RESPONSE, payload);
+    broadcastToAllPeers(packet);
+    
+    // Then leave the room
+    leaveRoom();
+}
+
+void NetworkManager::handlePlayAgainInvite(const Packet& packet) {
+    Q_UNUSED(packet)
+    
+    if (m_isRoomCreator) {
+        // Host doesn't receive own invite
+        return;
+    }
+    
+    qDebug() << "[NetworkManager] Received play again invite from host";
+    emit playAgainInviteReceived();
+}
+
+void NetworkManager::handlePlayAgainResponse(PeerConnection* peer, const Packet& packet) {
+    if (!m_isRoomCreator) {
+        // Only host processes responses
+        return;
+    }
+    
+    bool accepted = packet.payload["accepted"].toBool();
+    QString playerName = packet.payload["name"].toString();
+    
+    if (playerName.isEmpty() && peer) {
+        playerName = peer->name;
+    }
+    
+    if (accepted) {
+        qDebug() << "[NetworkManager] Player" << playerName << "accepted play again";
+        emit playAgainAccepted(playerName);
+    } else {
+        qDebug() << "[NetworkManager] Player" << playerName << "declined play again";
+        emit playAgainDeclined(playerName);
     }
 }

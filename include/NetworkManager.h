@@ -69,7 +69,9 @@ public:
         PLAYER_LEFT,
         RACE_RESULTS,
         READY_CHECK,
-        READY_RESPONSE
+        READY_RESPONSE,
+        PLAY_AGAIN_INVITE,    // Host invites guests to play again
+        PLAY_AGAIN_RESPONSE   // Guest accepts/declines invitation
     };
     Q_ENUM(PacketType)
     
@@ -108,6 +110,12 @@ public:
     // === PLAYER ACTIONS ===
     Q_INVOKABLE void updateProgress(int position, int totalChars, int wpm);
     Q_INVOKABLE void finishRace(int wpm, double accuracy, int errors);
+    
+    // === PLAY AGAIN FUNCTIONS ===
+    Q_INVOKABLE void sendPlayAgainInvite();   // Host invites guests to play again
+    Q_INVOKABLE void acceptPlayAgain();       // Guest accepts invitation
+    Q_INVOKABLE void declinePlayAgain();      // Guest declines and leaves
+    Q_INVOKABLE void returnToLobby();         // Reset game state, keep connection
     
     // === GETTERS ===
     bool isAuthority() const { return m_isRoomCreator; }  // Authority = room creator
@@ -169,6 +177,12 @@ signals:
     void joinFailed(const QString& reason);
     void connectingChanged();
     void selectedInterfaceChanged();
+    
+    // Play again signals
+    void playAgainInviteReceived();           // Guest receives invite from host
+    void playAgainAccepted(const QString& name);  // Host notified of accept
+    void playAgainDeclined(const QString& name);  // Host notified of decline
+    void returnedToLobby();                   // Successfully returned to lobby
     
 private:
     explicit NetworkManager(QObject* parent = nullptr);
@@ -315,6 +329,10 @@ private:
     void checkRaceCompletion();
     void beginCountdown();  // Actually start countdown after ready check
     void onReadyCheckTimeout();
+    
+    // Play Again handlers
+    void handlePlayAgainInvite(const Packet& packet);
+    void handlePlayAgainResponse(PeerConnection* peer, const Packet& packet);
     
     // Utilities
     void setConnectionError(const QString& error);

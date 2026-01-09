@@ -468,8 +468,15 @@ ApplicationWindow {
             StackView.onActivating: forceActiveFocus()
 
             onPlayAgainClicked: {
+                // Legacy - kept for compatibility
                 stackView.replace(lobbyComponent);
             }
+
+            onReturnToLobbyClicked: {
+                // New handler: return to lobby (for both host play again and guest accept)
+                stackView.replace(lobbyComponent);
+            }
+
             onExitClicked: {
                 stackView.pop(null);
                 stackView.push(mainMenuComponent);

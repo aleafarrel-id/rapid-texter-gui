@@ -20,6 +20,10 @@ FocusScope {
 
     signal playAgainClicked
     signal exitClicked
+    signal returnToLobbyClicked
+
+    // Play again invitation state (for guests)
+    property bool showInvitePopup: false
 
     Rectangle {
         anchors.fill: parent
@@ -311,16 +315,21 @@ FocusScope {
                 Layout.topMargin: 32
                 spacing: Theme.spacingM
 
+                // Host: Play Again button
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                     labelText: "Play Again"
                     variant: "primary"
                     visible: NetworkManager.isAuthority
-                    onClicked: resultsPage.playAgainClicked()
+                    onClicked: {
+                        NetworkManager.sendPlayAgainInvite();
+                        resultsPage.returnToLobbyClicked();
+                    }
                 }
 
+                // Exit button (always visible)
                 NavBtn {
-                    iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
+                    iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                     labelText: "Exit"
                     onClicked: {
                         NetworkManager.leaveRoom();
@@ -331,8 +340,103 @@ FocusScope {
         }
     }
 
+    // Play Again Invitation Popup (Guest only)
+    Rectangle {
+        id: invitePopup
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.75)
+        visible: showInvitePopup && !NetworkManager.isAuthority
+        z: 100
+
+        // Block clicks on background
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {} // Absorb clicks
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 340
+            height: 200
+            color: Theme.bgSecondary
+            border.color: Theme.accentBlue
+            border.width: 2
+            radius: 12
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 20
+
+                // Icon and title
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 8
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "🎮"
+                        font.pixelSize: 36
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Play Again?"
+                        color: Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 22
+                        font.bold: true
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Host wants to start another race!"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 14
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 16
+
+                    NavBtn {
+                        labelText: "Accept"
+                        variant: "primary"
+                        iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/check.svg"
+                        onClicked: {
+                            showInvitePopup = false;
+                            NetworkManager.acceptPlayAgain();
+                            resultsPage.returnToLobbyClicked();
+                        }
+                    }
+
+                    NavBtn {
+                        labelText: "Decline"
+                        iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
+                        onClicked: {
+                            showInvitePopup = false;
+                            NetworkManager.declinePlayAgain();
+                            resultsPage.exitClicked();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Network connections for play again
+    Connections {
+        target: NetworkManager
+
+        function onPlayAgainInviteReceived() {
+            console.log("[RaceResultsPage] Received play again invite");
+            showInvitePopup = true;
+        }
+    }
+
     Keys.onPressed: function (event) {
-        if (event.key === Qt.Key_Escape) {
+        if (event.key === Qt.Key_Escape && !showInvitePopup) {
             NetworkManager.leaveRoom();
             resultsPage.exitClicked();
             event.accepted = true;

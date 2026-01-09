@@ -118,7 +118,7 @@ public:
     Q_INVOKABLE void returnToLobby();         // Reset game state, keep connection
     
     // === GETTERS ===
-    bool isAuthority() const { return m_isRoomCreator; }  // Authority = room creator
+    bool isAuthority() const { return m_isAuthority; }  // Authority can migrate to guest when host leaves
     bool isRoomCreator() const { return m_isRoomCreator; }
     bool isConnected() const { return m_isConnected; }
     bool isScanning() const { return m_isScanning; }
@@ -252,6 +252,7 @@ private:
         int totalChars = 0;
         int wpm = 0;
         double accuracy = 100.0;
+        int errors = 0;
         bool finished = false;
         int racePosition = 0;
         qint64 finishTime = 0;

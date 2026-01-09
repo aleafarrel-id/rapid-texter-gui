@@ -231,7 +231,7 @@ FocusScope {
                         RowLayout {
                             anchors.fill: parent
                             anchors.margins: 12
-                            spacing: 12
+                            spacing: 8
 
                             // Position medal
                             Rectangle {
@@ -269,50 +269,49 @@ FocusScope {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeM
                                 font.bold: modelData.isLocal
+                                elide: Text.ElideRight
                             }
 
                             // WPM
-                            Row {
-                                spacing: 4
-
-                                Item {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 12
-                                    height: 12
-
-                                    Image {
-                                        id: trendIcon
-                                        anchors.fill: parent
-                                        source: "qrc:/qt/qml/rapid_texter/assets/icons/trend-up.svg"
-                                        sourceSize: Qt.size(12, 12)
-                                        visible: false
-                                    }
-
-                                    ColorOverlay {
-                                        anchors.fill: trendIcon
-                                        source: trendIcon
-                                        color: Theme.accentGreen
-                                    }
-                                }
-
-                                Text {
-                                    text: modelData.wpm + " WPM"
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeSM
-                                }
+                            Text {
+                                text: modelData.wpm + " WPM"
+                                color: Theme.accentBlue
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSM
+                                font.bold: true
                             }
 
                             // Accuracy
-                            Row {
-                                spacing: 4
+                            Text {
+                                text: (modelData.accuracy !== undefined ? modelData.accuracy.toFixed(1) : "100.0") + "%"
+                                color: Theme.accentGreen
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSM
+                            }
 
-                                Text {
-                                    text: (modelData.accuracy !== undefined ? modelData.accuracy.toFixed(1) : "100.0") + "%"
-                                    color: Theme.textMuted
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeSM
+                            // Errors
+                            Text {
+                                text: (modelData.errors !== undefined ? modelData.errors : 0) + " err"
+                                color: (modelData.errors !== undefined && modelData.errors > 0) ? Theme.accentRed : Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSM
+                            }
+
+                            // Time
+                            Text {
+                                text: {
+                                    var time = modelData.time !== undefined ? modelData.time : 0;
+                                    if (modelData.position === 1) {
+                                        return "1st";
+                                    } else if (time > 0) {
+                                        return "+" + time.toFixed(1) + "s";
+                                    } else {
+                                        return "-";
+                                    }
                                 }
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSM
                             }
                         }
 

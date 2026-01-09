@@ -266,40 +266,6 @@ FocusScope {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
-
-                            // Join button (compact custom style)
-                            Rectangle {
-                                width: 52
-                                height: 26
-                                color: modelData.status === "waiting" ? (joinBtnArea.containsMouse ? Qt.lighter(Theme.accentBlue, 1.1) : Theme.accentBlue) : Theme.bgTertiary
-                                radius: 4
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "Join"
-                                    color: modelData.status === "waiting" ? "#ffffff" : Theme.textMuted
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                }
-
-                                MouseArea {
-                                    id: joinBtnArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: modelData.status === "waiting" ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    enabled: modelData.status === "waiting"
-                                    onClicked: {
-                                        gameBrowserPage.gameSelected(modelData.hostIp, modelData.port);
-                                    }
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: 150
-                                    }
-                                }
-                            }
                         }
 
                         MouseArea {

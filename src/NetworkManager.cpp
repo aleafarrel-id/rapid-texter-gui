@@ -1398,8 +1398,6 @@ void NetworkManager::updateProgress(int position, int totalChars, int wpm) {
 }
 
 void NetworkManager::finishRace(int wpm, double accuracy, int errors) {
-    Q_UNUSED(errors)
-    
     m_localFinished = true;
     m_finishedCount++;
     
@@ -1409,12 +1407,14 @@ void NetworkManager::finishRace(int wpm, double accuracy, int errors) {
         m_players[m_playerId].racePosition = m_finishedCount;
         m_players[m_playerId].wpm = wpm;
         m_players[m_playerId].accuracy = accuracy;
+        m_players[m_playerId].errors = errors;
     }
     
-    // Broadcast finish with accuracy
+    // Broadcast finish with accuracy and errors
     QJsonObject payload;
     payload["wpm"] = wpm;
     payload["accuracy"] = accuracy;
+    payload["errors"] = errors;
     payload["position"] = m_finishedCount;
     
     Packet packet = createPacket(PacketType::FINISH, payload);
@@ -1493,6 +1493,7 @@ void NetworkManager::handleFinish(PeerConnection* peer, const Packet& packet) {
         player.racePosition = m_finishedCount;
         player.wpm = packet.payload["wpm"].toInt();
         player.accuracy = packet.payload["accuracy"].toDouble(100.0);
+        player.errors = packet.payload["errors"].toInt(0);
         
         emit playerProgressUpdated(playerId, player.name, 1.0, player.wpm, 
                                    true, player.racePosition);
@@ -1521,6 +1522,9 @@ void NetworkManager::checkRaceCompletion() {
             return a.racePosition < b.racePosition;
         });
         
+        // Calculate relative time from first finisher
+        qint64 firstFinishTime = sorted.isEmpty() ? 0 : sorted.first().finishTime;
+        
         QVariantList rankings;
         for (const auto& player : sorted) {
             QVariantMap map;
@@ -1528,7 +1532,10 @@ void NetworkManager::checkRaceCompletion() {
             map["name"] = player.name;
             map["wpm"] = player.wpm;
             map["accuracy"] = player.accuracy;
+            map["errors"] = player.errors;
+            map["time"] = player.finishTime > 0 ? (player.finishTime - firstFinishTime) / 1000.0 : 0.0;
             map["position"] = player.racePosition;
+            map["isLocal"] = (player.uuid == m_playerId);
             rankings.append(map);
         }
         
@@ -1678,8 +1685,8 @@ void NetworkManager::returnToLobby() {
     // Clear rankings
     m_rankings.clear();
     
-    // Generate new text for next race
-    if (m_isRoomCreator) {
+    // Generate new text for next race (authority can be new host)
+    if (m_isAuthority) {
         refreshGameText();
     }
     
@@ -1692,8 +1699,8 @@ void NetworkManager::returnToLobby() {
 }
 
 void NetworkManager::sendPlayAgainInvite() {
-    if (!m_isRoomCreator) {
-        qDebug() << "[NetworkManager] Only host can send play again invite";
+    if (!m_isAuthority) {
+        qDebug() << "[NetworkManager] Only host (authority) can send play again invite";
         return;
     }
     

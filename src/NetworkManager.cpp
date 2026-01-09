@@ -531,7 +531,13 @@ bool NetworkManager::connectToPeer(const QString& ip, int port, const QString& u
     socket->setProperty("peerPtr", QVariant::fromValue(static_cast<void*>(peer)));
     socket->setProperty("pendingKey", key);
     
+    // CRITICAL FIX: Add to m_peers immediately with pending key
+    // This matches the behavior of onNewTcpConnection() for incoming connections
+    // Without this, onPeerReadyRead() may fail to find the peer for outgoing connections
+    m_peers[key] = peer;
+    
     qDebug() << "[NetworkManager] Connecting to peer at" << ip << ":" << port;
+    qDebug() << "[NetworkManager] Added to m_peers with key:" << key;
     socket->connectToHost(ip, port);
     
     return true;

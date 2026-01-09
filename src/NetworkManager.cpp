@@ -1341,6 +1341,14 @@ void NetworkManager::sendProgressUpdate() {
     payload["finished"] = m_localFinished;
     
     Packet packet = createPacket(PacketType::PROGRESS_UPDATE, payload);
+    
+    // Debug log to verify sending (throttled to avoid spam)
+    static int sendLogCounter = 0;
+    if (sendLogCounter++ % 20 == 0) {
+        qDebug() << "[NetworkManager] Sending PROGRESS_UPDATE: pos=" << m_currentPosition 
+                 << " total=" << m_currentTotal << " wpm=" << m_currentWpm;
+    }
+    
     broadcastToAllPeers(packet);
 }
 
@@ -1353,6 +1361,13 @@ void NetworkManager::handleProgressUpdate(PeerConnection* peer, const Packet& pa
     player.position = packet.payload["position"].toInt();
     player.totalChars = packet.payload["total"].toInt();
     player.wpm = packet.payload["wpm"].toInt();
+    
+    // Debug log (throttled)
+    static int recvLogCounter = 0;
+    if (recvLogCounter++ % 20 == 0) {
+        qDebug() << "[NetworkManager] Received PROGRESS_UPDATE from" << player.name 
+                 << "pos=" << player.position << "total=" << player.totalChars;
+    }
     
     double progress = player.totalChars > 0 ? 
                      static_cast<double>(player.position) / player.totalChars : 0.0;

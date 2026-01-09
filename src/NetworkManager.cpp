@@ -1331,6 +1331,9 @@ void NetworkManager::updateProgress(int position, int totalChars, int wpm) {
         m_players[m_playerId].totalChars = totalChars;
         m_players[m_playerId].wpm = wpm;
     }
+    
+    // Notify UI of local changes immediately
+    emit playersChanged();
 }
 
 void NetworkManager::finishRace(int wpm, double accuracy, int errors) {
@@ -1408,6 +1411,9 @@ void NetworkManager::handleProgressUpdate(PeerConnection* peer, const Packet& pa
     
     emit playerProgressUpdated(playerId, player.name, progress, player.wpm, 
                                player.finished, player.racePosition);
+                               
+    // Notify UI to update track positions
+    emit playersChanged();
 }
 
 void NetworkManager::handleFinish(PeerConnection* peer, const Packet& packet) {
@@ -1429,6 +1435,9 @@ void NetworkManager::handleFinish(PeerConnection* peer, const Packet& packet) {
         
         emit playerProgressUpdated(playerId, player.name, 1.0, player.wpm, 
                                    true, player.racePosition);
+                                   
+        // Notify UI of finish state
+        emit playersChanged();
     }
     
     checkRaceCompletion();

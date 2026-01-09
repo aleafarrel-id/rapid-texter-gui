@@ -25,6 +25,16 @@ FocusScope {
     // Play again invitation state (for guests)
     property bool showInvitePopup: false
 
+    // Dynamic host state - updates when authority changes
+    property bool isHost: NetworkManager.isAuthority
+
+    Connections {
+        target: NetworkManager
+        function onAuthorityChanged() {
+            resultsPage.isHost = NetworkManager.isAuthority;
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -320,7 +330,7 @@ FocusScope {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                     labelText: "Play Again"
                     variant: "primary"
-                    visible: NetworkManager.isAuthority
+                    visible: resultsPage.isHost
                     onClicked: {
                         NetworkManager.sendPlayAgainInvite();
                         resultsPage.returnToLobbyClicked();
@@ -345,7 +355,7 @@ FocusScope {
         id: invitePopup
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.75)
-        visible: showInvitePopup && !NetworkManager.isAuthority
+        visible: showInvitePopup && !resultsPage.isHost
         z: 100
 
         // Block clicks on background
@@ -464,12 +474,12 @@ FocusScope {
 
         // P for Play Again (host) or Accept (guest with popup)
         if (event.key === Qt.Key_P) {
-            if (showInvitePopup && !NetworkManager.isAuthority) {
+            if (showInvitePopup && !resultsPage.isHost) {
                 // Guest accepts invite
                 showInvitePopup = false;
                 NetworkManager.acceptPlayAgain();
                 resultsPage.returnToLobbyClicked();
-            } else if (NetworkManager.isAuthority) {
+            } else if (resultsPage.isHost) {
                 // Host starts play again
                 NetworkManager.sendPlayAgainInvite();
                 resultsPage.returnToLobbyClicked();

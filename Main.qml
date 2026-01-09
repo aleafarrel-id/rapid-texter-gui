@@ -362,7 +362,7 @@ ApplicationWindow {
                 stackView.push(playerNameForJoinComponent);
             }
             onBackClicked: {
-                stackView.pop();
+                stackView.push(mainMenuComponent);
             }
         }
     }

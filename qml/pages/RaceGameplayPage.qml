@@ -158,19 +158,23 @@ FocusScope {
             var expectedChar = targetText.charAt(cursorPosition);
             var isCorrect = (inputChar === expectedChar);
 
+            // Save position BEFORE modifying array
+            var typedPosition = cursorPosition;
+
             var newTypedChars = typedChars.slice();
             newTypedChars.push(inputChar);
             typedChars = newTypedChars;
 
             totalKeystrokes++;
 
-            if (isCorrect && !correctPositions[cursorPosition - 1]) {
+            // Use saved position for correct tracking
+            if (isCorrect && !correctPositions[typedPosition]) {
                 correctChars++;
-                correctPositions[cursorPosition - 1] = true;
+                correctPositions[typedPosition] = true;
                 GameBackend.playCorrectSound();
-            } else if (!isCorrect && !errorPositions[cursorPosition - 1]) {
+            } else if (!isCorrect && !errorPositions[typedPosition]) {
                 incorrectChars++;
-                errorPositions[cursorPosition - 1] = true;
+                errorPositions[typedPosition] = true;
                 GameBackend.playErrorSound();
             }
 

@@ -229,32 +229,75 @@ FocusScope {
                                 }
                             }
 
-                            // Status badge
-                            Rectangle {
-                                width: statusText.width + 16
-                                height: 22
-                                color: modelData.status === "waiting" ? Qt.rgba(0.24, 0.72, 0.31, 0.15) : Qt.rgba(0.82, 0.60, 0.13, 0.15)
-                                border.color: modelData.status === "waiting" ? Theme.accentGreen : Theme.accentYellow
-                                border.width: 1
+                            // Status indicator (dot style - more subtle)
+                            Row {
+                                spacing: 6
+
+                                // Status dot
+                                Rectangle {
+                                    width: 8
+                                    height: 8
+                                    radius: 4
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: modelData.status === "waiting" ? Theme.accentGreen : Theme.accentYellow
+
+                                    // Pulsing animation for open games
+                                    SequentialAnimation on opacity {
+                                        running: modelData.status === "waiting"
+                                        loops: Animation.Infinite
+                                        NumberAnimation {
+                                            to: 0.4
+                                            duration: 800
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                        NumberAnimation {
+                                            to: 1.0
+                                            duration: 800
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                    }
+                                }
 
                                 Text {
-                                    id: statusText
-                                    anchors.centerIn: parent
-                                    text: modelData.status === "waiting" ? "Open" : "In Game"
+                                    text: modelData.status === "waiting" ? "Open" : "Playing"
                                     color: modelData.status === "waiting" ? Theme.accentGreen : Theme.accentYellow
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 11
-                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
-                            // Join button
-                            NavBtn {
-                                labelText: "Join"
-                                variant: "primary"
-                                enabled: modelData.status === "waiting"
-                                onClicked: {
-                                    gameBrowserPage.gameSelected(modelData.hostIp, modelData.port);
+                            // Join button (compact custom style)
+                            Rectangle {
+                                width: 52
+                                height: 26
+                                color: modelData.status === "waiting" ? (joinBtnArea.containsMouse ? Qt.lighter(Theme.accentBlue, 1.1) : Theme.accentBlue) : Theme.bgTertiary
+                                radius: 4
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Join"
+                                    color: modelData.status === "waiting" ? "#ffffff" : Theme.textMuted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                }
+
+                                MouseArea {
+                                    id: joinBtnArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: modelData.status === "waiting" ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    enabled: modelData.status === "waiting"
+                                    onClicked: {
+                                        gameBrowserPage.gameSelected(modelData.hostIp, modelData.port);
+                                    }
+                                }
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 150
+                                    }
                                 }
                             }
                         }

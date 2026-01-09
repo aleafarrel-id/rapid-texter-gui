@@ -951,13 +951,37 @@ void NetworkManager::sendToPeer(PeerConnection* peer, const Packet& packet) {
 // ============================================================================
 
 void NetworkManager::updateAuthority() {
-    // Authority is now simply based on being the room creator
-    // m_isRoomCreator is set in createRoom() and never changes during session
     bool wasAuthority = m_isAuthority;
-    m_isAuthority = m_isRoomCreator;
+    
+    // If we are the original room creator, we have authority
+    if (m_isRoomCreator) {
+        m_isAuthority = true;
+    }
+    // Otherwise, check if the host has left and we need to elect new authority
+    else if (!m_hostUuid.isEmpty() && !m_players.contains(m_hostUuid)) {
+        // Host is gone! We need to elect a new authority
+        // The first player (by UUID sort) becomes new authority
+        if (!m_players.isEmpty()) {
+            QStringList uuids = m_players.keys();
+            uuids.sort();
+            if (uuids.first() == m_playerId) {
+                // We are the new authority!
+                m_isAuthority = true;
+                m_hostUuid = m_playerId;  // Update host UUID to self
+                qDebug() << "[NetworkManager] Authority transferred to us! We are now the host.";
+            } else {
+                m_isAuthority = false;
+            }
+        } else {
+            m_isAuthority = false;
+        }
+    } else {
+        // Normal case: we are a guest
+        m_isAuthority = false;
+    }
     
     if (wasAuthority != m_isAuthority) {
-        qDebug() << "[NetworkManager] Authority status:" << (m_isAuthority ? "HOST (Room Creator)" : "GUEST");
+        qDebug() << "[NetworkManager] Authority status:" << (m_isAuthority ? "HOST (Authority)" : "GUEST");
         emit authorityChanged();
     }
 }

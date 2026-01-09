@@ -1035,25 +1035,55 @@ void NetworkManager::refreshGameText() {
 void NetworkManager::startCountdown() {
     if (!m_isAuthority) return;
     
-    // Broadcast countdown start
-    QJsonObject payload;
-    payload["seconds"] = 3;
+    // Ensure we have game text
+    if (m_gameText.isEmpty()) {
+        qDebug() << "[NetworkManager] Cannot start: no game text set";
+        return;
+    }
     
-    Packet packet = createPacket(PacketType::COUNTDOWN, payload);
-    broadcastToAllPeers(packet);
-    emit countdownStarted(3);
+    // Reset race state for all players
+    m_finishedCount = 0;
+    m_localFinished = false;
+    for (auto it = m_players.begin(); it != m_players.end(); ++it) {
+        it.value().position = 0;
+        it.value().totalChars = 0;
+        it.value().wpm = 0;
+        it.value().finished = false;
+        it.value().racePosition = 0;
+        it.value().finishTime = 0;
+    }
+    emit playersChanged();
     
-    // After 3 seconds, start game
-    QTimer::singleShot(3000, this, [this]() {
-        m_isInGame = true;
-        emit gameStateChanged();
+    // First, ensure all players have the latest text
+    // Re-broadcast text with language to ensure sync
+    QJsonObject textPayload;
+    textPayload["text"] = m_gameText;
+    textPayload["language"] = m_gameLanguage;
+    Packet textPacket = createPacket(PacketType::GAME_TEXT, textPayload);
+    broadcastToAllPeers(textPacket);
+    
+    // Small delay to ensure text arrives before countdown
+    QTimer::singleShot(100, this, [this]() {
+        // Broadcast countdown start
+        QJsonObject payload;
+        payload["seconds"] = 3;
         
-        Packet startPacket = createPacket(PacketType::GAME_START);
-        broadcastToAllPeers(startPacket);
-        emit gameStarted();
+        Packet packet = createPacket(PacketType::COUNTDOWN, payload);
+        broadcastToAllPeers(packet);
+        emit countdownStarted(3);
         
-        // Start sending progress updates
-        m_progressTimer->start(PROGRESS_UPDATE_MS);
+        // After 3 seconds, start game
+        QTimer::singleShot(3000, this, [this]() {
+            m_isInGame = true;
+            emit gameStateChanged();
+            
+            Packet startPacket = createPacket(PacketType::GAME_START);
+            broadcastToAllPeers(startPacket);
+            emit gameStarted();
+            
+            // Start sending progress updates
+            m_progressTimer->start(PROGRESS_UPDATE_MS);
+        });
     });
 }
 

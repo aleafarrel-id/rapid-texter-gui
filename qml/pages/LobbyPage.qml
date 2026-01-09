@@ -39,16 +39,53 @@ FocusScope {
             anchors.fill: parent
             spacing: 0
 
-            // Header
-            Text {
+            // Header with role badge
+            Column {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 8
-                text: "WAITING ROOM"
-                color: Theme.textPrimary
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSizeDisplay
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
+                spacing: 8
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "WAITING ROOM"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeDisplay
+                    font.bold: true
+                }
+
+                // Role badge row
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 8
+
+                    Rectangle {
+                        width: roleBadgeText.width + 16
+                        height: 24
+                        radius: 4
+                        color: isHost ? Qt.rgba(0.24, 0.72, 0.31, 0.2) : Qt.rgba(0.34, 0.65, 1, 0.2)
+                        border.color: isHost ? Theme.accentGreen : Theme.accentBlue
+                        border.width: 1
+
+                        Text {
+                            id: roleBadgeText
+                            anchors.centerIn: parent
+                            text: isHost ? "★ HOST" : "GUEST"
+                            color: isHost ? Theme.accentGreen : Theme.accentBlue
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: isHost ? "You control the game" : "Host controls the game"
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeSM
+                    }
+                }
             }
 
             // Server IP list (for host)

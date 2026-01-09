@@ -796,8 +796,8 @@ void NetworkManager::handleHello(PeerConnection* peer, const Packet& packet) {
     // Send peer list to complete mesh
     sendPeerList(peer);
     
-    // If we are the room creator (host), send the current game text to the new player
-    if (m_isRoomCreator && !m_gameText.isEmpty()) {
+    // If we are authority (host), send the current game text to the new player
+    if (m_isAuthority && !m_gameText.isEmpty()) {
         QJsonObject textPayload;
         textPayload["text"] = m_gameText;
         textPayload["language"] = m_gameLanguage;
@@ -955,6 +955,11 @@ void NetworkManager::updateAuthority() {
     
     // If we are the original room creator, we have authority
     if (m_isRoomCreator) {
+        m_isAuthority = true;
+    }
+    // If we are already authority (became host via migration), keep it
+    else if (m_isAuthority && m_hostUuid == m_playerId) {
+        // We already have authority and we are the known host - keep it
         m_isAuthority = true;
     }
     // Otherwise, check if the host has left and we need to elect new authority

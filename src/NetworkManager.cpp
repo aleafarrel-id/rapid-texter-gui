@@ -1355,7 +1355,10 @@ void NetworkManager::sendProgressUpdate() {
 void NetworkManager::handleProgressUpdate(PeerConnection* peer, const Packet& packet) {
     QString playerId = packet.senderUuid;
     
-    if (!m_players.contains(playerId)) return;
+    if (!m_players.contains(playerId)) {
+        qDebug() << "[NetworkManager] WARN: Received PROGRESS_UPDATE from unknown player:" << playerId;
+        return;
+    }
     
     auto& player = m_players[playerId];
     player.position = packet.payload["position"].toInt();

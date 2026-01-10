@@ -53,7 +53,6 @@ FocusScope {
             anchors.centerIn: parent
             width: 300
             height: 150
-            radius: 12
             color: Theme.bgSecondary
             border.color: Theme.borderPrimary
             border.width: 1
@@ -95,7 +94,6 @@ FocusScope {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
-                        radius: 8
                         color: Theme.bgTertiary
                         border.color: Theme.borderPrimary
 
@@ -120,7 +118,6 @@ FocusScope {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
-                        radius: 8
                         color: Theme.accentRed
 
                         Text {
@@ -779,10 +776,9 @@ FocusScope {
             anchors.centerIn: parent
             width: 320
             height: 160
-            radius: 12
             color: Theme.bgSecondary
-            border.color: Theme.accentRed
-            border.width: 2
+            border.color: Theme.borderPrimary
+            border.width: 1
 
             ColumnLayout {
                 anchors.fill: parent
@@ -812,7 +808,6 @@ FocusScope {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
-                    radius: 8
                     color: Theme.accentBlue
 
                     Text {

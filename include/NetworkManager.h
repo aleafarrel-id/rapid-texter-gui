@@ -224,6 +224,9 @@ private:
     QMap<QString, bool> m_playersReady;
     QTimer* m_readyCheckTimer = nullptr;
     
+    // Race timing - host records start time for synchronized duration calculation
+    qint64 m_raceStartTime = 0;
+    
     // === TCP (Mesh) ===
     QTcpServer* m_tcpServer = nullptr;
     

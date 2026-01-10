@@ -1300,6 +1300,9 @@ void NetworkManager::beginCountdown() {
     
     // After 3 seconds, start game
     QTimer::singleShot(3000, this, [this]() {
+        // Record race start time for synchronized duration calculation
+        m_raceStartTime = QDateTime::currentMSecsSinceEpoch();
+        
         m_isInGame = true;
         emit gameStateChanged();
         
@@ -1562,10 +1565,8 @@ void NetworkManager::checkRaceCompletion() {
             return a.duration < b.duration;
         });
         
-        // Calculate relative time from first finisher
-        qint64 firstFinishTime = sorted.isEmpty() ? 0 : sorted.first().finishTime;
-        
         QVariantList rankings;
+        int position = 1;  // Medal position follows WPM-based sort order
         for (const auto& player : sorted) {
             QVariantMap map;
             map["id"] = player.uuid;
@@ -1573,9 +1574,15 @@ void NetworkManager::checkRaceCompletion() {
             map["wpm"] = player.wpm;
             map["accuracy"] = player.accuracy;
             map["errors"] = player.errors;
-            map["time"] = player.finishTime > 0 ? (player.finishTime - firstFinishTime) / 1000.0 : 0.0;
-            map["duration"] = player.duration;  // Actual race duration in seconds
-            map["position"] = player.racePosition;
+            
+            // Calculate synchronized duration from host's clock
+            // This ensures all clients see consistent timing
+            double syncDuration = m_raceStartTime > 0 ? 
+                (player.finishTime - m_raceStartTime) / 1000.0 : player.duration;
+            map["duration"] = syncDuration;
+            
+            // Position follows WPM-based ranking order (1, 2, 3...)
+            map["position"] = position++;
             map["isLocal"] = (player.uuid == m_playerId);
             rankings.append(map);
         }

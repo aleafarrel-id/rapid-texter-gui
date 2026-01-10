@@ -1370,7 +1370,10 @@ void NetworkManager::handleRaceResults(const Packet& packet) {
     QVariantList rankings;
     QJsonArray arr = packet.payload["rankings"].toArray();
     for (const auto& r : arr) {
-        rankings.append(r.toObject().toVariantMap());
+        QVariantMap map = r.toObject().toVariantMap();
+        // Recalculate isLocal for THIS client, not the sender's value
+        map["isLocal"] = (map["id"].toString() == m_playerId);
+        rankings.append(map);
     }
     
     // Store rankings as property

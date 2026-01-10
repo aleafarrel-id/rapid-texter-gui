@@ -274,6 +274,7 @@ FocusScope {
 
                             // WPM
                             Text {
+                                Layout.preferredWidth: 65
                                 text: modelData.wpm + " WPM"
                                 color: Theme.accentBlue
                                 font.family: Theme.fontFamily
@@ -283,6 +284,7 @@ FocusScope {
 
                             // Accuracy
                             Text {
+                                Layout.preferredWidth: 50
                                 text: (modelData.accuracy !== undefined ? modelData.accuracy.toFixed(1) : "100.0") + "%"
                                 color: Theme.accentGreen
                                 font.family: Theme.fontFamily
@@ -291,22 +293,23 @@ FocusScope {
 
                             // Errors
                             Text {
+                                Layout.preferredWidth: 40
                                 text: (modelData.errors !== undefined ? modelData.errors : 0) + " err"
                                 color: (modelData.errors !== undefined && modelData.errors > 0) ? Theme.accentRed : Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeSM
                             }
 
-                            // Time
+                            // Time - always show time format for consistency
                             Text {
+                                Layout.preferredWidth: 50
+                                horizontalAlignment: Text.AlignRight
                                 text: {
                                     var time = modelData.time !== undefined ? modelData.time : 0;
-                                    if (modelData.position === 1) {
-                                        return "1st";
-                                    } else if (time > 0) {
-                                        return "+" + time.toFixed(1) + "s";
+                                    if (time === 0) {
+                                        return "0.0s";  // First place finishes at 0 relative time
                                     } else {
-                                        return "-";
+                                        return "+" + time.toFixed(1) + "s";
                                     }
                                 }
                                 color: Theme.textMuted

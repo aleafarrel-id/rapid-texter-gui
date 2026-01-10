@@ -203,7 +203,7 @@ FocusScope {
         statsTimer.stop();
         updateStats();
 
-        NetworkManager.finishRace(currentWpm, currentAccuracy, incorrectChars);
+        NetworkManager.finishRace(currentWpm, currentAccuracy, incorrectChars, elapsedTime);
     }
 
     function resetGame() {

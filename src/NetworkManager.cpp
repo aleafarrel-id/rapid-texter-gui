@@ -1407,7 +1407,7 @@ void NetworkManager::updateProgress(int position, int totalChars, int wpm) {
     emit playersChanged();
 }
 
-void NetworkManager::finishRace(int wpm, double accuracy, int errors) {
+void NetworkManager::finishRace(int wpm, double accuracy, int errors, int duration) {
     m_localFinished = true;
     m_finishedCount++;
     
@@ -1418,13 +1418,15 @@ void NetworkManager::finishRace(int wpm, double accuracy, int errors) {
         m_players[m_playerId].wpm = wpm;
         m_players[m_playerId].accuracy = accuracy;
         m_players[m_playerId].errors = errors;
+        m_players[m_playerId].duration = duration;
     }
     
-    // Broadcast finish with accuracy and errors
+    // Broadcast finish with accuracy, errors and duration
     QJsonObject payload;
     payload["wpm"] = wpm;
     payload["accuracy"] = accuracy;
     payload["errors"] = errors;
+    payload["duration"] = duration;
     payload["position"] = m_finishedCount;
     
     Packet packet = createPacket(PacketType::FINISH, payload);
@@ -1504,6 +1506,7 @@ void NetworkManager::handleFinish(PeerConnection* peer, const Packet& packet) {
         player.wpm = packet.payload["wpm"].toInt();
         player.accuracy = packet.payload["accuracy"].toDouble(100.0);
         player.errors = packet.payload["errors"].toInt(0);
+        player.duration = packet.payload["duration"].toInt(0);
         
         emit playerProgressUpdated(playerId, player.name, 1.0, player.wpm, 
                                    true, player.racePosition);
@@ -1544,6 +1547,7 @@ void NetworkManager::checkRaceCompletion() {
             map["accuracy"] = player.accuracy;
             map["errors"] = player.errors;
             map["time"] = player.finishTime > 0 ? (player.finishTime - firstFinishTime) / 1000.0 : 0.0;
+            map["duration"] = player.duration;  // Actual race duration in seconds
             map["position"] = player.racePosition;
             map["isLocal"] = (player.uuid == m_playerId);
             rankings.append(map);

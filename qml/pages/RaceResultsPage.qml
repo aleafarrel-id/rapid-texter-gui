@@ -300,17 +300,13 @@ FocusScope {
                                 font.pixelSize: Theme.fontSizeSM
                             }
 
-                            // Time - always show time format for consistency
+                            // Time - show actual race duration
                             Text {
                                 Layout.preferredWidth: 50
                                 horizontalAlignment: Text.AlignRight
                                 text: {
-                                    var time = modelData.time !== undefined ? modelData.time : 0;
-                                    if (time === 0) {
-                                        return "0.0s";  // First place finishes at 0 relative time
-                                    } else {
-                                        return "+" + time.toFixed(1) + "s";
-                                    }
+                                    var duration = modelData.duration !== undefined ? modelData.duration : 0;
+                                    return duration + "s";
                                 }
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily

@@ -109,7 +109,7 @@ public:
     
     // === PLAYER ACTIONS ===
     Q_INVOKABLE void updateProgress(int position, int totalChars, int wpm);
-    Q_INVOKABLE void finishRace(int wpm, double accuracy, int errors);
+    Q_INVOKABLE void finishRace(int wpm, double accuracy, int errors, int duration);
     
     // === PLAY AGAIN FUNCTIONS ===
     Q_INVOKABLE void sendPlayAgainInvite();   // Host invites guests to play again
@@ -256,6 +256,7 @@ private:
         bool finished = false;
         int racePosition = 0;
         qint64 finishTime = 0;
+        int duration = 0;  // Actual race duration in seconds
     };
     QMap<QString, PlayerInfo> m_players;
     

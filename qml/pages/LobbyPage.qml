@@ -29,6 +29,124 @@ FocusScope {
         z: -100
     }
 
+    // Kick confirmation dialog state
+    property string pendingKickUuid: ""
+    property string pendingKickName: ""
+
+    // Kick confirmation dialog
+    Rectangle {
+        id: kickConfirmDialog
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.6)
+        visible: pendingKickUuid !== ""
+        z: 1000
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                pendingKickUuid = "";
+                pendingKickName = "";
+            }
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 300
+            height: 150
+            radius: 12
+            color: Theme.bgSecondary
+            border.color: Theme.borderPrimary
+            border.width: 1
+
+            MouseArea {
+                anchors.fill: parent
+                // Prevent clicks from closing dialog
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 16
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Kick Player"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeL
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Remove " + pendingKickName + " from room?"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeM
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
+                        radius: 8
+                        color: Theme.bgTertiary
+                        border.color: Theme.borderPrimary
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Cancel"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                pendingKickUuid = "";
+                                pendingKickName = "";
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
+                        radius: 8
+                        color: Theme.accentRed
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Kick"
+                            color: "white"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                NetworkManager.kickPlayer(pendingKickUuid);
+                                pendingKickUuid = "";
+                                pendingKickName = "";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.paddingHuge * 2, 550)
@@ -365,6 +483,34 @@ FocusScope {
                                     anchors.fill: checkIcon
                                     source: checkIcon
                                     color: Theme.accentGreen
+                                }
+                            }
+
+                            // Kick button (host only, not for self)
+                            Item {
+                                width: 14
+                                height: 14
+                                visible: isHost && !modelData.isLocal
+
+                                Image {
+                                    id: kickIcon
+                                    anchors.fill: parent
+                                    source: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
+                                    sourceSize: Qt.size(14, 14)
+                                    visible: false
+                                }
+                                ColorOverlay {
+                                    anchors.fill: kickIcon
+                                    source: kickIcon
+                                    color: Theme.accentRed
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        pendingKickUuid = modelData.id;
+                                        pendingKickName = modelData.name;
+                                    }
                                 }
                             }
                         }

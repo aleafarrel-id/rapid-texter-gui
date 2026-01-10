@@ -972,6 +972,7 @@ void NetworkManager::updateAuthority() {
             if (uuids.first() == m_playerId) {
                 // We are the new authority!
                 m_isAuthority = true;
+                m_isRoomCreator = true;  // Promote to full room creator status
                 m_hostUuid = m_playerId;  // Update host UUID to self
                 startAnnouncing();  // Start broadcasting so new players can discover this room
                 qDebug() << "[NetworkManager] Authority transferred to us! We are now the host.";

@@ -1530,16 +1530,21 @@ void NetworkManager::handleRaceResults(const Packet &packet) {
 // PROGRESS & RACE
 // ============================================================================
 
-void NetworkManager::updateProgress(int position, int totalChars, int wpm) {
+void NetworkManager::updateProgress(int position, int totalChars, int wpm,
+                                    double accuracy, int errors) {
   m_currentPosition = position;
   m_currentTotal = totalChars;
   m_currentWpm = wpm;
+  m_currentAccuracy = accuracy;
+  m_currentErrors = errors;
 
   // Update local player state
   if (m_players.contains(m_playerId)) {
     m_players[m_playerId].position = position;
     m_players[m_playerId].totalChars = totalChars;
     m_players[m_playerId].wpm = wpm;
+    m_players[m_playerId].accuracy = accuracy;
+    m_players[m_playerId].errors = errors;
   }
 
   // Notify UI of local changes immediately
@@ -1583,6 +1588,8 @@ void NetworkManager::sendProgressUpdate() {
   payload["position"] = m_currentPosition;
   payload["total"] = m_currentTotal;
   payload["wpm"] = m_currentWpm;
+  payload["accuracy"] = m_currentAccuracy;
+  payload["errors"] = m_currentErrors;
   payload["finished"] = m_localFinished;
 
   Packet packet = createPacket(PacketType::PROGRESS_UPDATE, payload);
@@ -1615,6 +1622,8 @@ void NetworkManager::handleProgressUpdate(PeerConnection *peer,
   player.position = packet.payload["position"].toInt();
   player.totalChars = packet.payload["total"].toInt();
   player.wpm = packet.payload["wpm"].toInt();
+  player.accuracy = packet.payload["accuracy"].toDouble(100.0);
+  player.errors = packet.payload["errors"].toInt(0);
   player.finished = packet.payload["finished"].toBool();
 
   // Debug log
@@ -1799,6 +1808,8 @@ void NetworkManager::resetState() {
   m_currentPosition = 0;
   m_currentTotal = 0;
   m_currentWpm = 0;
+  m_currentAccuracy = 100.0;
+  m_currentErrors = 0;
   m_localFinished = false;
   m_finishedCount = 0;
   m_pendingConnections.clear();
@@ -1854,6 +1865,8 @@ void NetworkManager::returnToLobby() {
   m_currentPosition = 0;
   m_currentTotal = 0;
   m_currentWpm = 0;
+  m_currentAccuracy = 100.0;
+  m_currentErrors = 0;
 
   // Reset player race state while keeping player information
   // Also remove players who have left

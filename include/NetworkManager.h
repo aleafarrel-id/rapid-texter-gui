@@ -115,7 +115,8 @@ public:
   Q_INVOKABLE void kickPlayer(const QString &uuid);
 
   // === PLAYER ACTIONS ===
-  Q_INVOKABLE void updateProgress(int position, int totalChars, int wpm);
+  Q_INVOKABLE void updateProgress(int position, int totalChars, int wpm,
+                                  double accuracy, int errors);
   Q_INVOKABLE void finishRace(int wpm, double accuracy, int errors,
                               int duration);
 
@@ -292,6 +293,8 @@ private:
   int m_currentPosition = 0;
   int m_currentTotal = 0;
   int m_currentWpm = 0;
+  double m_currentAccuracy = 100.0;
+  int m_currentErrors = 0;
   bool m_localFinished = false;
   int m_finishedCount = 0;
   QVariantList m_rankings;

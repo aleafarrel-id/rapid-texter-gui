@@ -180,7 +180,7 @@ FocusScope {
             updateStats();
 
             // Update network progress
-            NetworkManager.updateProgress(typedChars.length, targetText.length, currentWpm);
+            NetworkManager.updateProgress(typedChars.length, targetText.length, currentWpm, currentAccuracy, incorrectChars);
 
             // Force refresh players list to update race track
             playerUpdateCounter++;

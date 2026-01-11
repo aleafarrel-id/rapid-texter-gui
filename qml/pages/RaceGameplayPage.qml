@@ -41,6 +41,8 @@ FocusScope {
     property int currentWpm: 0
     property real currentAccuracy: 100
 
+    property bool capsLockOn: false
+
     signal raceCompleted(int wpm, real accuracy, int errors)
     signal exitClicked
 
@@ -311,6 +313,29 @@ FocusScope {
                         font.family: Theme.fontFamily
                         font.pixelSize: 32
                         font.weight: Font.DemiBold
+                    }
+
+                    // CAPS LOCK Warning
+                    Rectangle {
+                        id: capsLockBox
+                        visible: raceGameplayPage.capsLockOn
+                        color: "#3D2800"
+                        border.color: Theme.accentYellow
+                        border.width: 1
+                        radius: 4
+                        width: capsLockContent.implicitWidth + 20
+                        height: capsLockContent.implicitHeight + 8
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Text {
+                            id: capsLockContent
+                            anchors.centerIn: parent
+                            text: "CAPS LOCK ON"
+                            color: Theme.accentYellow
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            font.bold: true
+                        }
                     }
 
                     Item {
@@ -598,5 +623,14 @@ FocusScope {
 
     Component.onCompleted: {
         countdownOverlay.start();
+        capsLockTimer.start();
+    }
+
+    Timer {
+        id: capsLockTimer
+        interval: 200
+        running: true
+        repeat: true
+        onTriggered: capsLockOn = GameBackend.isCapsLockOn()
     }
 }

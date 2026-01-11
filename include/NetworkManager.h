@@ -235,6 +235,10 @@ private:
   QMap<QString, bool> m_playersReady;
   QTimer *m_readyCheckTimer = nullptr;
 
+  // Play again state
+  bool m_isPendingInvite =
+      false; // True if we received an invite but haven't accepted yet
+
   // Race timing - host records start time for synchronized duration calculation
   qint64 m_raceStartTime = 0;
 

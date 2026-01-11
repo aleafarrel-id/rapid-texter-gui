@@ -144,6 +144,112 @@ FocusScope {
         }
     }
 
+    // Solo play confirmation dialog (Host only)
+    Rectangle {
+        id: soloPlayConfirmDialog
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.6)
+        visible: false
+        z: 1000
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: soloPlayConfirmDialog.visible = false
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 320
+            height: 180
+            color: Theme.bgSecondary
+            border.color: Theme.borderPrimary
+            border.width: 1
+
+            MouseArea {
+                anchors.fill: parent
+                // Prevent clicks from closing dialog
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 16
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Start Solo Race?"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeL
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Turnamen hanya akan berisikan user anda saja. Lanjutkan?"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeM
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    // Cancel Button
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
+                        color: Theme.bgTertiary
+                        border.color: Theme.borderPrimary
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Cancel"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: soloPlayConfirmDialog.visible = false
+                        }
+                    }
+
+                    // Start Button
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
+                        color: Theme.accentBlue
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Start"
+                            color: "white"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                soloPlayConfirmDialog.visible = false;
+                                NetworkManager.startCountdown();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.paddingHuge * 2, 550)
@@ -723,9 +829,11 @@ FocusScope {
                     variant: "primary"
                     enabled: players.length >= 1 && gameText.length > 0
                     onClicked: {
-                        // Only trigger countdown - page transition handled by onCountdownStarted signal
-                        // This ensures host and guest transition together after countdown sync
-                        NetworkManager.startCountdown();
+                        if (players.length === 1) {
+                             soloPlayConfirmDialog.visible = true;
+                        } else {
+                             NetworkManager.startCountdown();
+                        }
                     }
                 }
 

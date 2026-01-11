@@ -1331,6 +1331,13 @@ void NetworkManager::handleReadyCheck(const Packet &packet) {
   QString text = packet.payload["text"].toString();
   QString lang = packet.payload["language"].toString();
 
+  // Guest ignore logic
+  if (m_isPendingInvite) {
+    qDebug() << "[NetworkManager] Ignoring READY_CHECK packet because play "
+                "again invite is pending";
+    return;
+  }
+
   if (m_gameText != text) {
     m_gameText = text;
     emit gameTextChanged();
@@ -1452,6 +1459,15 @@ void NetworkManager::kickPlayer(const QString &uuid) {
 
 void NetworkManager::handleGameStart(const Packet &packet) {
   Q_UNUSED(packet)
+
+  // Guest ignore logic: if we haven't accepted the play again invite yet,
+  // ignore game start
+  if (m_isPendingInvite) {
+    qDebug() << "[NetworkManager] Ignoring GAME_START packet because play "
+                "again invite is pending";
+    return;
+  }
+
   m_isInGame = true;
   // Fix for "Amnesic Host": Record start time on ALL clients so if they become
   // host later, they have the correct reference time for duration calculations.
@@ -1478,6 +1494,13 @@ void NetworkManager::handleGameText(const Packet &packet) {
 }
 
 void NetworkManager::handleCountdown(const Packet &packet) {
+  // Guest ignore logic
+  if (m_isPendingInvite) {
+    qDebug() << "[NetworkManager] Ignoring COUNTDOWN packet because play again "
+                "invite is pending";
+    return;
+  }
+
   int seconds = packet.payload["seconds"].toInt();
   emit countdownStarted(seconds);
 }
@@ -1815,12 +1838,17 @@ void NetworkManager::resetState() {
   m_pendingConnections.clear();
   m_rankings.clear();
 
+  m_rankings.clear();
+
   // Ready check state
   m_isWaitingForReady = false;
   m_playersReady.clear();
   if (m_readyCheckTimer) {
     m_readyCheckTimer->stop();
   }
+
+  // Reset pending state
+  m_isPendingInvite = false;
 
   m_progressTimer->stop();
 
@@ -1887,6 +1915,21 @@ void NetworkManager::returnToLobby() {
     it.value().finishTime = 0;
   }
 
+  // HOST LOGIC: If we are the host, clear all guests from the visible player
+  // list They will be re-added when they accept the Play Again invite.
+  if (m_isAuthority) {
+    QMutableMapIterator<QString, PlayerInfo> it(m_players);
+    while (it.hasNext()) {
+      it.next();
+      // Remove everyone except self
+      if (it.key() != m_playerId) {
+        it.remove();
+      }
+    }
+    qDebug()
+        << "[NetworkManager] Host cleared remote players for Play Again reset";
+  }
+
   // Stop progress timer
   m_progressTimer->stop();
 
@@ -1927,6 +1970,7 @@ void NetworkManager::acceptPlayAgain() {
   qDebug() << "[NetworkManager] Accepting play again invite";
 
   // Return to lobby
+  m_isPendingInvite = false;
   returnToLobby();
 
   // Send response to host
@@ -1962,6 +2006,7 @@ void NetworkManager::handlePlayAgainInvite(const Packet &packet) {
   }
 
   qDebug() << "[NetworkManager] Received play again invite from host";
+  m_isPendingInvite = true;
   emit playAgainInviteReceived();
 }
 
@@ -1982,6 +2027,18 @@ void NetworkManager::handlePlayAgainResponse(PeerConnection *peer,
   if (accepted) {
     qDebug() << "[NetworkManager] Player" << playerName
              << "accepted play again";
+
+    // Re-add player to list if known peer
+    if (peer && !m_players.contains(peer->uuid)) {
+      PlayerInfo info;
+      info.uuid = peer->uuid;
+      info.name = playerName;
+      m_players[peer->uuid] = info;
+      emit playersChanged();
+      qDebug() << "[NetworkManager] Re-added player" << playerName
+               << "to lobby";
+    }
+
     emit playAgainAccepted(playerName);
   } else {
     qDebug() << "[NetworkManager] Player" << playerName

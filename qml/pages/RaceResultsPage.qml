@@ -445,7 +445,7 @@ FocusScope {
                         onClicked: {
                             resultsPage.showInvitePopup = false;
                             NetworkManager.acceptPlayAgain();
-                            resultsPage.returnToLobbyClicked();
+                            // Navigation handled by onReturnedToLobby
                         }
                     }
 
@@ -559,6 +559,7 @@ FocusScope {
                         resultsPage.showGameInProgressPopup = false;
                         resultsPage.showInvitePopup = false;
                         NetworkManager.declinePlayAgain(); // Leave room
+                        resultsPage.exitClicked();
                     }
                 }
             }
@@ -578,6 +579,11 @@ FocusScope {
             console.log("[RaceResultsPage] Game in progress - late join prevented");
             resultsPage.showInvitePopup = false; // Hide invite popup if open
             resultsPage.showGameInProgressPopup = true;
+        }
+
+        function onReturnedToLobby() {
+            console.log("[RaceResultsPage] Successfully returned to lobby - navigating");
+            resultsPage.returnToLobbyClicked();
         }
     }
 
@@ -601,11 +607,11 @@ FocusScope {
                 // Guest accepts invite
                 showInvitePopup = false;
                 NetworkManager.acceptPlayAgain();
-                resultsPage.returnToLobbyClicked();
+                // Navigation handled by onReturnedToLobby
             } else if (resultsPage.isHost) {
                 // Host starts play again
                 NetworkManager.sendPlayAgainInvite();
-                resultsPage.returnToLobbyClicked();
+                // Navigation handled by onReturnedToLobby
             }
             event.accepted = true;
         }

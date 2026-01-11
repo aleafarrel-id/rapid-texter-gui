@@ -24,6 +24,7 @@ FocusScope {
 
     // Play again invitation state (for guests)
     property bool showInvitePopup: false
+    property bool showGameInProgressPopup: false
 
     // Dynamic host state - updates when authority changes
     property bool isHost: NetworkManager.isAuthority
@@ -442,7 +443,7 @@ FocusScope {
                         variant: "primary"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/check.svg"
                         onClicked: {
-                            showInvitePopup = false;
+                            resultsPage.showInvitePopup = false;
                             NetworkManager.acceptPlayAgain();
                             resultsPage.returnToLobbyClicked();
                         }
@@ -452,7 +453,7 @@ FocusScope {
                         labelText: "Decline"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                         onClicked: {
-                            showInvitePopup = false;
+                            resultsPage.showInvitePopup = false;
                             NetworkManager.declinePlayAgain();
                             resultsPage.exitClicked();
                         }
@@ -555,8 +556,8 @@ FocusScope {
                     labelText: "OK"
                     variant: "primary"
                     onClicked: {
-                        showGameInProgressPopup = false;
-                        showInvitePopup = false;
+                        resultsPage.showGameInProgressPopup = false;
+                        resultsPage.showInvitePopup = false;
                         NetworkManager.declinePlayAgain(); // Leave room
                     }
                 }
@@ -570,22 +571,22 @@ FocusScope {
 
         function onPlayAgainInviteReceived() {
             console.log("[RaceResultsPage] Received play again invite");
-            showInvitePopup = true;
+            resultsPage.showInvitePopup = true;
         }
 
         function onGameInProgress() {
             console.log("[RaceResultsPage] Game in progress - late join prevented");
-            showInvitePopup = false; // Hide invite popup if open
-            showGameInProgressPopup = true;
+            resultsPage.showInvitePopup = false; // Hide invite popup if open
+            resultsPage.showGameInProgressPopup = true;
         }
     }
 
     Keys.onPressed: function (event) {
         // ESC to exit (or decline when popup shown)
         if (event.key === Qt.Key_Escape) {
-            if (showInvitePopup) {
+            if (resultsPage.showInvitePopup) {
                 // Decline invite
-                showInvitePopup = false;
+                resultsPage.showInvitePopup = false;
                 NetworkManager.declinePlayAgain();
             }
             NetworkManager.leaveRoom();

@@ -1948,6 +1948,10 @@ void NetworkManager::returnToLobby() {
     refreshGameText();
   }
 
+  // Clear pending state
+  m_isPendingInvite = false;
+  m_hostHasStarted = false;
+
   emit gameStateChanged();
   emit playersChanged();
   emit rankingsChanged();

@@ -621,9 +621,9 @@ void NetworkManager::onPeerDisconnected() {
              << disconnectedUuid << ")";
     removePeer(disconnectedUuid);
 
-    // Remove from players list (critical for race completion check)
-    m_players.remove(disconnectedUuid);
-    emit playersChanged();
+    // Remove from players list (handled by removePeer now)
+    // m_players.remove(disconnectedUuid);
+    // emit playersChanged();
 
     // Notify about player leaving
     if (!disconnectedName.isEmpty()) {
@@ -1441,7 +1441,7 @@ void NetworkManager::kickPlayer(const QString &uuid) {
   Packet packet = createPacket(PacketType::PLAYER_LEFT, payload);
   broadcastToAllPeers(packet);
 
-  // Disconnect the peer
+  // Disconnect the peer (removePeer handles list removal logic)
   removePeer(uuid);
   emit playerLeft(name);
 }

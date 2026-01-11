@@ -14,11 +14,12 @@
  * @see Main.qml For the main QML application window and UI components.
  */
 
+#include "GameBackend.h"
+#include "NetworkManager.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "GameBackend.h"
-#include "NetworkManager.h"
+
 
 /**
  * @brief Application entry point.
@@ -37,64 +38,61 @@
  * @param argv Command-line argument values
  * @return Exit code (0 for success, -1 if QML object creation fails)
  */
-int main(int argc, char *argv[])
-{
-    QGuiApplication app(argc, argv);
+int main(int argc, char *argv[]) {
+  QGuiApplication app(argc, argv);
 
-    /*
-     * Set application metadata for QStandardPaths.
-     * This determines where persistent data (history.json, progress.json)
-     * is stored on the user's system.
-     */
-    app.setOrganizationName("RapidTexter");
-    app.setApplicationName("RapidTexter");
+  /*
+   * Set application metadata for QStandardPaths.
+   * This determines where persistent data (history.json, progress.json)
+   * is stored on the user's system.
+   */
+  app.setOrganizationName("RapidTexter");
+  app.setApplicationName("RapidTexter");
 
-    /*
-     * Create GameBackend singleton instance BEFORE loading QML.
-     * This ensures the backend is fully initialized when QML components
-     * attempt to access it. The singleton pattern guarantees only one
-     * instance exists throughout the application lifecycle.
-     */
-    GameBackend* backend = GameBackend::instance();
-    
-    /*
-     * Create NetworkManager singleton for multiplayer functionality.
-     * Handles UDP discovery, WebSocket lobby, and UDP multicast gameplay.
-     */
-    NetworkManager* networkManager = NetworkManager::instance();
+  /*
+   * Create GameBackend singleton instance BEFORE loading QML.
+   * This ensures the backend is fully initialized when QML components
+   * attempt to access it. The singleton pattern guarantees only one
+   * instance exists throughout the application lifecycle.
+   */
+  GameBackend *backend = GameBackend::instance();
 
-    QQmlApplicationEngine engine;
+  /*
+   * Create NetworkManager singleton for multiplayer functionality.
+   * Handles UDP discovery, WebSocket lobby, and UDP multicast gameplay.
+   */
+  NetworkManager *networkManager = NetworkManager::instance();
 
-    /*
-     * Register GameBackend as a QML singleton.
-     * - Module: "rapid_texter"
-     * - Version: 1.0
-     * - QML name: "GameBackend"
-     * After this, QML can access it via: import rapid_texter 1.0
-     */
-    qmlRegisterSingletonInstance("rapid_texter", 1, 0, "GameBackend", backend);
-    
-    /*
-     * Register NetworkManager as a QML singleton for multiplayer.
-     */
-    qmlRegisterSingletonInstance("rapid_texter", 1, 0, "NetworkManager", networkManager);
+  QQmlApplicationEngine engine;
 
-    /*
-     * Connect to objectCreationFailed signal to handle QML loading errors.
-     * If the main QML file fails to load, exit with error code -1.
-     * Qt::QueuedConnection ensures the exit happens after the signal
-     * is fully processed.
-     */
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
+  /*
+   * Register GameBackend as a QML singleton.
+   * - Module: "rapid_texter"
+   * - Version: 1.0
+   * - QML name: "GameBackend"
+   * After this, QML can access it via: import rapid_texter 1.0
+   */
+  qmlRegisterSingletonInstance("rapid_texter", 1, 0, "GameBackend", backend);
 
-    /* Load the main QML module - this triggers the UI creation */
-    engine.loadFromModule("rapid_texter", "Main");
+  /*
+   * Register NetworkManager as a QML singleton for multiplayer.
+   */
+  qmlRegisterSingletonInstance("rapid_texter", 1, 0, "NetworkManager",
+                               networkManager);
 
-    /* Start the Qt event loop - blocks until application quits */
-    return app.exec();
+  /*
+   * Connect to objectCreationFailed signal to handle QML loading errors.
+   * If the main QML file fails to load, exit with error code -1.
+   * Qt::QueuedConnection ensures the exit happens after the signal
+   * is fully processed.
+   */
+  QObject::connect(
+      &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
+      []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
+
+  /* Load the main QML module - this triggers the UI creation */
+  engine.loadFromModule("rapid_texter", "Main");
+
+  /* Start the Qt event loop - blocks until application quits */
+  return app.exec();
 }

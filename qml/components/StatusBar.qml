@@ -13,6 +13,7 @@
  * Reads properties from mainWindow: currentLanguage, currentTime, currentMode, sfxEnabled.
  */
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
@@ -42,8 +43,14 @@ Rectangle {
     /** @property showShortcutHint @brief Show [S] shortcut indicator for SFX toggle. */
     property bool showShortcutHint: true  // Show [S] shortcut indicator
 
+    /** @property playerName @brief Name of the player to display. */
+    property string playerName: ""
+
     /** @signal sfxToggled @brief Emitted when SFX toggle button is clicked. */
     signal sfxToggled
+
+    /** @signal nameClicked @brief Emitted when the player name is clicked. */
+    signal nameClicked
 
     /* ========================================================================
      * STYLING
@@ -279,6 +286,63 @@ Rectangle {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: statusBar.sfxToggled()
+            }
+        }
+
+        // Spacer
+        Item {
+            width: Theme.spacingL
+        }
+
+        // Player Name Display
+        Rectangle {
+            Layout.preferredWidth: nameRow.implicitWidth + Theme.paddingL * 2
+            Layout.preferredHeight: parent.height - Theme.spacingM
+            color: nameMouse.containsMouse ? Theme.bgTertiary : "transparent"
+            radius: 4
+            visible: statusBar.playerName !== ""
+
+            Row {
+                id: nameRow
+                anchors.centerIn: parent
+                spacing: Theme.spacingS
+                Item {
+                    width: 14
+                    height: 14
+                    anchors.verticalCenter: parent.verticalCenter
+                    Image {
+                        id: userIcon
+                        source: "qrc:/qt/qml/rapid_texter/assets/icons/user.svg"
+                        anchors.fill: parent
+                        sourceSize: Qt.size(14, 14)
+                        visible: false
+                    }
+                    ColorOverlay {
+                        anchors.fill: userIcon
+                        source: userIcon
+                        color: Theme.accentGreen
+                    }
+                }
+                Text {
+                    text: statusBar.playerName
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeM
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                id: nameMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: statusBar.showShortcutHint  // Disable interaction during gameplay
+                cursorShape: Qt.PointingHandCursor
+                onClicked: statusBar.nameClicked()
+                
+                ToolTip.visible: containsMouse
+                ToolTip.delay: 500
+                ToolTip.text: "Click to change name"
             }
         }
     }

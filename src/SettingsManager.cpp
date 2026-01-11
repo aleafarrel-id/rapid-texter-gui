@@ -40,10 +40,12 @@
 // STATIC MEMBER INITIALIZATION
 // ============================================================================
 
-bool SettingsManager::sfxEnabled = true;   // Default: SFX on
-int SettingsManager::defaultDuration = 30; // Default: 30 detik
+bool SettingsManager::sfxEnabled = true;             // Default: SFX on
+int SettingsManager::defaultDuration = 30;           // Default: 30 detik
 std::string SettingsManager::historySortBy = "date"; // Default: sort by date
-bool SettingsManager::historySortAscending = false;  // Default: descending (newest first)
+bool SettingsManager::historySortAscending =
+    false; // Default: descending (newest first)
+std::string SettingsManager::playerName = ""; // Default: empty
 bool SettingsManager::isLoaded = false;
 std::string SettingsManager::filename = "";
 
@@ -141,6 +143,17 @@ bool SettingsManager::load() {
         sfxEnabled = false;
       }
     }
+    // Parse player_name
+    else if (line.find("\"player_name\"") != std::string::npos) {
+      size_t colonPos = line.find(":");
+      if (colonPos != std::string::npos) {
+        size_t firstQuote = line.find('"', colonPos);
+        size_t lastQuote = line.rfind('"');
+        if (firstQuote != std::string::npos && lastQuote > firstQuote) {
+          playerName = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+        }
+      }
+    }
     // Parse default_duration
     else if (line.find("\"default_duration\"") != std::string::npos) {
       size_t colonPos = line.find(":");
@@ -166,7 +179,8 @@ bool SettingsManager::load() {
         size_t firstQuote = line.find('"', colonPos);
         size_t lastQuote = line.rfind('"');
         if (firstQuote != std::string::npos && lastQuote > firstQuote) {
-          historySortBy = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+          historySortBy =
+              line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
         }
       }
     }
@@ -211,9 +225,11 @@ bool SettingsManager::save() {
 
   file << "{\n";
   file << "  \"sfx_enabled\": " << (sfxEnabled ? "true" : "false") << ",\n";
+  file << "  \"player_name\": \"" << playerName << "\",\n";
   file << "  \"default_duration\": " << defaultDuration << ",\n";
   file << "  \"history_sort_by\": \"" << historySortBy << "\",\n";
-  file << "  \"history_sort_ascending\": " << (historySortAscending ? "true" : "false") << "\n";
+  file << "  \"history_sort_ascending\": "
+       << (historySortAscending ? "true" : "false") << "\n";
   file << "}\n";
 
   file.close();
@@ -287,7 +303,7 @@ std::string SettingsManager::getHistorySortBy() {
  * @brief Mengatur field sorting history dan menyimpan ke file
  * @param sortBy Field untuk sorting ("date" atau "wpm")
  */
-void SettingsManager::setHistorySortBy(const std::string& sortBy) {
+void SettingsManager::setHistorySortBy(const std::string &sortBy) {
   historySortBy = sortBy;
   save();
 }
@@ -309,5 +325,25 @@ bool SettingsManager::getHistorySortAscending() {
  */
 void SettingsManager::setHistorySortAscending(bool ascending) {
   historySortAscending = ascending;
+  save();
+}
+
+/**
+ * @brief Mendapatkan nama pemain
+ * @return String nama pemain
+ */
+std::string SettingsManager::getPlayerName() {
+  if (!isLoaded) {
+    load();
+  }
+  return playerName;
+}
+
+/**
+ * @brief Mengatur nama pemain dan menyimpan ke file
+ * @param name Nama pemain baru
+ */
+void SettingsManager::setPlayerName(const std::string &name) {
+  playerName = name;
   save();
 }

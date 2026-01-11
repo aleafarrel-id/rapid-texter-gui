@@ -13,13 +13,14 @@ FocusScope {
     focus: true
 
     property bool isCreating: true  // true = create game, false = join game
+    property string titleText: ""   // Optional override for the header title
     property string initialName: ""
 
     signal confirmed(string name)
     signal backClicked
 
     Component.onCompleted: {
-        nameInput.text = initialName || NetworkManager.playerName || "";
+        nameInput.text = initialName || GameBackend.playerName || NetworkManager.playerName || "";
         nameInput.forceActiveFocus();
     }
 
@@ -43,7 +44,7 @@ FocusScope {
             Text {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 12
-                text: isCreating ? "CREATE GAME" : "JOIN GAME"
+                text: titleText !== "" ? titleText : (isCreating ? "CREATE GAME" : "JOIN GAME")
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSizeDisplay
@@ -156,8 +157,10 @@ FocusScope {
                     variant: "primary"
                     enabled: nameInput.text.trim().length > 0
                     onClicked: {
-                        NetworkManager.playerName = nameInput.text.trim();
-                        playerNamePage.confirmed(nameInput.text.trim());
+                        var finalName = nameInput.text.trim();
+                        NetworkManager.playerName = finalName;
+                        GameBackend.playerName = finalName; // Save to settings
+                        playerNamePage.confirmed(finalName);
                     }
                 }
             }
@@ -166,7 +169,15 @@ FocusScope {
 
     // Keyboard handling
     Keys.onPressed: function (event) {
-        if (event.key === Qt.Key_Escape) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (nameInput.text.trim().length > 0) {
+                 var finalName = nameInput.text.trim();
+                 NetworkManager.playerName = finalName;
+                 GameBackend.playerName = finalName; // Save to settings
+                 playerNamePage.confirmed(finalName);
+            }
+            event.accepted = true;
+        } else if (event.key === Qt.Key_Escape) {
             playerNamePage.backClicked();
             event.accepted = true;
         }

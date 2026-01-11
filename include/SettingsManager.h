@@ -86,7 +86,7 @@ public:
    * @brief Mengatur field sorting history dan menyimpan ke file
    * @param sortBy Field untuk sorting ("date" atau "wpm")
    */
-  static void setHistorySortBy(const std::string& sortBy);
+  static void setHistorySortBy(const std::string &sortBy);
 
   /**
    * @brief Mendapatkan arah sorting history
@@ -100,13 +100,26 @@ public:
    */
   static void setHistorySortAscending(bool ascending);
 
+  /**
+   * @brief Mendapatkan nama pemain
+   * @return String nama pemain
+   */
+  static std::string getPlayerName();
+
+  /**
+   * @brief Mengatur nama pemain dan menyimpan ke file
+   * @param name Nama pemain baru
+   */
+  static void setPlayerName(const std::string &name);
+
 private:
-  static bool sfxEnabled;            ///< Status SFX (default: true)
-  static int defaultDuration;        ///< Durasi default (default: 30)
-  static std::string historySortBy;  ///< Field sort history (default: "date")
-  static bool historySortAscending;  ///< Arah sort (default: false = descending)
-  static bool isLoaded;              ///< Flag: settings sudah di-load
-  static std::string filename;       ///< Path ke file settings.json
+  static bool sfxEnabled;           ///< Status SFX (default: true)
+  static int defaultDuration;       ///< Durasi default (default: 30)
+  static std::string historySortBy; ///< Field sort history (default: "date")
+  static bool historySortAscending; ///< Arah sort (default: false = descending)
+  static std::string playerName;    ///< Nama pemain (default: "")
+  static bool isLoaded;             ///< Flag: settings sudah di-load
+  static std::string filename;      ///< Path ke file settings.json
 
   /**
    * @brief Mendapatkan path direktori data aplikasi

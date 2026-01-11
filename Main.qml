@@ -137,6 +137,7 @@ ApplicationWindow {
             currentTime: mainWindow.currentTime
             currentMode: mainWindow.currentMode
             sfxEnabled: GameBackend.sfxEnabled
+            playerName: GameBackend.playerName
             showShortcutHint: !mainWindow.isInGameplay
             onSfxToggled: {
                 GameBackend.toggleSfx();
@@ -144,6 +145,10 @@ ApplicationWindow {
                 if (GameBackend.sfxEnabled) {
                     GameBackend.playErrorSound();
                 }
+            }
+            onNameClicked: {
+                // Open name editor in "edit mode"
+                stackView.push(playerNameForEditComponent);
             }
         }
 
@@ -356,10 +361,23 @@ ApplicationWindow {
             StackView.onActivating: forceActiveFocus()
 
             onCreateGameClicked: {
-                stackView.push(playerNameForHostComponent);
+                if (GameBackend.playerName !== "") {
+                    // Name already set, skip name page
+                    NetworkManager.playerName = GameBackend.playerName;
+                    NetworkManager.createRoom();
+                    stackView.push(lobbyComponent);
+                } else {
+                    stackView.push(playerNameForHostComponent);
+                }
             }
             onJoinGameClicked: {
-                stackView.push(playerNameForJoinComponent);
+                if (GameBackend.playerName !== "") {
+                    // Name already set, skip name page
+                    NetworkManager.playerName = GameBackend.playerName;
+                    stackView.push(gameBrowserComponent);
+                } else {
+                    stackView.push(playerNameForJoinComponent);
+                }
             }
             onBackClicked: {
                 stackView.push(mainMenuComponent);
@@ -395,6 +413,25 @@ ApplicationWindow {
 
             onConfirmed: function (name) {
                 stackView.push(gameBrowserComponent);
+            }
+            onBackClicked: {
+                stackView.pop();
+            }
+        }
+    }
+
+    // Player name page for editing (from Status Bar)
+    Component {
+        id: playerNameForEditComponent
+
+        PlayerNamePage {
+            titleText: "PROFILE"
+            initialName: GameBackend.playerName
+            StackView.onActivating: forceActiveFocus()
+
+            onConfirmed: function (name) {
+                // Name is already saved in PlayerNamePage.qml logic
+                stackView.pop();
             }
             onBackClicked: {
                 stackView.pop();

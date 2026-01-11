@@ -28,8 +28,8 @@ GameBackend *GameBackend::s_instance = nullptr;
 
 GameBackend::GameBackend(QObject *parent)
     : QObject(parent), m_correctSound(nullptr), m_errorSound(nullptr),
-      m_audioKeepAliveTimer(nullptr), m_sfxEnabled(true),
-      m_defaultDuration(30) {
+      m_audioKeepAliveTimer(nullptr), m_sfxEnabled(true), m_defaultDuration(30),
+      m_playerName("") {
   // Load settings from file
   loadSettings();
 
@@ -515,10 +515,24 @@ void GameBackend::setHistorySortAscending(bool ascending) {
   }
 }
 
+QString GameBackend::playerName() const {
+  return QString::fromStdString(SettingsManager::getPlayerName());
+}
+
+void GameBackend::setPlayerName(const QString &name) {
+  QString current = QString::fromStdString(SettingsManager::getPlayerName());
+  if (current != name) {
+    SettingsManager::setPlayerName(name.toStdString());
+    m_playerName = name;
+    emit playerNameChanged();
+  }
+}
+
 void GameBackend::loadSettings() {
   SettingsManager::load();
   m_sfxEnabled = SettingsManager::getSfxEnabled();
   m_defaultDuration = SettingsManager::getDefaultDuration();
+  m_playerName = QString::fromStdString(SettingsManager::getPlayerName());
 }
 
 // ============================================================================

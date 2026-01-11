@@ -462,6 +462,108 @@ FocusScope {
         }
     }
 
+    // Game In Progress Popup (Late Join Attempt)
+    Rectangle {
+        id: gameInProgressPopupOverlay
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.75)
+        visible: showGameInProgressPopup
+        z: 110
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {}
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 380
+            height: 240
+            color: Theme.bgSecondary
+            border.color: Theme.borderPrimary
+            border.width: 1
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 24
+                width: parent.width - 40
+
+                // Icon and title
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 12
+
+                    Item {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 40
+                        height: 40
+                        
+                        Image {
+                            id: clockIcon
+                            anchors.fill: parent
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/clock.svg"
+                            sourceSize: Qt.size(40, 40)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: clockIcon
+                            source: clockIcon
+                            color: Theme.accentRed 
+                        }
+                        // Fallback circle if icon missing (play again popup used refresh)
+                        Rectangle {
+                           anchors.fill: parent 
+                           radius: 20
+                           color: "transparent"
+                           border.color: Theme.accentRed
+                           border.width: 2
+                           visible: clockIcon.status !== Image.Ready
+                           
+                           Text {
+                               anchors.centerIn: parent
+                               text: "!"
+                               color: Theme.accentRed
+                               font.bold: true
+                               font.pixelSize: 24
+                           }
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Race Already Started"
+                        color: Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 24
+                        font.bold: true
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    text: "The host has already started the race. You cannot join this session."
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 16
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                NavBtn {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    labelText: "OK"
+                    variant: "primary"
+                    onClicked: {
+                        showGameInProgressPopup = false;
+                        showInvitePopup = false;
+                        NetworkManager.declinePlayAgain(); // Leave room
+                    }
+                }
+            }
+        }
+    }
+
     // Network connections for play again
     Connections {
         target: NetworkManager
@@ -469,6 +571,12 @@ FocusScope {
         function onPlayAgainInviteReceived() {
             console.log("[RaceResultsPage] Received play again invite");
             showInvitePopup = true;
+        }
+
+        function onGameInProgress() {
+            console.log("[RaceResultsPage] Game in progress - late join prevented");
+            showInvitePopup = false; // Hide invite popup if open
+            showGameInProgressPopup = true;
         }
     }
 

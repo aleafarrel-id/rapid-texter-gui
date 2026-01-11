@@ -196,6 +196,7 @@ signals:
   void playAgainAccepted(const QString &name); // Host notified of accept
   void playAgainDeclined(const QString &name); // Host notified of decline
   void returnedToLobby();                      // Successfully returned to lobby
+  void gameInProgress(); // Guest tried to accept but game already started
 
 private:
   explicit NetworkManager(QObject *parent = nullptr);
@@ -238,6 +239,8 @@ private:
   // Play again state
   bool m_isPendingInvite =
       false; // True if we received an invite but haven't accepted yet
+  bool m_hostHasStarted =
+      false; // True if host started game while we were pending
 
   // Race timing - host records start time for synchronized duration calculation
   qint64 m_raceStartTime = 0;

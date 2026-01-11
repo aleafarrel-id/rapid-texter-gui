@@ -187,7 +187,7 @@ FocusScope {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "Turnamen hanya akan berisikan user anda saja. Lanjutkan?"
+                    text: "There's only you in the race, continue?"
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSizeM

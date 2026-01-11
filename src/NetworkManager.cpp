@@ -1284,9 +1284,13 @@ void NetworkManager::startCountdown() {
     return;
   }
 
-  // If no other players, start immediately
-  if (m_peers.isEmpty()) {
-    qDebug() << "[NetworkManager] Solo mode - starting immediately";
+  // If no other players (Solo mode), start immediately
+  // CRITICAL FIX: Check m_players.size() (joined players) not m_peers
+  // (connections) This ensures we don't wait for pending guests who haven't
+  // accepted yet
+  if (m_players.size() <= 1) {
+    qDebug() << "[NetworkManager] Solo mode (active players <= 1) - starting "
+                "immediately";
     beginCountdown();
     return;
   }
@@ -1465,6 +1469,7 @@ void NetworkManager::handleGameStart(const Packet &packet) {
   if (m_isPendingInvite) {
     qDebug() << "[NetworkManager] Ignoring GAME_START packet because play "
                 "again invite is pending";
+    m_hostHasStarted = true; // Mark that host has started without us
     return;
   }
 
@@ -1498,6 +1503,7 @@ void NetworkManager::handleCountdown(const Packet &packet) {
   if (m_isPendingInvite) {
     qDebug() << "[NetworkManager] Ignoring COUNTDOWN packet because play again "
                 "invite is pending";
+    m_hostHasStarted = true; // Countdown implies host has started
     return;
   }
 
@@ -1849,6 +1855,7 @@ void NetworkManager::resetState() {
 
   // Reset pending state
   m_isPendingInvite = false;
+  m_hostHasStarted = false;
 
   m_progressTimer->stop();
 
@@ -1969,6 +1976,13 @@ void NetworkManager::sendPlayAgainInvite() {
 void NetworkManager::acceptPlayAgain() {
   qDebug() << "[NetworkManager] Accepting play again invite";
 
+  // Check if host has already started
+  if (m_hostHasStarted) {
+    qDebug() << "[NetworkManager] Cannot accept - host already started game";
+    emit gameInProgress();
+    return;
+  }
+
   // Return to lobby
   m_isPendingInvite = false;
   returnToLobby();
@@ -2007,6 +2021,7 @@ void NetworkManager::handlePlayAgainInvite(const Packet &packet) {
 
   qDebug() << "[NetworkManager] Received play again invite from host";
   m_isPendingInvite = true;
+  m_hostHasStarted = false; // Reset tracked state for new invite
   emit playAgainInviteReceived();
 }
 

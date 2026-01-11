@@ -135,13 +135,11 @@ FocusScope {
         if (gameEnded)
             return;
 
-        // Start game on first keystroke
-        if (!gameStarted && event.text.length === 1) {
-            gameStarted = true;
-            startTime = Date.now();
-            elapsedTimer.start();
-            statsTimer.start();
-        }
+        if (gameEnded)
+            return;
+
+        // Note: Game start is now handled by onGameStarted signal from NetworkManager
+        // This ensures all players start at the same time regardless of when they start typing
 
         if (event.key === Qt.Key_Backspace) {
             if (canDeleteAtPosition() && typedChars.length > 0) {
@@ -241,6 +239,15 @@ FocusScope {
     // Network event handlers
     Connections {
         target: NetworkManager
+
+        function onGameStarted() {
+            // Start game immediately when signal is received (synced with host/countdown)
+            gameStarted = true;
+            startTime = Date.now();
+            elapsedTimer.start();
+            statsTimer.start();
+            hiddenInput.forceActiveFocus();
+        }
 
         function onPlayerProgressUpdated(id, name, progress, wpm, finished, position) {
             players = NetworkManager.players;

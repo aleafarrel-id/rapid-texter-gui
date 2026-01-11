@@ -1347,6 +1347,10 @@ void NetworkManager::kickPlayer(const QString& uuid) {
 void NetworkManager::handleGameStart(const Packet& packet) {
     Q_UNUSED(packet)
     m_isInGame = true;
+    // Fix for "Amnesic Host": Record start time on ALL clients so if they become host later,
+    // they have the correct reference time for duration calculations.
+    m_raceStartTime = QDateTime::currentMSecsSinceEpoch();
+    
     emit gameStateChanged();
     emit gameStarted();
     

@@ -226,7 +226,8 @@ FocusScope {
                     delegate: Rectangle {
                         width: parent.width
                         height: 40
-                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : "transparent"
+                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : 
+                               (modelData.hasLeft ? Qt.rgba(1, 0.8, 0.3, 0.1) : "transparent") // Yellow tint for left players
 
                         RowLayout {
                             anchors.left: parent.left
@@ -267,11 +268,12 @@ FocusScope {
                             // Name
                             Text {
                                 Layout.fillWidth: true
-                                text: modelData.name + (modelData.isLocal ? " (You)" : "")
-                                color: modelData.isLocal ? Theme.accentBlue : Theme.textPrimary
+                                text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " (Left)" : "")
+                                color: modelData.hasLeft ? Theme.textMuted : (modelData.isLocal ? Theme.accentBlue : Theme.textPrimary)
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeM
                                 font.bold: modelData.isLocal
+                                font.italic: modelData.hasLeft
                                 elide: Text.ElideRight
                             }
 
@@ -303,17 +305,19 @@ FocusScope {
                                 font.pixelSize: Theme.fontSizeSM
                             }
 
-                            // Time - show actual race duration
+                            // Time - show actual race duration or "Left"
                             Text {
                                 Layout.preferredWidth: 50
                                 horizontalAlignment: Text.AlignRight
                                 text: {
+                                    if (modelData.hasLeft) return "Left";
                                     var duration = modelData.duration !== undefined ? modelData.duration : 0;
                                     return duration + "s";
                                 }
-                                color: Theme.textMuted
+                                color: modelData.hasLeft ? Theme.textMuted : Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeSM
+                                font.italic: modelData.hasLeft
                             }
                         }
 

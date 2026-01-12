@@ -255,44 +255,46 @@ Rectangle {
                             anchors.margins: 10
                             spacing: 5
 
-                            // Header for player list
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 10
-
-                                Text {
-                                    Layout.preferredWidth: 30
-                                    text: modelData.position
-                                    color: (modelData.position === 1) ? Theme.accentYellow : Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                }
-                                Text {
+                            Repeater {
+                                model: modelData.players
+                                delegate: RowLayout {
                                     Layout.fillWidth: true
-                                    text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " [Left]" : "")
-                                    color: modelData.isLocal ? Theme.accentBlue : Theme.textPrimary
-                                    font.family: Theme.fontFamily
-                                    font.bold: modelData.isLocal
-                                }
-                                Text {
-                                    Layout.preferredWidth: 60
-                                    text: modelData.wpm
-                                    color: Theme.accentGreen
-                                    font.family: Theme.fontFamily
-                                    horizontalAlignment: Text.AlignRight
-                                }
-                                Text {
-                                    Layout.preferredWidth: 60
-                                    text: modelData.accuracy.toFixed(1) + "%"
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    horizontalAlignment: Text.AlignRight
-                                }
-                                Text {
-                                    Layout.preferredWidth: 60
-                                    text: modelData.errors
-                                    color: (modelData.errors > 0) ? Theme.accentRed : Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    horizontalAlignment: Text.AlignRight
+                                    spacing: 10
+
+                                    Text {
+                                        Layout.preferredWidth: 30
+                                        text: modelData.position
+                                        color: (modelData.position === 1) ? Theme.accentYellow : Theme.textSecondary
+                                        font.family: Theme.fontFamily
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " [Left]" : "")
+                                        color: modelData.isLocal ? Theme.accentBlue : Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.bold: modelData.isLocal
+                                    }
+                                    Text {
+                                        Layout.preferredWidth: 60
+                                        text: modelData.wpm
+                                        color: Theme.accentGreen
+                                        font.family: Theme.fontFamily
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                    Text {
+                                        Layout.preferredWidth: 60
+                                        text: modelData.accuracy.toFixed(1) + "%"
+                                        color: Theme.textSecondary
+                                        font.family: Theme.fontFamily
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                    Text {
+                                        Layout.preferredWidth: 60
+                                        text: modelData.errors
+                                        color: (modelData.errors > 0) ? Theme.accentRed : Theme.textSecondary
+                                        font.family: Theme.fontFamily
+                                        horizontalAlignment: Text.AlignRight
+                                    }
                                 }
                             }
                         }

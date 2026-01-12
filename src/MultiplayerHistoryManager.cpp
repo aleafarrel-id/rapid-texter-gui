@@ -26,20 +26,65 @@ MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
   }
   s_instance = this;
 
-  // Determine data directory using QStandardPaths (Standard Qt way)
-  // HistoryManager.cpp uses custom logic, but we can try to be consistent with
-  // Qt best practices or stick to the manual logic if needed. Let's use
-  // QStandardPaths which maps to the same locations usually. data location:
-  // ~/.local/share/RapidTexter/ or %APPDATA%/RapidTexter/
-
-  QString dataLocation =
+  // Fix for double folder issue ("RapidTexter/RapidTexter")
+  // We want %APPDATA%/RapidTexter/multiplayer_history.json
+  QString standardPath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-  QDir dir(dataLocation);
-  if (!dir.exists()) {
-    dir.mkpath(".");
+  QDir dir(standardPath);
+
+  // Check if we are in the double folder situation
+  if (dir.dirName() == "RapidTexter" && dir.cdUp()) {
+    if (dir.dirName() == "RapidTexter") {
+      // We were in .../RapidTexter/RapidTexter, so cdUp took us to
+      // .../RapidTexter which is what we want.
+      // dir is now correct.
+    } else {
+      // Revert if structure wasn't as expected, though unlikely with
+      // default Qt behavior. We'll stick to the standard path
+      // but try to clean it if it ends in duplication.
+      dir.setPath(standardPath);
+    }
   }
 
-  m_filename = dir.filePath("multiplayer_history.json").toStdString();
+  // Explicitly ensure we are using the base AppData/RapidTexter path
+  // If standardPath ends with "/RapidTexter/RapidTexter", we want just one.
+  // A safer manual construction to match HistoryManager.cpp behavior:
+  QString genericData = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+  // On Windows GenericDataLocation is usually Local AppData, but AppDataLocation
+  // is Roaming. Roaming is usually preferred for config/history.
+  // QStandardPaths::AppDataLocation returns Roaming/Org/App. 
+  // If logic is confusing, we can do a robust fix:
+  
+  // 1. Get the "bad" path (where it was currently saving)
+  QString badPath = standardPath + "/multiplayer_history.json";
+  
+  // 2. define the "good" path. 
+  // If standardPath ends in /RapidTexter/RapidTexter, remove one level.
+  QString cleanPathStr = standardPath;
+  if (cleanPathStr.endsWith("/RapidTexter/RapidTexter")) {
+      cleanPathStr.chop(12); // Remove last "/RapidTexter"
+  }
+  QDir cleanDir(cleanPathStr);
+  if (!cleanDir.exists()) {
+      cleanDir.mkpath(".");
+  }
+  QString goodPath = cleanDir.filePath("multiplayer_history.json");
+
+  // 3. Migration: If bad file exists and good file doesn't, move it.
+  QFile badFile(badPath);
+  QFile goodFile(goodPath);
+  
+  if (badFile.exists() && !goodFile.exists()) {
+      qDebug() << "[MultiplayerHistoryManager] Migrating history from" << badPath << "to" << goodPath;
+      if (!badFile.rename(goodPath)) {
+           qWarning() << "[MultiplayerHistoryManager] Migration failed!";
+           // Fallback to bad path to not lose data? Or just proceed with good path (which will be empty)
+           // Let's stick to good path, user might have to move manually if auto fails.
+      }
+  }
+
+  m_filename = goodPath.toStdString();
+  qDebug() << "[MultiplayerHistoryManager] Using history file:" << goodPath;
 
   loadHistory();
 }

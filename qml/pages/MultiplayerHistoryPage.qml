@@ -253,7 +253,7 @@ Rectangle {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.margins: 10
-                            spacing: 5
+                            spacing: 12
 
                             Repeater {
                                 model: modelData.players
@@ -275,8 +275,8 @@ Rectangle {
                                         font.bold: modelData.isLocal
                                     }
                                     Text {
-                                        Layout.preferredWidth: 60
-                                        text: modelData.wpm
+                                        Layout.preferredWidth: 80
+                                        text: modelData.wpm + " WPM"
                                         color: Theme.accentGreen
                                         font.family: Theme.fontFamily
                                         horizontalAlignment: Text.AlignRight
@@ -289,8 +289,8 @@ Rectangle {
                                         horizontalAlignment: Text.AlignRight
                                     }
                                     Text {
-                                        Layout.preferredWidth: 60
-                                        text: modelData.errors
+                                        Layout.preferredWidth: 80
+                                        text: modelData.errors + " err"
                                         color: (modelData.errors > 0) ? Theme.accentRed : Theme.textSecondary
                                         font.family: Theme.fontFamily
                                         horizontalAlignment: Text.AlignRight

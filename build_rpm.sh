@@ -32,7 +32,8 @@ cd $BUILD_DIR
 # Kita gunakan flag standar untuk Fedora. Tidak perlu workaround aneh-aneh seperti di AppImage.
 cmake .. \
     -DCMAKE_INSTALL_PREFIX=/usr \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_SKIP_INSTALL_RPATH=ON
 
 make -j$(nproc)
 cd ..
@@ -112,7 +113,7 @@ cp -r $(pwd)/$STAGING_DIR/usr/share/icons/* %{buildroot}/usr/share/icons/
 /usr/share/icons/hicolor/256x256/apps/rapidtexter.png
 
 %changelog
-* $(date "+%a %b %d %Y") Developer <dev@example.com> - $VERSION-1
+* $(LC_ALL=C date "+%a %b %d %Y") Developer <dev@example.com> - $VERSION-1
 - Generated via build_rpm.sh script
 EOF
 

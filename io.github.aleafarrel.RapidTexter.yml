@@ -7,6 +7,7 @@ command: RapidTexterGUI
 finish-args:
   # Display (Wayland + X11 fallback)
   - --share=ipc
+  - --share=network
   - --socket=wayland
   - --socket=fallback-x11
   # OpenGL rendering

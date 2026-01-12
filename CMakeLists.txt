@@ -20,6 +20,7 @@ set(GAME_LOGIC_SOURCES
     src/ProgressManager.cpp
     src/SettingsManager.cpp
     src/NetworkManager.cpp
+    src/MultiplayerHistoryManager.cpp
 )
 
 # Header files
@@ -31,6 +32,7 @@ set(GAME_LOGIC_HEADERS
     include/SettingsManager.h
     include/Stats.h
     include/NetworkManager.h
+    include/MultiplayerHistoryManager.h
 )
 
 # Windows application icon (only include on Windows)
@@ -81,6 +83,7 @@ qt_add_qml_module(RapidTexterGUI
         qml/pages/GameplayPage.qml
         # Multiplayer Pages
         qml/pages/MultiplayerMenuPage.qml
+        qml/pages/MultiplayerHistoryPage.qml
         qml/pages/PlayerNamePage.qml
         qml/pages/GameBrowserPage.qml
         qml/pages/LobbyPage.qml

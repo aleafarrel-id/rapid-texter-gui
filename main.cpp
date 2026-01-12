@@ -15,11 +15,11 @@
  */
 
 #include "GameBackend.h"
+#include "MultiplayerHistoryManager.h"
 #include "NetworkManager.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-
 
 /**
  * @brief Application entry point.
@@ -63,6 +63,21 @@ int main(int argc, char *argv[]) {
    */
   NetworkManager *networkManager = NetworkManager::instance();
 
+  /*
+   * Create MultiplayerHistoryManager singleton.
+   * Manages storage of multiplayer game results.
+   */
+  MultiplayerHistoryManager *mpHistoryManager =
+      new MultiplayerHistoryManager(&app);
+
+  /*
+   * Connect NetworkManager to MultiplayerHistoryManager.
+   * When a race finishes, results are automatically saved.
+   */
+  QObject::connect(networkManager, &NetworkManager::raceFinished,
+                   mpHistoryManager,
+                   &MultiplayerHistoryManager::onRaceFinished);
+
   QQmlApplicationEngine engine;
 
   /*
@@ -79,6 +94,12 @@ int main(int argc, char *argv[]) {
    */
   qmlRegisterSingletonInstance("rapid_texter", 1, 0, "NetworkManager",
                                networkManager);
+
+  /*
+   * Register MultiplayerHistoryManager as a QML singleton.
+   */
+  qmlRegisterSingletonInstance("rapid_texter", 1, 0,
+                               "MultiplayerHistoryManager", mpHistoryManager);
 
   /*
    * Connect to objectCreationFailed signal to handle QML loading errors.

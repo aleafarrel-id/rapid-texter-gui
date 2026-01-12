@@ -2592,6 +2592,11 @@ ApplicationWindow {
                         onClicked: stackView.pop()
                     }
                     NavBtn {
+                        iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
+                        labelText: "Multiplayer History"
+                        onClicked: stackView.push(multiplayerHistoryComponent)
+                    }
+                    NavBtn {
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/trash.svg"
                         labelText: "Clear History (C)"
                         variant: "danger"
@@ -3045,6 +3050,21 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // ========================================================================
+    // MULTIPLAYER HISTORY PAGE
+    // ========================================================================
+    Component {
+        id: multiplayerHistoryComponent
+
+        MultiplayerHistoryPage {
+            StackView.onActivating: forceActiveFocus()
+            
+            onBackClicked: {
+                stackView.pop();
             }
         }
     }

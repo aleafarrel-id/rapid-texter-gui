@@ -35,6 +35,7 @@ Rectangle {
     // Navigation signals
     signal backClicked
     signal clearHistoryClicked
+    signal multiplayerHistoryClicked
 
     Keys.onPressed: function (event) {
         switch (event.key) {
@@ -307,6 +308,11 @@ Rectangle {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
                 labelText: "Back (ESC)"
                 onClicked: historyPage.backClicked()
+            }
+            NavBtn {
+                iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
+                labelText: "Multiplayer History"
+                onClicked: historyPage.multiplayerHistoryClicked()
             }
             NavBtn {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/trash.svg"

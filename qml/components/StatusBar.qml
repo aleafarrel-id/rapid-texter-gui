@@ -70,6 +70,16 @@ Rectangle {
         color: Theme.borderPrimary
     }
 
+    // Debounce lock to prevent double clicks
+    property bool _interactionLocked: false
+
+    Timer {
+        id: debounceTimer
+        interval: 500
+        repeat: false
+        onTriggered: statusBar._interactionLocked = false
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: Theme.paddingHuge
@@ -338,8 +348,14 @@ Rectangle {
                 hoverEnabled: true
                 enabled: statusBar.showShortcutHint  // Disable interaction during gameplay
                 cursorShape: Qt.PointingHandCursor
-                onClicked: statusBar.nameClicked()
-                
+                onClicked: {
+                    if (statusBar._interactionLocked)
+                        return;
+                    statusBar._interactionLocked = true;
+                    debounceTimer.start();
+                    statusBar.nameClicked();
+                }
+
                 ToolTip.visible: containsMouse
                 ToolTip.delay: 500
                 ToolTip.text: "Click to change name"

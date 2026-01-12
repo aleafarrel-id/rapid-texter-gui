@@ -83,6 +83,17 @@ Rectangle {
      * ======================================================================== */
 
     /**
+     * @property isLoading
+     * @brief Whether the button is in a loading state.
+     * @details When true, the icon rotates and the button should typically be disabled.
+     */
+    property bool isLoading: false
+
+    /* ========================================================================
+     * SIGNALS
+     * ======================================================================== */
+
+    /**
      * @signal clicked
      * @brief Emitted when the button is clicked.
      */
@@ -176,9 +187,22 @@ Rectangle {
          * @details Width is 0 when no iconSource is set to collapse spacing.
          */
         Item {
+            id: iconItem
             width: navBtn.iconSource !== "" ? 14 : 0  /* 14px icon or 0 if none */
             height: 14
             anchors.verticalCenter: parent.verticalCenter
+
+            /**
+             * @brief Spin animation for loading state
+             */
+            RotationAnimation {
+                target: iconItem
+                from: 0
+                to: 360
+                duration: 1000
+                loops: Animation.Infinite
+                running: navBtn.isLoading
+            }
 
             /**
              * @brief SVG image source (hidden, used as overlay source).

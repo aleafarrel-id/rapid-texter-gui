@@ -147,6 +147,10 @@ ApplicationWindow {
                 }
             }
             onNameClicked: {
+                // Prevent opening profile page if it's already open
+                if (stackView.currentItem && stackView.currentItem.objectName === "profilePage") {
+                    return;
+                }
                 // Open name editor in "edit mode"
                 stackView.push(playerNameForEditComponent);
             }
@@ -425,6 +429,7 @@ ApplicationWindow {
         id: playerNameForEditComponent
 
         PlayerNamePage {
+            objectName: "profilePage"
             titleText: "PROFILE"
             initialName: GameBackend.playerName
             StackView.onActivating: forceActiveFocus()

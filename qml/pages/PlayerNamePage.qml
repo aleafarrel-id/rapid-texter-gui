@@ -24,6 +24,30 @@ FocusScope {
         nameInput.forceActiveFocus();
     }
 
+    // Processing state for Continue button
+    property bool isProcessing: false
+
+    Timer {
+        id: processingTimer
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            var finalName = nameInput.text.trim();
+            NetworkManager.playerName = finalName;
+            GameBackend.playerName = finalName; // Save to settings
+            playerNamePage.confirmed(finalName);
+            playerNamePage.isProcessing = false;
+        }
+    }
+
+    // Common function to handle continue action
+    function handleContinue() {
+        if (nameInput.text.trim().length > 0 && !playerNamePage.isProcessing) {
+            playerNamePage.isProcessing = true;
+            processingTimer.start();
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -105,6 +129,7 @@ FocusScope {
                         font.pixelSize: Theme.fontSizeXL
                         maximumLength: 16
                         selectByMouse: true
+                        enabled: !playerNamePage.isProcessing
 
                         Text {
                             anchors.fill: parent
@@ -114,12 +139,7 @@ FocusScope {
                             visible: parent.text.length === 0
                         }
 
-                        onAccepted: {
-                            if (text.trim().length > 0) {
-                                NetworkManager.playerName = text.trim();
-                                playerNamePage.confirmed(text.trim());
-                            }
-                        }
+                        onAccepted: playerNamePage.handleContinue()
                     }
                 }
             }
@@ -147,21 +167,18 @@ FocusScope {
 
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
-                    labelText: "Back"
+                    labelText: "Back (ESC)"
+                    enabled: !playerNamePage.isProcessing
                     onClicked: playerNamePage.backClicked()
                 }
 
                 NavBtn {
-                    iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-right.svg"
-                    labelText: "Continue"
+                    iconSource: playerNamePage.isProcessing ? "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/arrow-right.svg"
+                    labelText: playerNamePage.isProcessing ? "Processing..." : "Continue (Enter)"
                     variant: "primary"
-                    enabled: nameInput.text.trim().length > 0
-                    onClicked: {
-                        var finalName = nameInput.text.trim();
-                        NetworkManager.playerName = finalName;
-                        GameBackend.playerName = finalName; // Save to settings
-                        playerNamePage.confirmed(finalName);
-                    }
+                    enabled: nameInput.text.trim().length > 0 && !playerNamePage.isProcessing
+                    isLoading: playerNamePage.isProcessing
+                    onClicked: playerNamePage.handleContinue()
                 }
             }
         }
@@ -170,15 +187,12 @@ FocusScope {
     // Keyboard handling
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (nameInput.text.trim().length > 0) {
-                 var finalName = nameInput.text.trim();
-                 NetworkManager.playerName = finalName;
-                 GameBackend.playerName = finalName; // Save to settings
-                 playerNamePage.confirmed(finalName);
-            }
+            playerNamePage.handleContinue();
             event.accepted = true;
         } else if (event.key === Qt.Key_Escape) {
-            playerNamePage.backClicked();
+            if (!playerNamePage.isProcessing) {
+                playerNamePage.backClicked();
+            }
             event.accepted = true;
         }
     }

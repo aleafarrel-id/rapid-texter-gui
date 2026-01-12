@@ -362,14 +362,18 @@ ApplicationWindow {
         id: multiplayerMenuComponent
 
         MultiplayerMenuPage {
-            StackView.onActivating: forceActiveFocus()
+            StackView.onActivating: {
+                isCreating = false;
+                forceActiveFocus();
+            }
 
             onCreateGameClicked: {
                 if (GameBackend.playerName !== "") {
                     // Name already set, skip name page
                     NetworkManager.playerName = GameBackend.playerName;
-                    NetworkManager.createRoom();
-                    stackView.push(lobbyComponent);
+
+                    // Delay to allow UI to update to "Creating..." state
+                    var timer = Qt.createQmlObject('import QtQuick; Timer {interval: 50; running: true; repeat: false; onTriggered: { NetworkManager.createRoom(); stackView.push(lobbyComponent); destroy(); }}', mainWindow);
                 } else {
                     stackView.push(playerNameForHostComponent);
                 }

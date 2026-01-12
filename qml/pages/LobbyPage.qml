@@ -830,9 +830,9 @@ FocusScope {
                     enabled: players.length >= 1 && gameText.length > 0
                     onClicked: {
                         if (players.length === 1) {
-                             soloPlayConfirmDialog.visible = true;
+                            soloPlayConfirmDialog.visible = true;
                         } else {
-                             NetworkManager.startCountdown();
+                            NetworkManager.startCountdown();
                         }
                     }
                 }
@@ -945,6 +945,15 @@ FocusScope {
             NetworkManager.leaveRoom();
             lobbyPage.leaveClicked();
             event.accepted = true;
+        } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && isHost) {
+            if (players.length >= 1 && gameText.length > 0) {
+                if (players.length === 1) {
+                    soloPlayConfirmDialog.visible = true;
+                } else {
+                    NetworkManager.startCountdown();
+                }
+                event.accepted = true;
+            }
         }
     }
 }

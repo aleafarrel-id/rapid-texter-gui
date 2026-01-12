@@ -14,6 +14,8 @@ FocusScope {
     signal joinGameClicked
     signal backClicked
 
+    property bool isCreating: false
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -57,9 +59,13 @@ FocusScope {
                 Layout.fillWidth: true
                 keyText: "[1]"
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/play.svg"
-                labelText: "Create Game"
+                labelText: multiplayerMenuPage.isCreating ? "Creating..." : "Create Game"
                 accentType: "green"
-                onClicked: multiplayerMenuPage.createGameClicked()
+                busy: multiplayerMenuPage.isCreating
+                onClicked: {
+                    multiplayerMenuPage.isCreating = true;
+                    multiplayerMenuPage.createGameClicked();
+                }
             }
 
             MenuItemC {

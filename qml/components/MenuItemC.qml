@@ -58,6 +58,9 @@ Rectangle {
     /** @property reqText @brief Requirement description text (e.g., "Min: 40 WPM, 80% Acc"). */
     property string reqText: ""     // e.g. "Min: 40 WPM, 80% Acc"
 
+    /** @property busy @brief Whether the item is in a processing state (spinning icon). */
+    property bool busy: false
+
     /** @signal clicked @brief Emitted when the menu item is clicked (only if not locked). */
     signal clicked
 
@@ -84,13 +87,13 @@ Rectangle {
             return Theme.accentBlue;
         }
     }
-    readonly property bool isHovered: itemMouse.containsMouse && !locked
+    readonly property bool isHovered: itemMouse.containsMouse && !locked && !busy
 
     // Layout
     Layout.fillWidth: true
     height: 70
     color: isHovered ? Theme.bgSecondary : "transparent"
-    opacity: locked ? 0.5 : 1.0
+    opacity: (locked || busy) ? 0.5 : 1.0
     border.width: 1
     border.color: Theme.borderPrimary
 

@@ -73,6 +73,13 @@ QtObject {
      */
     readonly property color bgTertiary: "#21262d"
 
+    /**
+     * @property bgHover
+     * @brief Background color for hover states.
+     * @details Hex: #21262d - Same as bgTertiary.
+     */
+    readonly property color bgHover: bgTertiary
+
     /* ========================================================================
      * BORDER COLORS
      * ======================================================================== */

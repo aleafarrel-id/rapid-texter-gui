@@ -61,6 +61,8 @@ class MultiplayerHistoryManager : public QObject {
     
     Q_PROPERTY(QVariantList historyData READ getHistoryData NOTIFY historyChanged)
     Q_PROPERTY(int totalEntries READ getTotalEntries NOTIFY historyChanged)
+    Q_PROPERTY(QString sortBy READ sortBy WRITE setSortBy NOTIFY sortByChanged)
+    Q_PROPERTY(bool sortAscending READ sortAscending WRITE setSortAscending NOTIFY sortAscendingChanged)
 
 public:
     explicit MultiplayerHistoryManager(QObject *parent = nullptr);
@@ -95,6 +97,13 @@ public:
     
     int getTotalEntries() const;
 
+    // Sorting
+    QString sortBy() const;
+    void setSortBy(const QString &sortBy);
+
+    bool sortAscending() const;
+    void setSortAscending(bool ascending);
+
 public slots:
     /**
      * @brief Slot to receive race results from NetworkManager.
@@ -103,13 +112,16 @@ public slots:
 
 signals:
     void historyChanged();
+    void sortByChanged();
+    void sortAscendingChanged();
 
 private:
     static MultiplayerHistoryManager *s_instance;
     std::vector<MultiplayerHistoryEntry> m_entries;
     std::string m_filename;
     
-    std::string getCurrentTimestamp();
+    QString captureTimestamp();
+    void sortHistory();
     std::string escapeJsonString(const std::string& str);
 };
 

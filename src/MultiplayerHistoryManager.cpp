@@ -7,6 +7,7 @@
 
 #include "MultiplayerHistoryManager.h"
 #include "NetworkManager.h"
+#include "SettingsManager.h"
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -15,6 +16,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <algorithm>
 
 MultiplayerHistoryManager *MultiplayerHistoryManager::s_instance = nullptr;
 
@@ -144,6 +146,10 @@ bool MultiplayerHistoryManager::loadHistory() {
     m_entries.push_back(entry);
   }
 
+
+  // Apply sort based on saved settings
+  sortHistory();
+
   emit historyChanged();
   return true;
 }
@@ -212,8 +218,7 @@ void MultiplayerHistoryManager::onRaceFinished(const QVariantList &rankings) {
 void MultiplayerHistoryManager::addEntry(const QVariantList &rankings,
                                          const QString &hostName) {
   MultiplayerHistoryEntry entry;
-  entry.timestamp =
-      QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss");
+  entry.timestamp = captureTimestamp();
   entry.hostName = hostName;
 
   for (const QVariant &r : rankings) {
@@ -239,6 +244,10 @@ void MultiplayerHistoryManager::addEntry(const QVariantList &rankings,
 
   // Insert at beginning (newest first)
   m_entries.insert(m_entries.begin(), entry);
+  
+  // Re-sort because user might have active sort that is NOT date descending
+  sortHistory();
+  
   saveHistory();
   emit historyChanged();
 }
@@ -280,4 +289,82 @@ QVariantList MultiplayerHistoryManager::getHistoryData() const {
 
 int MultiplayerHistoryManager::getTotalEntries() const {
   return static_cast<int>(m_entries.size());
+}
+
+QString MultiplayerHistoryManager::sortBy() const {
+  return QString::fromStdString(SettingsManager::getMultiplayerHistorySortBy());
+}
+
+void MultiplayerHistoryManager::setSortBy(const QString &sortBy) {
+  std::string current = SettingsManager::getMultiplayerHistorySortBy();
+  if (current != sortBy.toStdString()) {
+    SettingsManager::setMultiplayerHistorySortBy(sortBy.toStdString());
+    sortHistory();
+    emit historyChanged();
+    emit sortByChanged();
+  }
+}
+
+bool MultiplayerHistoryManager::sortAscending() const {
+  return SettingsManager::getMultiplayerHistorySortAscending();
+}
+
+void MultiplayerHistoryManager::setSortAscending(bool ascending) {
+  if (SettingsManager::getMultiplayerHistorySortAscending() != ascending) {
+    SettingsManager::setMultiplayerHistorySortAscending(ascending);
+    sortHistory();
+    emit historyChanged();
+    emit sortAscendingChanged();
+  }
+}
+
+void MultiplayerHistoryManager::sortHistory() {
+  QString sortBy = this->sortBy();
+  bool ascending = this->sortAscending();
+
+  if (m_entries.empty()) return;
+
+  if (sortBy == "wpm") {
+    std::sort(m_entries.begin(), m_entries.end(),
+              [ascending](const MultiplayerHistoryEntry &a, const MultiplayerHistoryEntry &b) {
+                return ascending ? (a.localWpm < b.localWpm) : (a.localWpm > b.localWpm);
+              });
+  } else if (sortBy == "rank") {
+    std::sort(m_entries.begin(), m_entries.end(),
+              [ascending](const MultiplayerHistoryEntry &a, const MultiplayerHistoryEntry &b) {
+                return ascending ? (a.localRank < b.localRank) : (a.localRank > b.localRank);
+              });
+  } else {
+    // Default: Sort by date
+    // Timestamp format: "dd/MM/yyyy HH:mm:ss"
+    std::sort(m_entries.begin(), m_entries.end(),
+              [ascending](const MultiplayerHistoryEntry &a, const MultiplayerHistoryEntry &b) {
+                // Parse timestamp string to QDateTime for easy comparison
+                QDateTime dtA = QDateTime::fromString(a.timestamp, "dd/MM/yyyy HH:mm:ss");
+                QDateTime dtB = QDateTime::fromString(b.timestamp, "dd/MM/yyyy HH:mm:ss");
+                
+                if (ascending) {
+                    return dtA < dtB;
+                } else {
+                    return dtA > dtB;
+                }
+              });
+  }
+}
+
+QString MultiplayerHistoryManager::captureTimestamp() {
+    return QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss");
+}
+
+std::string MultiplayerHistoryManager::escapeJsonString(const std::string& str) {
+    std::string escaped;
+    for (char c : str) {
+        if (c == '"') escaped += "\\\"";
+        else if (c == '\\') escaped += "\\\\";
+        else if (c == '\n') escaped += "\\n";
+        else if (c == '\r') escaped += "\\r";
+        else if (c == '\t') escaped += "\\t";
+        else escaped += c;
+    }
+    return escaped;
 }

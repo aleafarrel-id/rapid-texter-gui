@@ -100,14 +100,55 @@ Rectangle {
                 anchors.rightMargin: Theme.paddingHuge
                 spacing: 0
 
-                Text {
+                // DATE/TIME Header
+                Item {
                     Layout.preferredWidth: 200
-                    text: "DATE/TIME"
-                    color: Theme.textSecondary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSizeS
-                    font.bold: true
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        width: parent.width
+                        spacing: 5
+
+                        Text {
+                            text: "DATE/TIME"
+                            color: MultiplayerHistoryManager.sortBy === "date" ? Theme.accentBlue : Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeS
+                            font.bold: true
+                        }
+
+                        Image {
+                            source: MultiplayerHistoryManager.sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                            sourceSize.width: 14
+                            sourceSize.height: 14
+                            visible: MultiplayerHistoryManager.sortBy === "date"
+                            opacity: 0.7
+
+                            ColorOverlay {
+                                anchors.fill: parent
+                                source: parent
+                                color: Theme.accentBlue
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (MultiplayerHistoryManager.sortBy === "date") {
+                                MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
+                            } else {
+                                MultiplayerHistoryManager.sortBy = "date";
+                                MultiplayerHistoryManager.sortAscending = false; // Default new sort to descending (newest first)
+                            }
+                        }
+                    }
                 }
+
+                // HOST Header (Not sortable)
                 Text {
                     Layout.fillWidth: true
                     text: "HOST"
@@ -116,23 +157,101 @@ Rectangle {
                     font.pixelSize: Theme.fontSizeS
                     font.bold: true
                 }
-                Text {
+
+                // YOUR RANK Header
+                Item {
                     Layout.preferredWidth: 100
-                    text: "YOUR RANK"
-                    color: Theme.textSecondary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSizeS
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            text: "YOUR RANK"
+                            color: MultiplayerHistoryManager.sortBy === "rank" ? Theme.accentBlue : Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeS
+                            font.bold: true
+                            horizontalAlignment: Text.AlignRight
+                        }
+
+                        Image {
+                            source: MultiplayerHistoryManager.sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                            sourceSize.width: 14
+                            sourceSize.height: 14
+                            visible: MultiplayerHistoryManager.sortBy === "rank"
+                            opacity: 0.7
+
+                            ColorOverlay {
+                                anchors.fill: parent
+                                source: parent
+                                color: Theme.accentBlue
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (MultiplayerHistoryManager.sortBy === "rank") {
+                                MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
+                            } else {
+                                MultiplayerHistoryManager.sortBy = "rank";
+                                MultiplayerHistoryManager.sortAscending = true; // Default rank sort: Ascending (1st is best, so small number first)
+                            }
+                        }
+                    }
                 }
-                Text {
+
+                // YOUR WPM Header
+                Item {
                     Layout.preferredWidth: 100
-                    text: "YOUR WPM"
-                    color: Theme.textSecondary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSizeS
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            text: "YOUR WPM"
+                            color: MultiplayerHistoryManager.sortBy === "wpm" ? Theme.accentBlue : Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeS
+                            font.bold: true
+                            horizontalAlignment: Text.AlignRight
+                        }
+
+                        Image {
+                            source: MultiplayerHistoryManager.sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                            sourceSize.width: 14
+                            sourceSize.height: 14
+                            visible: MultiplayerHistoryManager.sortBy === "wpm"
+                            opacity: 0.7
+
+                            ColorOverlay {
+                                anchors.fill: parent
+                                source: parent
+                                color: Theme.accentBlue
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (MultiplayerHistoryManager.sortBy === "wpm") {
+                                MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
+                            } else {
+                                MultiplayerHistoryManager.sortBy = "wpm";
+                                MultiplayerHistoryManager.sortAscending = false; // Default WPM sort: Descending (Higher is better)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -203,7 +322,7 @@ Rectangle {
                         Text {
                             Layout.fillWidth: true
                             text: modelData.hostName
-                            color: Theme.textPrimary
+                            color: Theme.accentBlue
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
                             elide: Text.ElideRight
@@ -247,6 +366,16 @@ Rectangle {
                         visible: delegateItem.isExpanded
                         opacity: delegateItem.isExpanded ? 1 : 0
 
+                        // Divider line separating main row from details
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: 1
+                            color: Theme.borderPrimary
+                            opacity: 0.5
+                        }
+
                         ColumnLayout {
                             id: playersList
                             anchors.top: parent.top
@@ -254,6 +383,65 @@ Rectangle {
                             anchors.right: parent.right
                             anchors.margins: 10
                             spacing: 12
+
+                            // Header for Player Results
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 10
+                                opacity: 0.7
+
+                                Text {
+                                    Layout.preferredWidth: 30
+                                    text: "#"
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeS
+                                    font.bold: true
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: "PLAYER"
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeS
+                                    font.bold: true
+                                }
+                                Text {
+                                    Layout.preferredWidth: 80
+                                    text: "WPM"
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeS
+                                    horizontalAlignment: Text.AlignRight
+                                    font.bold: true
+                                }
+                                Text {
+                                    Layout.preferredWidth: 60
+                                    text: "ACCURACY"
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeS
+                                    horizontalAlignment: Text.AlignRight
+                                    font.bold: true
+                                }
+                                Text {
+                                    Layout.preferredWidth: 80
+                                    text: "ERROR"
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeS
+                                    horizontalAlignment: Text.AlignRight
+                                    font.bold: true
+                                }
+                            }
+
+                            // Separator
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: Theme.borderSecondary
+                                opacity: 0.5
+                            }
 
                             Repeater {
                                 model: modelData.players

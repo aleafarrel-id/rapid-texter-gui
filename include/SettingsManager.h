@@ -117,6 +117,8 @@ private:
   static int defaultDuration;       ///< Durasi default (default: 30)
   static std::string historySortBy; ///< Field sort history (default: "date")
   static bool historySortAscending; ///< Arah sort (default: false = descending)
+  static std::string multiplayerHistorySortBy; ///< Field sort mp history (default: "date")
+  static bool multiplayerHistorySortAscending; ///< Arah sort mp (default: false = descending)
   static std::string playerName;    ///< Nama pemain (default: "")
   static bool isLoaded;             ///< Flag: settings sudah di-load
   static std::string filename;      ///< Path ke file settings.json
@@ -126,6 +128,31 @@ private:
    * @return Path dengan trailing separator
    */
   static std::string getDataDirectory();
+
+public:
+  /**
+   * @brief Mendapatkan field sorting multiplayer history
+   * @return "date", "rank", atau "wpm"
+   */
+  static std::string getMultiplayerHistorySortBy();
+
+  /**
+   * @brief Mengatur field sorting multiplayer history dan menyimpan ke file
+   * @param sortBy Field untuk sorting ("date", "rank", atau "wpm")
+   */
+  static void setMultiplayerHistorySortBy(const std::string &sortBy);
+
+  /**
+   * @brief Mendapatkan arah sorting multiplayer history
+   * @return true untuk ascending, false untuk descending
+   */
+  static bool getMultiplayerHistorySortAscending();
+
+  /**
+   * @brief Mengatur arah sorting multiplayer history dan menyimpan ke file
+   * @param ascending true untuk ascending, false untuk descending
+   */
+  static void setMultiplayerHistorySortAscending(bool ascending);
 };
 
 #endif // SETTINGSMANAGER_H

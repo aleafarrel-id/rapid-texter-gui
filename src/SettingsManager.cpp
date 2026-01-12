@@ -45,6 +45,10 @@ int SettingsManager::defaultDuration = 30;           // Default: 30 detik
 std::string SettingsManager::historySortBy = "date"; // Default: sort by date
 bool SettingsManager::historySortAscending =
     false; // Default: descending (newest first)
+std::string SettingsManager::multiplayerHistorySortBy =
+    "date"; // Default: sort by date
+bool SettingsManager::multiplayerHistorySortAscending =
+    false; // Default: descending (newest first)
 std::string SettingsManager::playerName = ""; // Default: empty
 bool SettingsManager::isLoaded = false;
 std::string SettingsManager::filename = "";
@@ -192,6 +196,27 @@ bool SettingsManager::load() {
         historySortAscending = false;
       }
     }
+    // Parse multiplayer_history_sort_by
+    else if (line.find("\"multiplayer_history_sort_by\"") != std::string::npos) {
+      size_t colonPos = line.find(":");
+      if (colonPos != std::string::npos) {
+        size_t firstQuote = line.find('"', colonPos);
+        size_t lastQuote = line.rfind('"');
+        if (firstQuote != std::string::npos && lastQuote > firstQuote) {
+          multiplayerHistorySortBy =
+              line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+        }
+      }
+    }
+    // Parse multiplayer_history_sort_ascending
+    else if (line.find("\"multiplayer_history_sort_ascending\"") !=
+             std::string::npos) {
+      if (line.find("true") != std::string::npos) {
+        multiplayerHistorySortAscending = true;
+      } else if (line.find("false") != std::string::npos) {
+        multiplayerHistorySortAscending = false;
+      }
+    }
   }
 
   file.close();
@@ -229,7 +254,11 @@ bool SettingsManager::save() {
   file << "  \"default_duration\": " << defaultDuration << ",\n";
   file << "  \"history_sort_by\": \"" << historySortBy << "\",\n";
   file << "  \"history_sort_ascending\": "
-       << (historySortAscending ? "true" : "false") << "\n";
+       << (historySortAscending ? "true" : "false") << ",\n";
+  file << "  \"multiplayer_history_sort_by\": \"" << multiplayerHistorySortBy
+       << "\",\n";
+  file << "  \"multiplayer_history_sort_ascending\": "
+       << (multiplayerHistorySortAscending ? "true" : "false") << "\n";
   file << "}\n";
 
   file.close();
@@ -345,5 +374,45 @@ std::string SettingsManager::getPlayerName() {
  */
 void SettingsManager::setPlayerName(const std::string &name) {
   playerName = name;
+  save();
+}
+
+/**
+ * @brief Mendapatkan field sorting multiplayer history
+ * @return "date", "rank", atau "wpm"
+ */
+std::string SettingsManager::getMultiplayerHistorySortBy() {
+  if (!isLoaded) {
+    load();
+  }
+  return multiplayerHistorySortBy;
+}
+
+/**
+ * @brief Mengatur field sorting multiplayer history dan menyimpan ke file
+ * @param sortBy Field untuk sorting ("date", "rank", atau "wpm")
+ */
+void SettingsManager::setMultiplayerHistorySortBy(const std::string &sortBy) {
+  multiplayerHistorySortBy = sortBy;
+  save();
+}
+
+/**
+ * @brief Mendapatkan arah sorting multiplayer history
+ * @return true untuk ascending, false untuk descending
+ */
+bool SettingsManager::getMultiplayerHistorySortAscending() {
+  if (!isLoaded) {
+    load();
+  }
+  return multiplayerHistorySortAscending;
+}
+
+/**
+ * @brief Mengatur arah sorting multiplayer history dan menyimpan ke file
+ * @param ascending true untuk ascending, false untuk descending
+ */
+void SettingsManager::setMultiplayerHistorySortAscending(bool ascending) {
+  multiplayerHistorySortAscending = ascending;
   save();
 }

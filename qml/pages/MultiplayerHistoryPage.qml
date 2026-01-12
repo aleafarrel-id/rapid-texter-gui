@@ -20,10 +20,14 @@ Rectangle {
     property int totalEntries: MultiplayerHistoryManager.totalEntries
 
     signal backClicked
+    signal clearHistoryClicked
 
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
             backClicked();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_C) {
+            clearHistoryClicked();
             event.accepted = true;
         }
     }
@@ -82,7 +86,7 @@ Rectangle {
             Layout.fillWidth: true
             height: 40
             color: Theme.bgSecondary
-            
+
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
@@ -94,10 +98,10 @@ Rectangle {
                 anchors.fill: parent
                 anchors.leftMargin: Theme.paddingHuge
                 anchors.rightMargin: Theme.paddingHuge
-                spacing: 20
+                spacing: 0
 
                 Text {
-                    Layout.preferredWidth: 150
+                    Layout.preferredWidth: 200
                     text: "DATE/TIME"
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
@@ -105,7 +109,7 @@ Rectangle {
                     font.bold: true
                 }
                 Text {
-                    Layout.preferredWidth: 150
+                    Layout.fillWidth: true
                     text: "HOST"
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
@@ -113,7 +117,7 @@ Rectangle {
                     font.bold: true
                 }
                 Text {
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: 100
                     text: "YOUR RANK"
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
@@ -122,7 +126,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                 }
                 Text {
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: 100
                     text: "YOUR WPM"
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
@@ -130,172 +134,164 @@ Rectangle {
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
                 }
-                Item { Layout.fillWidth: true } // Spacer
             }
         }
 
-        // List View
-        ListView {
-            id: historyList
+        // List View and Empty State
+        Item { // Use an Item as a container to hold both the ListView and the empty state, allowing them to fill the remaining space
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            model: mpHistoryPage.historyData
-            spacing: 5
 
-            delegate: Rectangle {
-                id: delegateItem
-                width: ListView.view.width
-                height: isExpanded ? (40 + playersList.height + 20) : 40
-                color: mouseArea.containsMouse ? Theme.bgSecondary : "transparent"
-                Behavior on height { NumberAnimation { duration: 200 } }
-                
-                property bool isExpanded: false
+            ListView {
+                id: historyList
+                width: parent.width
+                height: parent.height
+                clip: true
+                model: mpHistoryPage.historyData
+                spacing: 5
+                visible: mpHistoryPage.totalEntries > 0
 
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: 1
-                    color: Theme.borderPrimary
-                    visible: !isExpanded
-                }
-
-                // Main Row
-                RowLayout {
-                    id: mainRow
-                    height: 40
-                    width: parent.width
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.leftMargin: Theme.paddingHuge
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.paddingHuge
-                    spacing: 20
-
-                    Text {
-                        Layout.preferredWidth: 150
-                        text: modelData.timestamp
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeM
+                delegate: Rectangle {
+                    id: delegateItem
+                    width: ListView.view.width
+                    height: isExpanded ? (40 + playersList.height + 20) : 40
+                    color: isExpanded ? Theme.bgSecondary : (mouseArea.containsMouse ? Theme.bgHover : "transparent")
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.OutQuad
+                        }
                     }
-                    Text {
-                        Layout.preferredWidth: 150
-                        text: modelData.hostName
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeM
-                        elide: Text.ElideRight
-                    }
-                    Text {
-                        Layout.preferredWidth: 80
-                        text: "#" + modelData.localRank
-                        color: (modelData.localRank === 1) ? Theme.accentYellow : Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeM
-                        horizontalAlignment: Text.AlignHCenter
-                        font.bold: true
-                    }
-                    Text {
-                        Layout.preferredWidth: 80
-                        text: modelData.localWpm
-                        color: Theme.accentGreen
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeM
-                        horizontalAlignment: Text.AlignHCenter
-                        font.bold: true
-                    }
-                    
-                    Item { Layout.fillWidth: true }
-                    
-                    Text {
-                        text: delegateItem.isExpanded ? "Hide Details" : "Show Details"
-                        color: Theme.accentBlue
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeS
-                        visible: mouseArea.containsMouse || delegateItem.isExpanded
-                    }
-                }
 
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: mainRow
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: delegateItem.isExpanded = !delegateItem.isExpanded
-                }
+                    property bool isExpanded: false
 
-                // Expanded Details (Player List)
-                Rectangle {
-                    id: detailsRect
-                    anchors.top: mainRow.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    color: Theme.bgSecondary
-                    visible: delegateItem.isExpanded
-                    opacity: delegateItem.isExpanded ? 1 : 0
-                    
-                    ColumnLayout {
-                        id: playersList
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        width: parent.width
+                        height: 1
+                        color: Theme.borderPrimary
+                        visible: !isExpanded
+                        opacity: 0.5
+                    }
+
+                    // Rank indicator line
+                    Rectangle {
+                        width: 3
+                        height: 40
+                        color: (modelData.localRank === 1) ? Theme.accentYellow : ((modelData.localRank <= 3) ? Theme.accentGreen : Theme.textMuted)
+                    }
+
+                    // Main Row
+                    RowLayout {
+                        id: mainRow
+                        height: 40
+                        width: parent.width
                         anchors.top: parent.top
                         anchors.left: parent.left
+                        anchors.leftMargin: Theme.paddingHuge
                         anchors.right: parent.right
-                        anchors.margins: 10
-                        spacing: 5
-                        
-                        // Header for player list
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-                            Text { Layout.preferredWidth: 30; text: "#"; color: Theme.textMuted; font.family: Theme.fontFamily; font.bold: true }
-                            Text { Layout.fillWidth: true; text: "Player"; color: Theme.textMuted; font.family: Theme.fontFamily; font.bold: true }
-                            Text { Layout.preferredWidth: 60; text: "WPM"; color: Theme.textMuted; font.family: Theme.fontFamily; font.bold: true; horizontalAlignment: Text.AlignRight }
-                            Text { Layout.preferredWidth: 60; text: "Acc"; color: Theme.textMuted; font.family: Theme.fontFamily; font.bold: true; horizontalAlignment: Text.AlignRight }
-                            Text { Layout.preferredWidth: 60; text: "Err"; color: Theme.textMuted; font.family: Theme.fontFamily; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        }
-                        
-                        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.borderPrimary }
+                        anchors.rightMargin: Theme.paddingHuge
+                        spacing: 0
 
-                        Repeater {
-                            model: modelData.players
-                            
+                        Text {
+                            Layout.preferredWidth: 200
+                            text: modelData.timestamp
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData.hostName
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            Layout.preferredWidth: 100
+                            text: "#" + modelData.localRank
+                            color: (modelData.localRank === 1) ? Theme.accentYellow : Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            horizontalAlignment: Text.AlignHCenter
+                            font.bold: true
+                        }
+                        Text {
+                            Layout.preferredWidth: 100
+                            text: modelData.localWpm
+                            color: Theme.accentGreen
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            horizontalAlignment: Text.AlignHCenter
+                            font.bold: true
+                        }
+                    }
+
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: mainRow
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: delegateItem.isExpanded = !delegateItem.isExpanded
+                    }
+
+                    // Expanded Details (Player List)
+                    Rectangle {
+                        id: detailsRect
+                        anchors.top: mainRow.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        color: Theme.bgSecondary
+                        visible: delegateItem.isExpanded
+                        opacity: delegateItem.isExpanded ? 1 : 0
+
+                        ColumnLayout {
+                            id: playersList
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.margins: 10
+                            spacing: 5
+
+                            // Header for player list
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 10
-                                
-                                Text { 
+
+                                Text {
                                     Layout.preferredWidth: 30
                                     text: modelData.position
                                     color: (modelData.position === 1) ? Theme.accentYellow : Theme.textSecondary
-                                    font.family: Theme.fontFamily 
+                                    font.family: Theme.fontFamily
                                 }
-                                Text { 
+                                Text {
                                     Layout.fillWidth: true
                                     text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " [Left]" : "")
                                     color: modelData.isLocal ? Theme.accentBlue : Theme.textPrimary
                                     font.family: Theme.fontFamily
                                     font.bold: modelData.isLocal
                                 }
-                                Text { 
+                                Text {
                                     Layout.preferredWidth: 60
                                     text: modelData.wpm
                                     color: Theme.accentGreen
-                                    font.family: Theme.fontFamily 
+                                    font.family: Theme.fontFamily
                                     horizontalAlignment: Text.AlignRight
                                 }
-                                Text { 
+                                Text {
                                     Layout.preferredWidth: 60
                                     text: modelData.accuracy.toFixed(1) + "%"
                                     color: Theme.textSecondary
-                                    font.family: Theme.fontFamily 
+                                    font.family: Theme.fontFamily
                                     horizontalAlignment: Text.AlignRight
                                 }
-                                Text { 
+                                Text {
                                     Layout.preferredWidth: 60
                                     text: modelData.errors
                                     color: (modelData.errors > 0) ? Theme.accentRed : Theme.textSecondary
-                                    font.family: Theme.fontFamily 
+                                    font.family: Theme.fontFamily
                                     horizontalAlignment: Text.AlignRight
                                 }
                             }
@@ -303,8 +299,52 @@ Rectangle {
                     }
                 }
             }
+
+            // Empty State Placeholder
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.spacingM
+                visible: mpHistoryPage.totalEntries === 0
+
+                Item {
+                    width: 64
+                    height: 64
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    Image {
+                        id: emptyIcon
+                        source: "qrc:/qt/qml/rapid_texter/assets/icons/history.svg"
+                        anchors.fill: parent
+                        sourceSize: Qt.size(64, 64)
+                        visible: false
+                    }
+                    ColorOverlay {
+                        anchors.fill: emptyIcon
+                        source: emptyIcon
+                        color: Theme.textMuted
+                        opacity: 0.5
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "No multiplayer matches yet"
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeL
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Play a match to see your history here"
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeS
+                    opacity: 0.7
+                }
+            }
         }
-        
+
         // Footer nav
         Row {
             Layout.alignment: Qt.AlignHCenter
@@ -312,15 +352,15 @@ Rectangle {
             spacing: Theme.spacingM
             NavBtn {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
-                labelText: "Back"
+                labelText: "Back (ESC)"
                 onClicked: mpHistoryPage.backClicked()
             }
             NavBtn {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/trash.svg"
-                labelText: "Clear History"
+                labelText: "Clear History (C)"
                 variant: "danger"
                 onClicked: {
-                    MultiplayerHistoryManager.clearHistory()
+                    mpHistoryPage.clearHistoryClicked();
                 }
             }
         }

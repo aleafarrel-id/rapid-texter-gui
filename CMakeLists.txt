@@ -84,6 +84,7 @@ qt_add_qml_module(RapidTexterGUI
         # Multiplayer Pages
         qml/pages/MultiplayerMenuPage.qml
         qml/pages/MultiplayerHistoryPage.qml
+        qml/pages/ResetMultiplayerHistoryPage.qml
         qml/pages/PlayerNamePage.qml
         qml/pages/GameBrowserPage.qml
         qml/pages/LobbyPage.qml

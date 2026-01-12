@@ -1895,6 +1895,10 @@ ApplicationWindow {
                     }
                     event.accepted = true;
                     break;
+                case Qt.Key_M:
+                    mpHistoryBtn.clicked();
+                    event.accepted = true;
+                    break;
                 }
             }
 
@@ -2592,8 +2596,9 @@ ApplicationWindow {
                         onClicked: stackView.pop()
                     }
                     NavBtn {
+                        id: mpHistoryBtn
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
-                        labelText: "Multiplayer History"
+                        labelText: "Multiplayer History (M)"
                         onClicked: stackView.push(multiplayerHistoryComponent)
                     }
                     NavBtn {
@@ -3062,10 +3067,26 @@ ApplicationWindow {
 
         MultiplayerHistoryPage {
             StackView.onActivating: forceActiveFocus()
-            
+
             onBackClicked: {
                 stackView.pop();
             }
+
+            onClearHistoryClicked: {
+                stackView.push(resetMultiplayerHistoryComponent);
+            }
+        }
+    }
+
+    // ========================================================================
+    // RESET MULTIPLAYER HISTORY PAGE
+    // ========================================================================
+    Component {
+        id: resetMultiplayerHistoryComponent
+
+        ResetMultiplayerHistoryPage {
+            onCancelClicked: stackView.pop()
+            onCleared: stackView.pop()
         }
     }
 

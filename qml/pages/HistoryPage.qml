@@ -47,6 +47,10 @@ Rectangle {
             clearHistoryClicked();
             event.accepted = true;
             break;
+        case Qt.Key_M:
+            mpHistoryBtn.clicked();
+            event.accepted = true;
+            break;
         }
     }
 
@@ -310,8 +314,9 @@ Rectangle {
                 onClicked: historyPage.backClicked()
             }
             NavBtn {
+                id: mpHistoryBtn
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
-                labelText: "Multiplayer History"
+                labelText: "Multiplayer History (M)"
                 onClicked: historyPage.multiplayerHistoryClicked()
             }
             NavBtn {

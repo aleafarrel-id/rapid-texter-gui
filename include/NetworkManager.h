@@ -209,6 +209,7 @@ private:
   static constexpr int TCP_PORT = 52765;
   static constexpr int ANNOUNCE_INTERVAL_MS = 1000; // 1 second as per blueprint
   static constexpr int ROOM_TIMEOUT_MS = 5000;
+  static constexpr int SCAN_TIMEOUT_MS = 30000; // 30 seconds scan timeout
   static constexpr int PROGRESS_UPDATE_MS = 50; // 50ms for real-time fairness
   static constexpr int MAX_PLAYERS = 8;
   inline static const char *APP_IDENTIFIER = "RapidTexterP2P";
@@ -267,6 +268,7 @@ private:
   QTimer *m_announceTimer = nullptr;
   QTimer *m_cleanupTimer = nullptr;
   QTimer *m_connectionTimeoutTimer = nullptr;
+  QTimer *m_scanTimeoutTimer = nullptr;
 
   // === DATA ===
   struct PlayerInfo {

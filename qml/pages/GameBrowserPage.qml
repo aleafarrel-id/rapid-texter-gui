@@ -389,7 +389,6 @@ FocusScope {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        enabled: !isScanning
                         onClicked: NetworkManager.refreshRooms()
                     }
 

@@ -64,6 +64,12 @@ NetworkManager::NetworkManager(QObject *parent)
   connect(m_readyCheckTimer, &QTimer::timeout, this,
           &NetworkManager::onReadyCheckTimeout);
 
+  // Scan timeout timer (30 seconds)
+  m_scanTimeoutTimer = new QTimer(this);
+  m_scanTimeoutTimer->setSingleShot(true);
+  connect(m_scanTimeoutTimer, &QTimer::timeout, this,
+          &NetworkManager::stopScanning);
+
   qDebug() << "[NetworkManager] Initialized with UUID:" << m_playerId;
 }
 
@@ -271,7 +277,8 @@ void NetworkManager::startScanning() {
   emit discoveredRoomsChanged();
 
   m_cleanupTimer->start(ROOM_TIMEOUT_MS / 2);
-  qDebug() << "[NetworkManager] Started scanning for rooms";
+  m_scanTimeoutTimer->start(SCAN_TIMEOUT_MS);
+  qDebug() << "[NetworkManager] Started scanning for rooms (30s timeout)";
 }
 
 void NetworkManager::stopScanning() {
@@ -282,12 +289,22 @@ void NetworkManager::stopScanning() {
   emit scanningChanged();
 
   m_cleanupTimer->stop();
+  m_scanTimeoutTimer->stop();
   qDebug() << "[NetworkManager] Stopped scanning";
 }
 
 void NetworkManager::refreshRooms() {
+  // Stop current scanning if active
+  if (m_isScanning) {
+    stopScanning();
+  }
+
+  // Clear discovered rooms
   m_discoveredRooms.clear();
   emit discoveredRoomsChanged();
+
+  // Start fresh scan
+  startScanning();
 }
 
 void NetworkManager::startAnnouncing() {

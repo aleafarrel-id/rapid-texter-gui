@@ -313,11 +313,46 @@ FocusScope {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 20
-                Layout.preferredHeight: Math.min(NetworkManager.availableInterfaces.length * 40 + 36, 130)
+                Layout.preferredHeight: NetworkManager.availableInterfaces.length === 0 
+                    ? 80 
+                    : Math.min(NetworkManager.availableInterfaces.length * 40 + 36, 130)
                 color: "transparent"
-                border.color: Theme.borderPrimary
+                border.color: NetworkManager.availableInterfaces.length === 0 ? Theme.accentRed : Theme.borderPrimary
                 border.width: 1
                 visible: isHost
+
+                // Warning when no interfaces available
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+                    visible: NetworkManager.availableInterfaces.length === 0
+
+                    Item {
+                        width: 20
+                        height: 20
+                        anchors.verticalCenter: parent.verticalCenter
+                        Image {
+                            id: warningIcon
+                            anchors.fill: parent
+                            source: "qrc:/qt/qml/rapid_texter/assets/icons/warning.svg"
+                            sourceSize: Qt.size(20, 20)
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: warningIcon
+                            source: warningIcon
+                            color: Theme.accentRed
+                        }
+                    }
+
+                    Text {
+                        text: "No network detected. Connect to a local network."
+                        color: Theme.accentRed
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeSM
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
 
                 // Header
                 Rectangle {
@@ -327,6 +362,7 @@ FocusScope {
                     anchors.right: parent.right
                     height: 32
                     color: Theme.bgSecondary
+                    visible: NetworkManager.availableInterfaces.length > 0
 
                     Row {
                         anchors.centerIn: parent
@@ -368,6 +404,7 @@ FocusScope {
                     anchors.bottom: parent.bottom
                     anchors.margins: 1
                     clip: true
+                    visible: NetworkManager.availableInterfaces.length > 0
 
                     model: NetworkManager.availableInterfaces
 

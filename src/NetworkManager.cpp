@@ -1722,6 +1722,12 @@ void NetworkManager::handleFinish(PeerConnection *peer, const Packet &packet) {
 }
 
 void NetworkManager::checkRaceCompletion() {
+  // Skip if race is already complete (rankings already exist)
+  // This prevents re-broadcasting rankings when players leave from results page
+  if (!m_rankings.isEmpty()) {
+    return;
+  }
+
   // Check if all players have finished
   bool allFinished = true;
   for (const auto &player : m_players) {

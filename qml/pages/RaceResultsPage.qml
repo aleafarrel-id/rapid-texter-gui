@@ -181,7 +181,7 @@ FocusScope {
             // Rankings list
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(rankings.length * 44 + 40, 140)
+                Layout.preferredHeight: Math.min(rankings.length * 44 + 40, 170)
                 Layout.bottomMargin: 16
                 color: "transparent"
                 border.color: Theme.borderPrimary

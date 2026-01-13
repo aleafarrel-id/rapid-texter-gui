@@ -19,6 +19,7 @@ Item {
     property bool isLocal: false
     property bool finished: false
     property int position: 0
+    property bool compactMode: false  // Reduced size for dual-column layout
 
     // Track line (background)
     Rectangle {
@@ -46,7 +47,7 @@ Item {
         id: nameLabel
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        width: 80
+        width: compactMode ? 60 : 80
         text: {
             let prefix = "";
             if (finished && position > 0) {
@@ -56,7 +57,7 @@ Item {
         }
         color: isLocal ? Theme.accentBlue : Theme.textSecondary
         font.family: Theme.fontFamily
-        font.pixelSize: 11
+        font.pixelSize: compactMode ? 10 : 11
         font.bold: isLocal
         elide: Text.ElideRight
     }

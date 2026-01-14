@@ -1,8 +1,11 @@
 /**
  * @file MultiplayerHistoryManager.cpp
- * @brief Implementation of MultiplayerHistoryManager.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Implementasi MultiplayerHistoryManager untuk penyimpanan riwayat multiplayer.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
+ *
+ * @details File ini berisi implementasi dari semua method MultiplayerHistoryManager
+ * termasuk load/save JSON, sorting, dan integrasi dengan QML.
  */
 
 #include "MultiplayerHistoryManager.h"
@@ -18,8 +21,21 @@
 #include <QStandardPaths>
 #include <algorithm>
 
+/// Singleton instance pointer
 MultiplayerHistoryManager *MultiplayerHistoryManager::s_instance = nullptr;
 
+/**
+ * @brief Constructor MultiplayerHistoryManager.
+ * @param parent Parent QObject.
+ *
+ * @details Constructor melakukan:
+ * 1. Validasi singleton (hanya satu instance diizinkan)
+ * 2. Menentukan path file riwayat dengan penanganan migrasi
+ * 3. Memuat riwayat dari file
+ *
+ * @note Menangani kasus path ganda (RapidTexter/RapidTexter) yang mungkin
+ * terjadi pada beberapa konfigurasi Qt.
+ */
 MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
     : QObject(parent) {
   if (s_instance) {
@@ -28,43 +44,27 @@ MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
   }
   s_instance = this;
 
-  // Fix for double folder issue ("RapidTexter/RapidTexter")
-  // We want %APPDATA%/RapidTexter/multiplayer_history.json
+  // Fix untuk masalah folder ganda ("RapidTexter/RapidTexter")
+  // Target path: %APPDATA%/RapidTexter/multiplayer_history.json
   QString standardPath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   QDir dir(standardPath);
 
-  // Check if we are in the double folder situation
+  // Cek apakah berada dalam situasi folder ganda
   if (dir.dirName() == "RapidTexter" && dir.cdUp()) {
     if (dir.dirName() == "RapidTexter") {
-      // We were in .../RapidTexter/RapidTexter, so cdUp took us to
-      // .../RapidTexter which is what we want.
-      // dir is now correct.
+      // Struktur .../RapidTexter/RapidTexter terdeteksi
+      // cdUp membawa ke .../RapidTexter yang benar
     } else {
-      // Revert if structure wasn't as expected, though unlikely with
-      // default Qt behavior. We'll stick to the standard path
-      // but try to clean it if it ends in duplication.
+      // Struktur tidak sesuai, kembali ke path standar
       dir.setPath(standardPath);
     }
   }
 
-  // Explicitly ensure we are using the base AppData/RapidTexter path
-  // If standardPath ends with "/RapidTexter/RapidTexter", we want just one.
-  // A safer manual construction to match HistoryManager.cpp behavior:
-  QString genericData = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-  // On Windows GenericDataLocation is usually Local AppData, but AppDataLocation
-  // is Roaming. Roaming is usually preferred for config/history.
-  // QStandardPaths::AppDataLocation returns Roaming/Org/App. 
-  // If logic is confusing, we can do a robust fix:
-  
-  // 1. Get the "bad" path (where it was currently saving)
-  QString badPath = standardPath + "/multiplayer_history.json";
-  
-  // 2. define the "good" path. 
-  // If standardPath ends in /RapidTexter/RapidTexter, remove one level.
+  // Konstruksi path yang bersih secara eksplisit
   QString cleanPathStr = standardPath;
   if (cleanPathStr.endsWith("/RapidTexter/RapidTexter")) {
-      cleanPathStr.chop(12); // Remove last "/RapidTexter"
+      cleanPathStr.chop(12); // Hapus "/RapidTexter" terakhir
   }
   QDir cleanDir(cleanPathStr);
   if (!cleanDir.exists()) {
@@ -72,7 +72,8 @@ MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
   }
   QString goodPath = cleanDir.filePath("multiplayer_history.json");
 
-  // 3. Migration: If bad file exists and good file doesn't, move it.
+  // Migrasi: Pindahkan file lama ke lokasi baru jika diperlukan
+  QString badPath = standardPath + "/multiplayer_history.json";
   QFile badFile(badPath);
   QFile goodFile(goodPath);
   
@@ -80,8 +81,6 @@ MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
       qDebug() << "[MultiplayerHistoryManager] Migrating history from" << badPath << "to" << goodPath;
       if (!badFile.rename(goodPath)) {
            qWarning() << "[MultiplayerHistoryManager] Migration failed!";
-           // Fallback to bad path to not lose data? Or just proceed with good path (which will be empty)
-           // Let's stick to good path, user might have to move manually if auto fails.
       }
   }
 
@@ -91,13 +90,24 @@ MultiplayerHistoryManager::MultiplayerHistoryManager(QObject *parent)
   loadHistory();
 }
 
+/**
+ * @brief Mendapatkan singleton instance.
+ * @return Pointer ke instance, atau nullptr jika belum diinisialisasi.
+ */
 MultiplayerHistoryManager *MultiplayerHistoryManager::instance() {
   return s_instance;
-  // Note: It's created in main.cpp, but this accessor is useful.
-  // If null, it shouldn't auto-create because it needs QML context potentially,
-  // though here it's simple QObject.
 }
 
+/**
+ * @brief Memuat riwayat dari file JSON.
+ * @return true jika berhasil, false jika file tidak ada atau format salah.
+ *
+ * @details Proses loading:
+ * 1. Buka file JSON
+ * 2. Parse JSON menjadi objek
+ * 3. Iterasi array entries dan populasi m_entries
+ * 4. Terapkan sorting berdasarkan pengaturan tersimpan
+ */
 bool MultiplayerHistoryManager::loadHistory() {
   QFile file(QString::fromStdString(m_filename));
   if (!file.open(QIODevice::ReadOnly)) {
@@ -138,6 +148,7 @@ bool MultiplayerHistoryManager::loadHistory() {
 
       entry.players.push_back(player);
 
+      // Cache statistik pemain lokal untuk tampilan cepat
       if (player.isLocal) {
         entry.localWpm = player.wpm;
         entry.localRank = player.position;
@@ -146,14 +157,19 @@ bool MultiplayerHistoryManager::loadHistory() {
     m_entries.push_back(entry);
   }
 
-
-  // Apply sort based on saved settings
+  // Terapkan sorting berdasarkan pengaturan tersimpan
   sortHistory();
 
   emit historyChanged();
   return true;
 }
 
+/**
+ * @brief Menyimpan riwayat ke file JSON.
+ * @return true jika berhasil, false jika gagal menulis file.
+ *
+ * @details Mengkonversi m_entries ke format JSON dan menulis ke disk.
+ */
 bool MultiplayerHistoryManager::saveHistory() {
   QJsonObject root;
   QJsonArray entriesArr;
@@ -195,10 +211,16 @@ bool MultiplayerHistoryManager::saveHistory() {
   return true;
 }
 
+/**
+ * @brief Slot untuk menerima hasil race dari NetworkManager.
+ * @param rankings Daftar ranking pemain dari race yang selesai.
+ *
+ * @details Mengambil nama host dari NetworkManager dan memanggil addEntry().
+ */
 void MultiplayerHistoryManager::onRaceFinished(const QVariantList &rankings) {
   qDebug() << "[MultiplayerHistoryManager] Race finished, saving legacy...";
 
-  // Determine host name
+  // Tentukan nama host dari daftar pemain
   QString hostName = "Unknown";
   NetworkManager *nm = NetworkManager::instance();
   if (nm) {
@@ -215,6 +237,14 @@ void MultiplayerHistoryManager::onRaceFinished(const QVariantList &rankings) {
   addEntry(rankings, hostName);
 }
 
+/**
+ * @brief Menambahkan entry baru ke riwayat.
+ * @param rankings Daftar pemain dan statistik dari NetworkManager.
+ * @param hostName Nama pembuat room.
+ *
+ * @details Entry baru dimasukkan di awal daftar (terbaru pertama),
+ * kemudian di-sort ulang sesuai pengaturan user, dan disimpan ke disk.
+ */
 void MultiplayerHistoryManager::addEntry(const QVariantList &rankings,
                                          const QString &hostName) {
   MultiplayerHistoryEntry entry;
@@ -236,28 +266,38 @@ void MultiplayerHistoryManager::addEntry(const QVariantList &rankings,
 
     entry.players.push_back(player);
 
+    // Cache statistik pemain lokal
     if (player.isLocal) {
       entry.localWpm = player.wpm;
       entry.localRank = player.position;
     }
   }
 
-  // Insert at beginning (newest first)
+  // Masukkan di awal (terbaru pertama)
   m_entries.insert(m_entries.begin(), entry);
   
-  // Re-sort because user might have active sort that is NOT date descending
+  // Re-sort karena user mungkin punya pengaturan sort berbeda
   sortHistory();
   
   saveHistory();
   emit historyChanged();
 }
 
+/**
+ * @brief Menghapus semua riwayat.
+ *
+ * @details Mengosongkan m_entries dan menyimpan file kosong ke disk.
+ */
 void MultiplayerHistoryManager::clearHistory() {
   m_entries.clear();
   saveHistory();
   emit historyChanged();
 }
 
+/**
+ * @brief Mendapatkan data riwayat dalam format QVariantList untuk QML.
+ * @return QVariantList berisi QVariantMap untuk setiap entry.
+ */
 QVariantList MultiplayerHistoryManager::getHistoryData() const {
   QVariantList list;
   for (const auto &entry : m_entries) {
@@ -287,14 +327,28 @@ QVariantList MultiplayerHistoryManager::getHistoryData() const {
   return list;
 }
 
+/**
+ * @brief Mendapatkan total jumlah entry riwayat.
+ * @return Jumlah entry.
+ */
 int MultiplayerHistoryManager::getTotalEntries() const {
   return static_cast<int>(m_entries.size());
 }
 
+/**
+ * @brief Mendapatkan field sorting saat ini dari SettingsManager.
+ * @return QString field sorting.
+ */
 QString MultiplayerHistoryManager::sortBy() const {
   return QString::fromStdString(SettingsManager::getMultiplayerHistorySortBy());
 }
 
+/**
+ * @brief Mengatur field sorting.
+ * @param sortBy Field baru untuk sorting ("date", "wpm", "rank").
+ *
+ * @details Menyimpan ke SettingsManager dan re-sort riwayat.
+ */
 void MultiplayerHistoryManager::setSortBy(const QString &sortBy) {
   std::string current = SettingsManager::getMultiplayerHistorySortBy();
   if (current != sortBy.toStdString()) {
@@ -305,10 +359,20 @@ void MultiplayerHistoryManager::setSortBy(const QString &sortBy) {
   }
 }
 
+/**
+ * @brief Mendapatkan arah sorting dari SettingsManager.
+ * @return true jika ascending.
+ */
 bool MultiplayerHistoryManager::sortAscending() const {
   return SettingsManager::getMultiplayerHistorySortAscending();
 }
 
+/**
+ * @brief Mengatur arah sorting.
+ * @param ascending true untuk ascending, false untuk descending.
+ *
+ * @details Menyimpan ke SettingsManager dan re-sort riwayat.
+ */
 void MultiplayerHistoryManager::setSortAscending(bool ascending) {
   if (SettingsManager::getMultiplayerHistorySortAscending() != ascending) {
     SettingsManager::setMultiplayerHistorySortAscending(ascending);
@@ -318,6 +382,14 @@ void MultiplayerHistoryManager::setSortAscending(bool ascending) {
   }
 }
 
+/**
+ * @brief Mengurutkan riwayat berdasarkan pengaturan saat ini.
+ *
+ * @details Mendukung sorting berdasarkan:
+ * - "wpm": Words per minute pemain lokal
+ * - "rank": Peringkat pemain lokal
+ * - default (date): Timestamp pertandingan
+ */
 void MultiplayerHistoryManager::sortHistory() {
   QString sortBy = this->sortBy();
   bool ascending = this->sortAscending();
@@ -335,11 +407,9 @@ void MultiplayerHistoryManager::sortHistory() {
                 return ascending ? (a.localRank < b.localRank) : (a.localRank > b.localRank);
               });
   } else {
-    // Default: Sort by date
-    // Timestamp format: "dd/MM/yyyy HH:mm:ss"
+    // Default: Sort by date (timestamp format: "dd/MM/yyyy HH:mm:ss")
     std::sort(m_entries.begin(), m_entries.end(),
               [ascending](const MultiplayerHistoryEntry &a, const MultiplayerHistoryEntry &b) {
-                // Parse timestamp string to QDateTime for easy comparison
                 QDateTime dtA = QDateTime::fromString(a.timestamp, "dd/MM/yyyy HH:mm:ss");
                 QDateTime dtB = QDateTime::fromString(b.timestamp, "dd/MM/yyyy HH:mm:ss");
                 
@@ -352,10 +422,21 @@ void MultiplayerHistoryManager::sortHistory() {
   }
 }
 
+/**
+ * @brief Mengambil timestamp saat ini dalam format standar.
+ * @return QString timestamp (dd/MM/yyyy HH:mm:ss).
+ */
 QString MultiplayerHistoryManager::captureTimestamp() {
     return QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss");
 }
 
+/**
+ * @brief Escape karakter khusus dalam string untuk JSON.
+ * @param str String input.
+ * @return String yang sudah di-escape.
+ *
+ * @details Menangani karakter: ", \, \n, \r, \t
+ */
 std::string MultiplayerHistoryManager::escapeJsonString(const std::string& str) {
     std::string escaped;
     for (char c : str) {

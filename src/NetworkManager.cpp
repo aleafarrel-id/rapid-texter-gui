@@ -1,11 +1,36 @@
+/**
+ * @file NetworkManager.cpp
+ * @brief Implementasi NetworkManager untuk multiplayer P2P Full Mesh.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
+ *
+ * @details File ini berisi implementasi lengkap NetworkManager termasuk:
+ * - UDP Discovery untuk penemuan room di LAN
+ * - TCP Mesh untuk koneksi peer-to-peer
+ * - Packet handling untuk semua tipe pesan
+ * - Game logic untuk multiplayer typing race
+ * - Authority management dengan floating host
+ *
+ * @section protocol Protocol Overview
+ * Komunikasi menggunakan JSON over TCP dengan length-prefixed framing.
+ * Setiap paket memiliki header (type, sender, timestamp) dan payload.
+ */
+
 #include "NetworkManager.h"
 #include "GameBackend.h"
 #include <QDateTime>
 #include <QHostAddress>
 #include <algorithm>
 
+/// Singleton instance pointer
 NetworkManager *NetworkManager::s_instance = nullptr;
 
+/**
+ * @brief Mendapatkan singleton instance NetworkManager.
+ * @return Pointer ke instance.
+ *
+ * @details Thread-safe singleton pattern. Instance dibuat saat pertama kali dipanggil.
+ */
 NetworkManager *NetworkManager::instance() {
   if (!s_instance) {
     s_instance = new NetworkManager();
@@ -13,6 +38,12 @@ NetworkManager *NetworkManager::instance() {
   return s_instance;
 }
 
+/**
+ * @brief Factory method untuk QML singleton registration.
+ * @param engine Pointer ke QQmlEngine.
+ * @param scriptEngine Pointer ke QJSEngine.
+ * @return Pointer ke instance NetworkManager.
+ */
 NetworkManager *NetworkManager::create(QQmlEngine *engine,
                                        QJSEngine *scriptEngine) {
   Q_UNUSED(engine)
@@ -20,6 +51,15 @@ NetworkManager *NetworkManager::create(QQmlEngine *engine,
   return instance();
 }
 
+/**
+ * @brief Constructor NetworkManager.
+ * @param parent Parent QObject.
+ *
+ * @details Inisialisasi meliputi:
+ * - Generate UUID unik untuk identifikasi pemain
+ * - Setup UDP socket untuk discovery
+ * - Setup timer untuk cleanup, announcing, progress, dan timeout
+ */
 NetworkManager::NetworkManager(QObject *parent)
     : QObject(parent),
       m_playerId(QUuid::createUuid().toString(QUuid::WithoutBraces)) {
@@ -79,6 +119,18 @@ NetworkManager::~NetworkManager() { resetState(); }
 // PACKET SERIALIZATION
 // ============================================================================
 
+/**
+ * @brief Serialisasi paket menjadi QByteArray untuk pengiriman via TCP.
+ * @return QByteArray dengan format: [4-byte length prefix][JSON data]
+ *
+ * @details Format JSON:
+ * {
+ *   "type": <int>,
+ *   "sender": "<uuid>",
+ *   "ts": <timestamp>,
+ *   "payload": {...}
+ * }
+ */
 QByteArray NetworkManager::Packet::serialize() const {
   QJsonObject obj;
   obj["type"] = static_cast<int>(type);
@@ -98,6 +150,11 @@ QByteArray NetworkManager::Packet::serialize() const {
   return result;
 }
 
+/**
+ * @brief Deserialisasi QByteArray menjadi Packet.
+ * @param data Data JSON (tanpa length prefix).
+ * @return Packet hasil deserialisasi.
+ */
 NetworkManager::Packet
 NetworkManager::Packet::deserialize(const QByteArray &data) {
   Packet packet;
@@ -114,6 +171,12 @@ NetworkManager::Packet::deserialize(const QByteArray &data) {
   return packet;
 }
 
+/**
+ * @brief Membuat paket baru dengan header terisi otomatis.
+ * @param type Tipe paket.
+ * @param payload Data payload (opsional).
+ * @return Packet yang siap dikirim.
+ */
 NetworkManager::Packet
 NetworkManager::createPacket(PacketType type, const QJsonObject &payload) {
   Packet packet;
@@ -125,9 +188,14 @@ NetworkManager::createPacket(PacketType type, const QJsonObject &payload) {
 }
 
 // ============================================================================
-// DISCOVERY
+// DISCOVERY - UDP Broadcast untuk penemuan room di LAN
 // ============================================================================
 
+/**
+ * @brief Setup socket UDP untuk discovery.
+ * @details Bind ke port 52766 dengan ShareAddress dan ReuseAddressHint
+ * untuk memungkinkan multiple instance di mesin yang sama.
+ */
 void NetworkManager::setupDiscoverySocket() {
   m_discoverySocket = new QUdpSocket(this);
   if (!m_discoverySocket->bind(QHostAddress::AnyIPv4, DISCOVERY_PORT,
@@ -140,6 +208,15 @@ void NetworkManager::setupDiscoverySocket() {
           &NetworkManager::processDiscoveryDatagram);
 }
 
+/**
+ * @brief Mendapatkan alamat IP lokal terbaik untuk jaringan.
+ * @return QString alamat IP, atau "127.0.0.1" jika tidak ditemukan.
+ *
+ * @details Algoritma pemilihan:
+ * 1. Skip interface yang down, loopback, atau virtual (VMware, VirtualBox, dll)
+ * 2. Prioritaskan network private (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+ * 3. Prioritaskan Ethernet > WiFi
+ */
 QString NetworkManager::localIpAddress() const {
   const auto interfaces = QNetworkInterface::allInterfaces();
   QString bestAddress;
@@ -266,6 +343,11 @@ QVariantList NetworkManager::availableInterfaces() const {
   return result;
 }
 
+/**
+ * @brief Memulai scanning untuk menemukan room di LAN.
+ * @details Mengaktifkan cleanup timer untuk room stale dan
+ * scan timeout timer (30 detik).
+ */
 void NetworkManager::startScanning() {
   if (m_isScanning)
     return;
@@ -281,6 +363,9 @@ void NetworkManager::startScanning() {
   qDebug() << "[NetworkManager] Started scanning for rooms (30s timeout)";
 }
 
+/**
+ * @brief Menghentikan scanning room.
+ */
 void NetworkManager::stopScanning() {
   if (!m_isScanning)
     return;
@@ -293,6 +378,9 @@ void NetworkManager::stopScanning() {
   qDebug() << "[NetworkManager] Stopped scanning";
 }
 
+/**
+ * @brief Refresh daftar room dengan memulai scanning ulang.
+ */
 void NetworkManager::refreshRooms() {
   // Stop current scanning if active
   if (m_isScanning) {
@@ -307,13 +395,25 @@ void NetworkManager::refreshRooms() {
   startScanning();
 }
 
+/**
+ * @brief Memulai broadcasting UDP untuk room hosting.
+ * @details Kirim announce pertama segera, lalu setiap 1 detik.
+ */
 void NetworkManager::startAnnouncing() {
   sendAnnounce();
   m_announceTimer->start(ANNOUNCE_INTERVAL_MS);
 }
 
+/**
+ * @brief Menghentikan broadcasting UDP.
+ */
 void NetworkManager::stopAnnouncing() { m_announceTimer->stop(); }
 
+/**
+ * @brief Mengirim satu paket UDP broadcast.
+ * @details Format paket berisi: app identifier, type, uuid, name, port, playerCount, status.
+ * Jika interface dipilih, broadcast hanya ke interface tersebut.
+ */
 void NetworkManager::sendAnnounce() {
   if (!m_isInLobby)
     return;
@@ -354,6 +454,11 @@ void NetworkManager::sendAnnounce() {
                                    DISCOVERY_PORT);
 }
 
+/**
+ * @brief Memproses datagram UDP yang diterima.
+ * @details Memvalidasi paket discovery, mengekstrak informasi room,
+ * dan emit signal jika room baru ditemukan.
+ */
 void NetworkManager::processDiscoveryDatagram() {
   while (m_discoverySocket->hasPendingDatagrams()) {
     QByteArray data;
@@ -408,6 +513,9 @@ void NetworkManager::processDiscoveryDatagram() {
   }
 }
 
+/**
+ * @brief Membersihkan room yang sudah timeout (tidak terlihat > 5 detik).
+ */
 void NetworkManager::cleanupStaleRooms() {
   qint64 now = QDateTime::currentMSecsSinceEpoch();
   bool changed = false;
@@ -428,6 +536,10 @@ void NetworkManager::cleanupStaleRooms() {
   }
 }
 
+/**
+ * @brief Mengkonversi daftar room ke QVariantList untuk QML.
+ * @return QVariantList berisi QVariantMap untuk setiap room.
+ */
 QVariantList NetworkManager::discoveredRooms() const {
   QVariantList list;
   for (const auto &room : m_discoveredRooms) {
@@ -445,9 +557,13 @@ QVariantList NetworkManager::discoveredRooms() const {
 }
 
 // ============================================================================
-// TCP SERVER (MESH)
+// TCP SERVER (MESH) - Server untuk menerima koneksi dari peer lain
 // ============================================================================
 
+/**
+ * @brief Memulai TCP server untuk menerima koneksi peer.
+ * @details Server listen pada port 52765. Dipanggil saat createRoom() atau joinRoom().
+ */
 void NetworkManager::startTcpServer() {
   if (m_tcpServer)
     return;
@@ -469,6 +585,9 @@ void NetworkManager::startTcpServer() {
            << m_tcpServer->serverPort();
 }
 
+/**
+ * @brief Menghentikan TCP server.
+ */
 void NetworkManager::stopTcpServer() {
   if (!m_tcpServer)
     return;
@@ -479,6 +598,10 @@ void NetworkManager::stopTcpServer() {
   qDebug() << "[NetworkManager] TCP Server stopped";
 }
 
+/**
+ * @brief Handler untuk koneksi TCP baru masuk.
+ * @details Membuat PeerConnection baru, setup signal handlers, dan kirim HELLO.
+ */
 void NetworkManager::onNewTcpConnection() {
   while (m_tcpServer && m_tcpServer->hasPendingConnections()) {
     QTcpSocket *socket = m_tcpServer->nextPendingConnection();
@@ -533,9 +656,16 @@ void NetworkManager::onNewTcpConnection() {
 }
 
 // ============================================================================
-// PEER CONNECTION
+// PEER CONNECTION - Koneksi keluar ke peer lain
 // ============================================================================
 
+/**
+ * @brief Inisiasi koneksi TCP ke peer.
+ * @param ip Alamat IP peer.
+ * @param port Port TCP peer.
+ * @param uuid UUID peer (opsional, untuk identifikasi).
+ * @return true jika koneksi dimulai, false jika sudah connected atau gagal.
+ */
 bool NetworkManager::connectToPeer(const QString &ip, int port,
                                    const QString &uuid) {
   QString key = getPeerKey(ip, port);
@@ -597,6 +727,10 @@ bool NetworkManager::connectToPeer(const QString &ip, int port,
   return true;
 }
 
+/**
+ * @brief Handler saat koneksi ke peer berhasil.
+ * @details Menghapus dari pending connections dan kirim HELLO.
+ */
 void NetworkManager::onPeerConnected() {
   QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
   if (!socket)
@@ -616,6 +750,11 @@ void NetworkManager::onPeerConnected() {
   sendHello(peer);
 }
 
+/**
+ * @brief Handler saat peer disconnect.
+ * @details Membersihkan resources, hapus dari daftar peer, emit signal playerLeft,
+ * update authority, dan cek race completion.
+ */
 void NetworkManager::onPeerDisconnected() {
   QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
   if (!socket)
@@ -670,6 +809,10 @@ void NetworkManager::onPeerDisconnected() {
   socket->deleteLater();
 }
 
+/**
+ * @brief Handler untuk error socket peer.
+ * @param error Kode error socket.
+ */
 void NetworkManager::onPeerError(QAbstractSocket::SocketError error) {
   QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
   if (!socket)
@@ -682,6 +825,11 @@ void NetworkManager::onPeerError(QAbstractSocket::SocketError error) {
   m_pendingConnections.remove(pendingKey);
 }
 
+/**
+ * @brief Handler saat ada data siap dibaca dari peer.
+ * @details Menggunakan length-prefixed framing untuk parsing paket.
+ * Buffer data sampai paket lengkap tersedia.
+ */
 void NetworkManager::onPeerReadyRead() {
   QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
   if (!socket)
@@ -742,6 +890,12 @@ void NetworkManager::onPeerReadyRead() {
   }
 }
 
+/**
+ * @brief Menghapus peer dari daftar koneksi.
+ * @param uuid UUID peer yang akan dihapus.
+ * @details Jika dalam game/results, peer ditandai hasLeft.
+ * Jika di lobby, peer dihapus sepenuhnya.
+ */
 void NetworkManager::removePeer(const QString &uuid) {
   if (!m_peers.contains(uuid))
     return;
@@ -769,14 +923,25 @@ void NetworkManager::removePeer(const QString &uuid) {
   emit peersChanged();
 }
 
+/**
+ * @brief Generate key unik untuk peer dari IP dan port.
+ * @param ip Alamat IP.
+ * @param port Port.
+ * @return QString format "IP:Port".
+ */
 QString NetworkManager::getPeerKey(const QString &ip, int port) const {
   return QString("%1:%2").arg(ip).arg(port);
 }
 
 // ============================================================================
-// HANDSHAKE & MESH
+// HANDSHAKE & MESH - Proses handshake dan pembentukan mesh penuh
 // ============================================================================
 
+/**
+ * @brief Mengirim paket HELLO ke peer.
+ * @param peer Pointer ke PeerConnection.
+ * @details HELLO berisi: name, port, isRoomCreator, hostUuid.
+ */
 void NetworkManager::sendHello(PeerConnection *peer) {
   QJsonObject payload;
   payload["name"] = m_playerName;
@@ -788,6 +953,16 @@ void NetworkManager::sendHello(PeerConnection *peer) {
   sendToPeer(peer, packet);
 }
 
+/**
+ * @brief Handler untuk paket HELLO dari peer.
+ * @param peer Pointer ke PeerConnection.
+ * @param packet Paket HELLO yang diterima.
+ * @details Proses:
+ * 1. Extract informasi peer dari payload
+ * 2. Handle duplicate connections (UUID comparison)
+ * 3. Complete join process jika ini adalah host yang kita join
+ * 4. Add peer ke player list dan kirim PEER_LIST
+ */
 void NetworkManager::handleHello(PeerConnection *peer, const Packet &packet) {
   peer->uuid = packet.senderUuid;
   peer->name = packet.payload["name"].toString();
@@ -891,6 +1066,11 @@ void NetworkManager::handleHello(PeerConnection *peer, const Packet &packet) {
   updateAuthority();
 }
 
+/**
+ * @brief Mengirim daftar peer ke peer baru untuk mesh building.
+ * @param peer Pointer ke peer baru.
+ * @details Daftar berisi semua peer yang sudah handshake complete.
+ */
 void NetworkManager::sendPeerList(PeerConnection *peer) {
   QJsonArray peerArray;
 
@@ -924,6 +1104,10 @@ void NetworkManager::sendPeerList(PeerConnection *peer) {
   sendToPeer(peer, packet);
 }
 
+/**
+ * @brief Handler untuk paket PEER_LIST.
+ * @param packet Paket berisi daftar peer.
+ */
 void NetworkManager::handlePeerList(const Packet &packet) {
   QJsonArray peerArray = packet.payload["peers"].toArray();
   qDebug() << "[NetworkManager] Received PEER_LIST with" << peerArray.size()
@@ -932,6 +1116,10 @@ void NetworkManager::handlePeerList(const Packet &packet) {
   connectToMissingPeers(peerArray);
 }
 
+/**
+ * @brief Koneksi ke peer yang belum terhubung dari peer list.
+ * @param peerList Array JSON berisi informasi peer.
+ */
 void NetworkManager::connectToMissingPeers(const QJsonArray &peerList) {
   for (const auto &peerVal : peerList) {
     QJsonObject peerObj = peerVal.toObject();
@@ -955,9 +1143,14 @@ void NetworkManager::connectToMissingPeers(const QJsonArray &peerList) {
 }
 
 // ============================================================================
-// PACKET PROCESSING
+// PACKET PROCESSING - Routing dan handling untuk semua tipe paket
 // ============================================================================
 
+/**
+ * @brief Memproses paket yang diterima dan route ke handler yang tepat.
+ * @param peer Pointer ke peer pengirim.
+ * @param packet Paket yang diterima.
+ */
 void NetworkManager::processPacket(PeerConnection *peer, const Packet &packet) {
   // Log selected packet types to debug
   if (packet.type == PacketType::PROGRESS_UPDATE) {
@@ -1019,6 +1212,10 @@ void NetworkManager::processPacket(PeerConnection *peer, const Packet &packet) {
   }
 }
 
+/**
+ * @brief Broadcast paket ke semua peer yang terhubung.
+ * @param packet Paket yang akan di-broadcast.
+ */
 void NetworkManager::broadcastToAllPeers(const Packet &packet) {
   QByteArray data = packet.serialize();
   for (auto it = m_peers.begin(); it != m_peers.end(); ++it) {
@@ -1030,6 +1227,11 @@ void NetworkManager::broadcastToAllPeers(const Packet &packet) {
   }
 }
 
+/**
+ * @brief Handler untuk paket KICK.
+ * @param packet Paket KICK dari host.
+ * @details Emit signal kicked() dan leave room.
+ */
 void NetworkManager::handleKick(const Packet &packet) {
   Q_UNUSED(packet)
   qDebug() << "[NetworkManager] Received KICK packet - we have been kicked by "
@@ -1042,6 +1244,11 @@ void NetworkManager::handleKick(const Packet &packet) {
   leaveRoom();
 }
 
+/**
+ * @brief Mengirim paket ke peer spesifik.
+ * @param peer Pointer ke peer target.
+ * @param packet Paket yang akan dikirim.
+ */
 void NetworkManager::sendToPeer(PeerConnection *peer, const Packet &packet) {
   if (!peer || !peer->socket)
     return;
@@ -1054,9 +1261,15 @@ void NetworkManager::sendToPeer(PeerConnection *peer, const Packet &packet) {
 }
 
 // ============================================================================
-// AUTHORITY (Room Creator Based)
+// AUTHORITY - Manajemen authority (host) dengan floating host support
 // ============================================================================
 
+/**
+ * @brief Update status authority berdasarkan kondisi saat ini.
+ * @details Authority rules:
+ * 1. Room creator selalu memiliki authority
+ * 2. Jika host disconnect, authority migrasi ke pemain dengan UUID terendah
+ */
 void NetworkManager::updateAuthority() {
   bool wasAuthority = m_isAuthority;
 
@@ -1119,9 +1332,14 @@ void NetworkManager::updateAuthority() {
 }
 
 // ============================================================================
-// ROOM FUNCTIONS
+// ROOM FUNCTIONS - Membuat, bergabung, dan meninggalkan room
 // ============================================================================
 
+/**
+ * @brief Membuat room baru sebagai host.
+ * @return true jika berhasil, false jika sudah dalam room.
+ * @details Memulai TCP server, broadcasting UDP, dan set sebagai authority.
+ */
 bool NetworkManager::createRoom() {
   if (m_isInLobby || m_isConnected)
     return false;
@@ -1154,6 +1372,10 @@ bool NetworkManager::createRoom() {
   return true;
 }
 
+/**
+ * @brief Menutup room dan membersihkan semua koneksi.
+ * @details Menghentikan timer, disconnect semua peer, stop server, reset state.
+ */
 void NetworkManager::closeRoom() {
   // CRITICAL: Stop timers FIRST to prevent callbacks during cleanup
   m_progressTimer->stop();
@@ -1191,6 +1413,13 @@ void NetworkManager::closeRoom() {
   qDebug() << "[NetworkManager] Room closed successfully";
 }
 
+/**
+ * @brief Bergabung ke room yang ada.
+ * @param hostIp Alamat IP host.
+ * @param port Port TCP host.
+ * @return true jika koneksi dimulai, false jika gagal.
+ * @details Koneksi async dengan timeout 5 detik.
+ */
 bool NetworkManager::joinRoom(const QString &hostIp, int port) {
   if (m_isInLobby || m_isConnected || m_isConnecting)
     return false;
@@ -1242,12 +1471,21 @@ bool NetworkManager::joinRoom(const QString &hostIp, int port) {
   return true;
 }
 
+/**
+ * @brief Keluar dari room saat ini.
+ * @details Alias untuk closeRoom().
+ */
 void NetworkManager::leaveRoom() { closeRoom(); }
 
 // ============================================================================
-// GAME CONTROL
+// GAME CONTROL - Kontrol permainan (hanya untuk authority/host)
 // ============================================================================
 
+/**
+ * @brief Mengatur teks game yang akan diketik.
+ * @param text Teks untuk race.
+ * @note Hanya host yang dapat memanggil fungsi ini.
+ */
 void NetworkManager::setGameText(const QString &text) {
   if (!m_isRoomCreator)
     return; // Only host can set game text
@@ -1263,6 +1501,11 @@ void NetworkManager::setGameText(const QString &text) {
   broadcastToAllPeers(packet);
 }
 
+/**
+ * @brief Mengatur bahasa teks game.
+ * @param language Kode bahasa ("id", "en", "prog").
+ * @note Hanya host yang dapat mengubah bahasa. Teks akan di-refresh otomatis.
+ */
 void NetworkManager::setGameLanguage(const QString &language) {
   if (!m_isRoomCreator)
     return; // Only host can change language
@@ -1276,6 +1519,10 @@ void NetworkManager::setGameLanguage(const QString &language) {
   refreshGameText();
 }
 
+/**
+ * @brief Generate teks game baru berdasarkan bahasa.
+ * @note Hanya authority yang dapat memanggil fungsi ini.
+ */
 void NetworkManager::refreshGameText() {
   if (!m_isAuthority)
     return; // Only authority (host) can refresh text
@@ -1289,6 +1536,14 @@ void NetworkManager::refreshGameText() {
   }
 }
 
+/**
+ * @brief Memulai countdown sebelum race.
+ * @details Proses:
+ * 1. Validasi game text ada
+ * 2. Jika solo mode, langsung mulai
+ * 3. Jika multiplayer, kirim READY_CHECK dan tunggu respons
+ * @note Hanya authority yang dapat memulai game.
+ */
 void NetworkManager::startCountdown() {
   if (!m_isAuthority) {
     qDebug() << "[NetworkManager] Only room creator (host) can start the game";
@@ -1346,6 +1601,11 @@ void NetworkManager::startCountdown() {
   m_readyCheckTimer->start(5000);
 }
 
+/**
+ * @brief Handler untuk READY_CHECK dari host.
+ * @param packet Paket berisi teks dan bahasa game.
+ * @details Guest menerima dan sinkronisasi teks, lalu kirim READY_RESPONSE.
+ */
 void NetworkManager::handleReadyCheck(const Packet &packet) {
   // Guest received ready check from host
   // Sync the game text and language
@@ -1376,6 +1636,11 @@ void NetworkManager::handleReadyCheck(const Packet &packet) {
   broadcastToAllPeers(response);
 }
 
+/**
+ * @brief Handler untuk READY_RESPONSE dari guest.
+ * @param packet Paket respons dari guest.
+ * @details Host mengumpulkan respons dan mulai countdown saat semua ready.
+ */
 void NetworkManager::handleReadyResponse(const Packet &packet) {
   if (!m_isRoomCreator || !m_isWaitingForReady) {
     return; // Only host should process ready responses during ready check
@@ -1399,6 +1664,10 @@ void NetworkManager::handleReadyResponse(const Packet &packet) {
   }
 }
 
+/**
+ * @brief Handler timeout ready check.
+ * @details Jika timeout, mulai game dengan pemain yang sudah ready.
+ */
 void NetworkManager::onReadyCheckTimeout() {
   if (!m_isWaitingForReady)
     return;
@@ -1421,6 +1690,10 @@ void NetworkManager::onReadyCheckTimeout() {
   beginCountdown();
 }
 
+/**
+ * @brief Mulai countdown 3 detik lalu start game.
+ * @details Broadcast COUNTDOWN ke semua peer, setelah 3 detik kirim GAME_START.
+ */
 void NetworkManager::beginCountdown() {
   // Broadcast countdown start to all peers
   QJsonObject payload;
@@ -1447,6 +1720,11 @@ void NetworkManager::beginCountdown() {
   });
 }
 
+/**
+ * @brief Kick pemain dari room.
+ * @param uuid UUID pemain yang akan di-kick.
+ * @note Hanya host yang dapat melakukan kick.
+ */
 void NetworkManager::kickPlayer(const QString &uuid) {
   if (!m_isRoomCreator)
     return; // Only host can kick players
@@ -1475,9 +1753,14 @@ void NetworkManager::kickPlayer(const QString &uuid) {
 }
 
 // ============================================================================
-// GAME LOGIC HANDLERS
+// GAME LOGIC HANDLERS - Handler untuk paket game flow
 // ============================================================================
 
+/**
+ * @brief Handler untuk GAME_START.
+ * @param packet Paket GAME_START.
+ * @details Mengabaikan jika ada pending invite. Set game state dan start progress timer.
+ */
 void NetworkManager::handleGameStart(const Packet &packet) {
   Q_UNUSED(packet)
 
@@ -1501,6 +1784,10 @@ void NetworkManager::handleGameStart(const Packet &packet) {
   m_progressTimer->start(PROGRESS_UPDATE_MS);
 }
 
+/**
+ * @brief Handler untuk GAME_TEXT dari host.
+ * @param packet Paket berisi teks dan bahasa game.
+ */
 void NetworkManager::handleGameText(const Packet &packet) {
   m_gameText = packet.payload["text"].toString();
   emit gameTextChanged();
@@ -1515,6 +1802,10 @@ void NetworkManager::handleGameText(const Packet &packet) {
   }
 }
 
+/**
+ * @brief Handler untuk COUNTDOWN dari host.
+ * @param packet Paket berisi jumlah detik countdown.
+ */
 void NetworkManager::handleCountdown(const Packet &packet) {
   // Guest ignore logic
   if (m_isPendingInvite) {
@@ -1528,6 +1819,10 @@ void NetworkManager::handleCountdown(const Packet &packet) {
   emit countdownStarted(seconds);
 }
 
+/**
+ * @brief Handler untuk PLAYER_LEFT.
+ * @param packet Paket berisi UUID dan nama pemain yang keluar.
+ */
 void NetworkManager::handlePlayerLeft(const Packet &packet) {
   QString uuid = packet.payload["uuid"].toString();
   QString name = packet.payload["name"].toString();
@@ -1551,6 +1846,10 @@ void NetworkManager::handlePlayerLeft(const Packet &packet) {
   checkRaceCompletion();
 }
 
+/**
+ * @brief Handler untuk RACE_RESULTS dari host.
+ * @param packet Paket berisi array ranking pemain.
+ */
 void NetworkManager::handleRaceResults(const Packet &packet) {
   QVariantList rankings;
   QJsonArray arr = packet.payload["rankings"].toArray();
@@ -1573,9 +1872,17 @@ void NetworkManager::handleRaceResults(const Packet &packet) {
 }
 
 // ============================================================================
-// PROGRESS & RACE
+// PROGRESS & RACE - Update progress dan penyelesaian race
 // ============================================================================
 
+/**
+ * @brief Update progress lokal (dipanggil dari QML).
+ * @param position Posisi karakter saat ini.
+ * @param totalChars Total karakter dalam teks.
+ * @param wpm Words per minute saat ini.
+ * @param accuracy Akurasi (0-100).
+ * @param errors Jumlah error.
+ */
 void NetworkManager::updateProgress(int position, int totalChars, int wpm,
                                     double accuracy, int errors) {
   m_currentPosition = position;
@@ -1597,6 +1904,13 @@ void NetworkManager::updateProgress(int position, int totalChars, int wpm,
   emit playersChanged();
 }
 
+/**
+ * @brief Menandai pemain lokal telah menyelesaikan race.
+ * @param wpm WPM final.
+ * @param accuracy Akurasi final.
+ * @param errors Total error.
+ * @param duration Durasi race (detik).
+ */
 void NetworkManager::finishRace(int wpm, double accuracy, int errors,
                                 int duration) {
   m_localFinished = true;
@@ -1626,6 +1940,10 @@ void NetworkManager::finishRace(int wpm, double accuracy, int errors,
   checkRaceCompletion();
 }
 
+/**
+ * @brief Mengirim progress update ke semua peer.
+ * @details Dipanggil setiap 50ms oleh timer saat dalam game.
+ */
 void NetworkManager::sendProgressUpdate() {
   if (!m_isInGame)
     return;
@@ -1651,6 +1969,11 @@ void NetworkManager::sendProgressUpdate() {
   broadcastToAllPeers(packet);
 }
 
+/**
+ * @brief Handler untuk PROGRESS_UPDATE dari peer.
+ * @param peer Pointer ke peer pengirim.
+ * @param packet Paket berisi progress data.
+ */
 void NetworkManager::handleProgressUpdate(PeerConnection *peer,
                                           const Packet &packet) {
   QString playerId = packet.senderUuid;
@@ -1691,6 +2014,11 @@ void NetworkManager::handleProgressUpdate(PeerConnection *peer,
   emit playersChanged();
 }
 
+/**
+ * @brief Handler untuk FINISH dari peer.
+ * @param peer Pointer ke peer pengirim.
+ * @param packet Paket berisi statistik finish.
+ */
 void NetworkManager::handleFinish(PeerConnection *peer, const Packet &packet) {
   Q_UNUSED(peer)
   QString playerId = packet.senderUuid;
@@ -1721,6 +2049,11 @@ void NetworkManager::handleFinish(PeerConnection *peer, const Packet &packet) {
   checkRaceCompletion();
 }
 
+/**
+ * @brief Mengecek apakah race sudah selesai.
+ * @details Jika semua pemain selesai, build ranking dan broadcast RACE_RESULTS.
+ * Ranking di-sort berdasarkan: WPM (desc) > Accuracy (desc) > Errors (asc) > Duration (asc).
+ */
 void NetworkManager::checkRaceCompletion() {
   // Skip if race is already complete (rankings already exist)
   // This prevents re-broadcasting rankings when players leave from results page
@@ -1805,9 +2138,13 @@ void NetworkManager::checkRaceCompletion() {
 }
 
 // ============================================================================
-// UTILITIES
+// UTILITIES - Fungsi helper dan state management
 // ============================================================================
 
+/**
+ * @brief Mengkonversi daftar pemain ke QVariantList untuk QML.
+ * @return QVariantList berisi QVariantMap untuk setiap pemain.
+ */
 QVariantList NetworkManager::players() const {
   QVariantList list;
   for (const auto &player : m_players) {
@@ -1835,6 +2172,10 @@ QVariantList NetworkManager::players() const {
   return list;
 }
 
+/**
+ * @brief Mengatur nama pemain.
+ * @param name Nama baru.
+ */
 void NetworkManager::setPlayerName(const QString &name) {
   if (m_playerName == name)
     return;
@@ -1842,12 +2183,20 @@ void NetworkManager::setPlayerName(const QString &name) {
   emit playerNameChanged();
 }
 
+/**
+ * @brief Set pesan error koneksi dan emit signal.
+ * @param error Pesan error.
+ */
 void NetworkManager::setConnectionError(const QString &error) {
   m_connectionError = error;
   emit connectionErrorChanged();
   qWarning() << "[NetworkManager] Error:" << error;
 }
 
+/**
+ * @brief Reset semua state ke kondisi awal.
+ * @details Dipanggil saat closeRoom() atau leaveRoom().
+ */
 void NetworkManager::resetState() {
   m_isAuthority = false;
   m_isRoomCreator = false;
@@ -1893,6 +2242,10 @@ void NetworkManager::resetState() {
   emit rankingsChanged();
 }
 
+/**
+ * @brief Mengatur network interface untuk broadcasting.
+ * @param ip Alamat IP interface yang dipilih.
+ */
 void NetworkManager::setSelectedInterface(const QString &ip) {
   if (m_selectedInterface == ip)
     return;
@@ -1910,9 +2263,14 @@ void NetworkManager::setSelectedInterface(const QString &ip) {
 }
 
 // ============================================================================
-// PLAY AGAIN FUNCTIONALITY
+// PLAY AGAIN FUNCTIONALITY - Sistem undangan dan respons untuk main lagi
 // ============================================================================
 
+/**
+ * @brief Kembali ke lobby dengan mempertahankan koneksi.
+ * @details Reset game state, bersihkan pemain yang sudah pergi,
+ * dan generate teks baru jika host.
+ */
 void NetworkManager::returnToLobby() {
   qDebug() << "[NetworkManager] Returning to lobby (keeping connection)";
 
@@ -1983,6 +2341,10 @@ void NetworkManager::returnToLobby() {
   qDebug() << "[NetworkManager] Returned to lobby successfully";
 }
 
+/**
+ * @brief Host mengirim undangan bermain lagi ke semua guest.
+ * @note Hanya authority yang dapat memanggil fungsi ini.
+ */
 void NetworkManager::sendPlayAgainInvite() {
   if (!m_isAuthority) {
     qDebug()
@@ -2000,6 +2362,10 @@ void NetworkManager::sendPlayAgainInvite() {
   broadcastToAllPeers(packet);
 }
 
+/**
+ * @brief Guest menerima undangan bermain lagi.
+ * @details Cek apakah host sudah mulai, return to lobby, dan kirim respons.
+ */
 void NetworkManager::acceptPlayAgain() {
   qDebug() << "[NetworkManager] Accepting play again invite";
 
@@ -2023,6 +2389,9 @@ void NetworkManager::acceptPlayAgain() {
   broadcastToAllPeers(packet);
 }
 
+/**
+ * @brief Guest menolak undangan dan keluar dari room.
+ */
 void NetworkManager::declinePlayAgain() {
   qDebug() << "[NetworkManager] Declining play again invite";
 
@@ -2038,6 +2407,10 @@ void NetworkManager::declinePlayAgain() {
   leaveRoom();
 }
 
+/**
+ * @brief Handler untuk PLAY_AGAIN_INVITE dari host.
+ * @param packet Paket undangan.
+ */
 void NetworkManager::handlePlayAgainInvite(const Packet &packet) {
   Q_UNUSED(packet)
 
@@ -2052,6 +2425,11 @@ void NetworkManager::handlePlayAgainInvite(const Packet &packet) {
   emit playAgainInviteReceived();
 }
 
+/**
+ * @brief Handler untuk PLAY_AGAIN_RESPONSE dari guest.
+ * @param peer Pointer ke peer pengirim.
+ * @param packet Paket respons.
+ */
 void NetworkManager::handlePlayAgainResponse(PeerConnection *peer,
                                              const Packet &packet) {
   if (!m_isRoomCreator) {

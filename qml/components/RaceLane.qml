@@ -1,8 +1,17 @@
 /**
  * @file RaceLane.qml
- * @brief Individual race lane with animated car (using SVG icon).
+ * @brief Lane balap individual dengan mobil animasi (menggunakan ikon SVG).
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * Compact design - single line per player with smooth animation.
+ * @details Komponen lane balap untuk visualisasi progress pemain dalam mode multiplayer.
+ * Menggunakan desain kompak - satu baris per pemain dengan animasi halus.
+ *
+ * @section features Fitur
+ * - Animasi pergerakan mobil berdasarkan progress
+ * - Indikator posisi finish
+ * - Label WPM di atas mobil
+ * - Mode kompak untuk layout dual-column
  */
 import QtQuick
 import QtQuick.Controls
@@ -14,14 +23,14 @@ Item {
     height: 24
 
     property string playerName: "Player"
-    property real progress: 0.0  // 0.0 to 1.0
+    property real progress: 0.0  // 0.0 sampai 1.0
     property int wpm: 0
     property bool isLocal: false
     property bool finished: false
     property int position: 0
-    property bool compactMode: false  // Reduced size for dual-column layout
+    property bool compactMode: false  // Ukuran lebih kecil untuk layout dual-column
 
-    // Track line (background)
+    // Garis trek (background)
     Rectangle {
         anchors.left: nameLabel.right
         anchors.leftMargin: 8
@@ -32,7 +41,7 @@ Item {
         color: Theme.borderSecondary
     }
 
-    // Finish line marker
+    // Penanda garis finish
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 4
@@ -42,7 +51,7 @@ Item {
         color: Theme.accentGreen
     }
 
-    // Player name (left side)
+    // Nama pemain (sisi kiri)
     Text {
         id: nameLabel
         anchors.left: parent.left
@@ -62,14 +71,14 @@ Item {
         elide: Text.ElideRight
     }
 
-    // Car (animated using icon)
+    // Mobil (animasi menggunakan ikon)
     Rectangle {
         id: car
         width: 20
         height: 14
         color: isLocal ? Theme.accentBlue : (finished ? Theme.accentGreen : Theme.textSecondary)
 
-        // Position calculation
+        // Perhitungan posisi
         property real trackStart: nameLabel.width + 16
         property real trackEnd: parent.width - 8
         property real trackWidth: trackEnd - trackStart
@@ -84,7 +93,7 @@ Item {
             }
         }
 
-        // Arrow icon inside car (direction indicator)
+        // Ikon panah di dalam mobil (indikator arah)
         Item {
             anchors.centerIn: parent
             width: 10
@@ -105,7 +114,7 @@ Item {
             }
         }
 
-        // Check icon when finished
+        // Ikon centang saat selesai
         Item {
             anchors.centerIn: parent
             width: 10
@@ -127,7 +136,7 @@ Item {
         }
     }
 
-    // WPM label (above car)
+    // Label WPM (di atas mobil)
     Text {
         anchors.bottom: car.top
         anchors.bottomMargin: 1

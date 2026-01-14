@@ -1,120 +1,120 @@
 /**
  * @file NavBtn.qml
- * @brief Reusable navigation button component with icon and label support.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Komponen tombol navigasi yang dapat digunakan kembali dengan dukungan ikon dan label.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * NavBtn is a styled button used for navigation actions throughout the
- * application. It supports multiple visual variants for different action
- * types and includes optional SVG icons with color overlays.
+ * @details NavBtn adalah tombol bergaya yang digunakan untuk aksi navigasi di seluruh
+ * aplikasi. Mendukung beberapa varian visual untuk berbagai tipe aksi
+ * dan mencakup ikon SVG opsional dengan color overlays.
  *
- * @section usage Usage Example
+ * @section usage Contoh Penggunaan
  * @code
  * NavBtn {
  *     iconSource: "qrc:/icons/arrow-left.svg"
- *     labelText: "Back (ESC)"
+ *     labelText: "Kembali (ESC)"
  *     variant: "default"
  *     onClicked: stackView.pop()
  * }
  * @endcode
  *
- * @section variants Visual Variants
- * - "default": Blue accent (neutral navigation)
- * - "primary": Green accent with filled background (main actions)
- * - "danger": Red accent (destructive actions)
- * - "reset"/"yellow": Yellow accent (reset/warning actions)
+ * @section variants Varian Visual
+ * - "default": Aksen biru (navigasi netral)
+ * - "primary": Aksen hijau dengan background terisi (aksi utama)
+ * - "danger": Aksen merah (aksi destruktif)
+ * - "reset"/"yellow": Aksen kuning (aksi reset/peringatan)
  */
 import QtQuick
 import Qt5Compat.GraphicalEffects
 
 /**
- * @brief Styled navigation button with icon and text.
+ * @brief Tombol navigasi bergaya dengan ikon dan teks.
  * @inherits Rectangle
  *
- * Features:
- * - SVG icon support with automatic color overlay
- * - Five visual variants for different action types
- * - Hover state with smooth color transitions
- * - Consistent 36px height across all instances
+ * @details Fitur:
+ * - Dukungan ikon SVG dengan color overlay otomatis
+ * - Lima varian visual untuk berbagai tipe aksi
+ * - State hover dengan transisi warna yang halus
+ * - Tinggi konsisten 36px di semua instance
  */
 Rectangle {
     id: navBtn
 
     /* ========================================================================
-     * PUBLIC PROPERTIES
+     * PROPERTI PUBLIK
      * ======================================================================== */
 
     /**
      * @property iconText
-     * @brief Deprecated emoji fallback for icons.
-     * @deprecated Use iconSource instead for SVG icons.
+     * @brief Fallback emoji untuk ikon (deprecated).
+     * @deprecated Gunakan iconSource sebagai gantinya untuk ikon SVG.
      */
     property string iconText: ""
 
     /**
      * @property iconSource
-     * @brief Path to SVG icon file (qrc:/ format).
-     * @details Icon is rendered at 14x14 pixels with color overlay matching variant.
+     * @brief Path ke file ikon SVG (format qrc:/).
+     * @details Ikon dirender pada 14x14 piksel dengan color overlay sesuai varian.
      */
     property string iconSource: ""
 
     /**
      * @property labelText
-     * @brief Button text displayed next to the icon.
+     * @brief Teks tombol yang ditampilkan di samping ikon.
      * @default "Button"
      */
     property string labelText: "Button"
 
     /**
      * @property variant
-     * @brief Visual style variant affecting colors.
-     * @details Valid values:
-     *          - "default": Blue accent color
-     *          - "primary": Green accent with success background
-     *          - "danger": Red accent for destructive actions
-     *          - "reset": Yellow accent (alias for "yellow")
-     *          - "yellow": Yellow accent for warnings
+     * @brief Varian gaya visual yang mempengaruhi warna.
+     * @details Nilai valid:
+     *          - "default": Warna aksen biru
+     *          - "primary": Aksen hijau dengan background sukses
+     *          - "danger": Aksen merah untuk aksi destruktif
+     *          - "reset": Aksen kuning (alias untuk "yellow")
+     *          - "yellow": Aksen kuning untuk peringatan
      * @default "default"
      */
     property string variant: "default"
 
     /* ========================================================================
-     * SIGNALS
+     * SIGNAL
      * ======================================================================== */
 
     /**
      * @property isLoading
-     * @brief Whether the button is in a loading state.
-     * @details When true, the icon rotates and the button should typically be disabled.
+     * @brief Apakah tombol dalam state loading.
+     * @details Ketika true, ikon berputar dan tombol sebaiknya dinonaktifkan.
      */
     property bool isLoading: false
 
     /* ========================================================================
-     * SIGNALS
+     * SIGNAL
      * ======================================================================== */
 
     /**
      * @signal clicked
-     * @brief Emitted when the button is clicked.
+     * @brief Dipancarkan saat tombol diklik.
      */
     signal clicked
 
     /* ========================================================================
-     * COMPUTED PROPERTIES
+     * PROPERTI COMPUTED
      * ======================================================================== */
 
     /**
      * @property isHovered
-     * @brief True when mouse is over the button.
+     * @brief True saat mouse berada di atas tombol.
      * @readonly
      */
     readonly property bool isHovered: navMouse.containsMouse
 
     /**
      * @property variantColor
-     * @brief Computed accent color based on variant property.
+     * @brief Warna aksen computed berdasarkan properti variant.
      * @readonly
-     * @details Maps variant string to Theme accent colors:
+     * @details Memetakan string variant ke warna aksen Theme:
      *          primary → accentGreen, danger → accentRed,
      *          reset/yellow → accentYellow, default → accentBlue
      */
@@ -134,17 +134,17 @@ Rectangle {
     }
 
     /* ========================================================================
-     * SIZING
+     * UKURAN
      * ======================================================================== */
 
     /**
-     * @brief Implicit width based on content plus horizontal padding.
-     * @details Width = row content width + (paddingXL × 2) = content + 36px
+     * @brief Lebar implisit berdasarkan konten plus padding horizontal.
+     * @details Lebar = lebar konten row + (paddingXL × 2) = konten + 36px
      */
     implicitWidth: navRow.implicitWidth + Theme.paddingXL * 2
 
     /**
-     * @brief Fixed height of 36 pixels for consistent button appearance.
+     * @brief Tinggi tetap 36 piksel untuk tampilan tombol yang konsisten.
      */
     implicitHeight: 36
 
@@ -153,47 +153,47 @@ Rectangle {
      * ======================================================================== */
 
     /**
-     * @brief Background color changes on hover based on variant.
-     * @details Default variant uses bgSecondary on hover.
-     *          Other variants use 10% opacity tint of their accent color.
-     *          Primary variant shows successBg even when not hovered.
+     * @brief Warna background berubah saat hover berdasarkan varian.
+     * @details Varian default menggunakan bgSecondary saat hover.
+     *          Varian lain menggunakan tint opacity 10% dari warna aksen mereka.
+     *          Varian primary menampilkan successBg bahkan saat tidak di-hover.
      */
     color: isHovered ? (variant === "default" ? Theme.bgSecondary : Qt.rgba(variantColor.r, variantColor.g, variantColor.b, 0.1)) : (variant === "primary" ? Theme.successBg : "transparent")
 
-    /** @brief 1-pixel border around the button */
+    /** @brief Border 1 piksel di sekeliling tombol */
     border.width: 1
 
     /**
-     * @brief Border color based on hover state and variant.
-     * @details Hovered or non-default variants show accent color.
-     *          Default variant shows borderSecondary when not hovered.
+     * @brief Warna border berdasarkan state hover dan varian.
+     * @details Saat di-hover atau varian non-default menampilkan warna aksen.
+     *          Varian default menampilkan borderSecondary saat tidak di-hover.
      */
     border.color: isHovered ? variantColor : (variant !== "default" ? variantColor : Theme.borderSecondary)
 
     /* ========================================================================
-     * CONTENT LAYOUT
+     * LAYOUT KONTEN
      * ======================================================================== */
 
     /**
-     * @brief Horizontal layout for icon and label.
+     * @brief Layout horizontal untuk ikon dan label.
      */
     Row {
         id: navRow
         anchors.centerIn: parent
-        spacing: Theme.spacingSM  /* 8px gap between icon and text */
+        spacing: Theme.spacingSM  /* Jarak 8px antara ikon dan teks */
 
         /**
-         * @brief Container for SVG icon with color overlay.
-         * @details Width is 0 when no iconSource is set to collapse spacing.
+         * @brief Kontainer untuk ikon SVG dengan color overlay.
+         * @details Lebar 0 saat tidak ada iconSource untuk menghilangkan spacing.
          */
         Item {
             id: iconItem
-            width: navBtn.iconSource !== "" ? 14 : 0  /* 14px icon or 0 if none */
+            width: navBtn.iconSource !== "" ? 14 : 0  /* Ikon 14px atau 0 jika tidak ada */
             height: 14
             anchors.verticalCenter: parent.verticalCenter
 
             /**
-             * @brief Spin animation for loading state
+             * @brief Animasi putar untuk state loading
              */
             RotationAnimation {
                 target: iconItem
@@ -205,19 +205,19 @@ Rectangle {
             }
 
             /**
-             * @brief SVG image source (hidden, used as overlay source).
+             * @brief Sumber gambar SVG (tersembunyi, digunakan sebagai sumber overlay).
              */
             Image {
                 id: navIcon
                 source: navBtn.iconSource
                 anchors.fill: parent
                 sourceSize: Qt.size(14, 14)
-                visible: false  /* Hidden - ColorOverlay renders the visible icon */
+                visible: false  /* Tersembunyi - ColorOverlay merender ikon yang terlihat */
             }
 
             /**
-             * @brief Color overlay applying variant color to the icon.
-             * @details Opacity increases from 0.7 to 1.0 on hover for subtle effect.
+             * @brief Color overlay menerapkan warna varian ke ikon.
+             * @details Opacity meningkat dari 0.7 ke 1.0 saat hover untuk efek halus.
              */
             ColorOverlay {
                 anchors.fill: navIcon
@@ -229,7 +229,7 @@ Rectangle {
         }
 
         /**
-         * @brief Fallback emoji icon display (deprecated).
+         * @brief Tampilan ikon emoji fallback (deprecated).
          */
         Text {
             text: navBtn.iconText
@@ -238,9 +238,9 @@ Rectangle {
         }
 
         /**
-         * @brief Button label text.
-         * @details Color changes to accent on hover for non-default variants,
-         *          or always shows accent color for non-default variants.
+         * @brief Teks label tombol.
+         * @details Warna berubah ke aksen saat hover untuk varian non-default,
+         *          atau selalu menampilkan warna aksen untuk varian non-default.
          */
         Text {
             text: navBtn.labelText
@@ -251,17 +251,17 @@ Rectangle {
     }
 
     /* ========================================================================
-     * MOUSE INTERACTION
+     * INTERAKSI MOUSE
      * ======================================================================== */
 
     /**
-     * @brief Mouse area for click and hover detection.
+     * @brief Area mouse untuk deteksi klik dan hover.
      */
     MouseArea {
         id: navMouse
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor  /* Show pointer cursor on hover */
+        cursorShape: Qt.PointingHandCursor  /* Tampilkan kursor pointer saat hover */
         onClicked: navBtn.clicked()
     }
 }

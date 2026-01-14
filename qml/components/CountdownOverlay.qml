@@ -1,8 +1,16 @@
 /**
  * @file CountdownOverlay.qml
- * @brief Full-screen countdown overlay (3, 2, 1, GO!)
+ * @brief Overlay countdown layar penuh (3, 2, 1, GO!)
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * Uses clean text design without emojis.
+ * @details Komponen overlay yang menampilkan animasi hitung mundur sebelum
+ * gameplay dimulai. Menggunakan desain teks bersih tanpa emoji.
+ *
+ * @section animation Animasi
+ * - Animasi skala pulse pada teks countdown
+ * - Progress dots yang menunjukkan tahap countdown
+ * - Timer interval 1 detik untuk setiap tahap
  */
 import QtQuick
 import "."
@@ -51,7 +59,7 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 16
 
-        // Main countdown number/text
+        // Angka/teks countdown utama
         Text {
             id: countdownText
             anchors.horizontalCenter: parent.horizontalCenter
@@ -61,7 +69,7 @@ Rectangle {
             font.pixelSize: 140
             font.bold: true
 
-            // Scale animation
+            // Animasi skala
             transform: Scale {
                 id: scaleTransform
                 origin.x: countdownText.width / 2
@@ -94,7 +102,7 @@ Rectangle {
         // Subtitle
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: countdown > 0 ? "Get Ready!" : "Type!"
+            text: countdown > 0 ? "Bersiap!" : "Ketik!"
             color: Theme.textSecondary
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSizeXL
@@ -126,11 +134,11 @@ Rectangle {
         }
     }
 
-    // Click to skip (for testing)
+    // Klik untuk melewati (untuk testing)
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            // Disabled in production
+            // Dinonaktifkan di produksi
         }
     }
 }

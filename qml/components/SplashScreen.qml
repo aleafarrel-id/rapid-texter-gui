@@ -1,22 +1,27 @@
 /**
  * @file SplashScreen.qml
- * @brief Professional splash screen with logo pulse animation and loading status.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Splash screen profesional dengan animasi pulse logo dan status loading.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * Displays an animated splash screen while the application loads.
- * Features a pulsing logo animation and dynamic loading text.
+ * @details Menampilkan splash screen animasi saat aplikasi dimuat.
+ * Menampilkan animasi logo pulsing dan teks loading dinamis.
+ *
+ * @section animation Animasi
+ * - Animasi pulse pada logo RAPID/TEXTER
+ * - Animasi bounce bertahap pada loading dots
+ * - Animasi fade-out saat aplikasi siap
  */
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 
 /**
- * @brief Splash screen overlay component.
+ * @brief Komponen overlay splash screen.
  * @inherits Rectangle
  *
- * @property bool applicationReady - Set to true when app is ready to dismiss splash
- * @signal finished() - Emitted when splash screen fade-out is complete
+ * @property bool applicationReady - Set ke true saat aplikasi siap untuk menutup splash
+ * @signal finished() - Dikirim saat animasi fade-out splash screen selesai
  */
 Rectangle {
     id: splashRoot
@@ -24,21 +29,21 @@ Rectangle {
     color: Theme.bgPrimary
     opacity: 1.0
 
-    // Public properties
+    // Properti publik
     property bool applicationReady: false
-    property int minimumDisplayTime: 2000  // Minimum time to show splash (ms)
+    property int minimumDisplayTime: 2000  // Waktu minimum menampilkan splash (ms)
 
-    // Internal state
+    // State internal
     property bool canDismiss: false
     property int loadingStep: 0
 
-    // Signal when splash is done
+    // Signal saat splash selesai
     signal finished
 
-    // Loading messages
-    readonly property var loadingMessages: ["Initializing...", "Loading resources...", "Preparing interface...", "Almost ready..."]
+    // Pesan loading
+    readonly property var loadingMessages: ["Menginisialisasi...", "Memuat resources...", "Menyiapkan antarmuka...", "Hampir siap..."]
 
-    // Minimum display timer
+    // Timer tampilan minimum
     Timer {
         id: minimumTimer
         interval: splashRoot.minimumDisplayTime
@@ -51,7 +56,7 @@ Rectangle {
         }
     }
 
-    // Loading step animation timer
+    // Timer animasi langkah loading
     Timer {
         id: loadingStepTimer
         interval: 600
@@ -62,14 +67,14 @@ Rectangle {
         }
     }
 
-    // Watch for application ready
+    // Pantau aplikasi siap
     onApplicationReadyChanged: {
         if (applicationReady && canDismiss) {
             fadeOutAnimation.start();
         }
     }
 
-    // Fade out animation
+    // Animasi fade out
     SequentialAnimation {
         id: fadeOutAnimation
 
@@ -102,14 +107,14 @@ Rectangle {
         }
     }
 
-    // Main content container
+    // Kontainer konten utama
     Item {
         id: logoContainer
         anchors.centerIn: parent
         width: logoColumn.width
         height: logoColumn.height
 
-        // Pulse animation
+        // Animasi pulse
         SequentialAnimation on scale {
             running: splashRoot.opacity > 0
             loops: Animation.Infinite
@@ -131,7 +136,7 @@ Rectangle {
             id: logoColumn
             spacing: Theme.spacingM
 
-            // RAPID text
+            // Teks RAPID
             Text {
                 id: rapidText
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -142,7 +147,7 @@ Rectangle {
                 font.bold: true
                 font.letterSpacing: -3
 
-                // Subtle glow effect
+                // Efek glow halus
                 layer.enabled: true
                 layer.effect: Glow {
                     radius: 20
@@ -152,7 +157,7 @@ Rectangle {
                 }
             }
 
-            // TEXTER text
+            // Teks TEXTER
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "TEXTER"
@@ -166,14 +171,14 @@ Rectangle {
         }
     }
 
-    // Loading indicator section
+    // Bagian indikator loading
     Column {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 80
         spacing: Theme.spacingL
 
-        // Loading dots animation
+        // Animasi loading dots
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8
@@ -187,7 +192,7 @@ Rectangle {
                     radius: 4
                     color: Theme.accentBlue
 
-                    // Staggered bounce animation
+                    // Animasi bounce bertahap
                     SequentialAnimation on opacity {
                         running: splashRoot.opacity > 0
                         loops: Animation.Infinite
@@ -237,7 +242,7 @@ Rectangle {
             }
         }
 
-        // Loading status text
+        // Teks status loading
         Text {
             id: loadingText
             anchors.horizontalCenter: parent.horizontalCenter

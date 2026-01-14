@@ -1,9 +1,16 @@
 /**
  * @file RaceTrack.qml
- * @brief Compact race track visualization showing all players' progress.
+ * @brief Visualisasi trek balap kompak yang menampilkan progress semua pemain.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * Designed to be non-intrusive during typing - uses minimal vertical space.
- * Supports two-column layout for 6+ players to ensure all players are visible.
+ * @details Didesain agar tidak mengganggu saat mengetik - menggunakan ruang vertikal minimal.
+ * Mendukung layout dua kolom untuk 6+ pemain agar semua pemain terlihat.
+ *
+ * @section features Fitur
+ * - Layout adaptif (single column vs dual column)
+ * - Header START/FINISH untuk setiap kolom
+ * - Integrasi dengan komponen RaceLane
  */
 import QtQuick
 import QtQuick.Layouts
@@ -12,27 +19,28 @@ import "."
 Rectangle {
     id: raceTrack
 
-    // Array of {id, name, progress, wpm, isLocal, finished, position}
+    // Array {id, name, progress, wpm, isLocal, finished, position}
     property var players: []
-    
-    // Dual column mode for 6+ players
+
+    // Mode dual column untuk 6+ pemain
     property bool useDualColumn: players.length >= 6
-    
-    // Split players into left and right columns
+
+    // Membagi pemain menjadi kolom kiri dan kanan
     property var leftPlayers: {
-        if (!useDualColumn) return players;
+        if (!useDualColumn)
+            return players;
         var half = Math.ceil(players.length / 2);
         return players.slice(0, half);
     }
     property var rightPlayers: {
-        if (!useDualColumn) return [];
+        if (!useDualColumn)
+            return [];
         var half = Math.ceil(players.length / 2);
         return players.slice(half);
     }
-    
-    // Calculate height based on lanes per column
-    property int lanesPerColumn: useDualColumn ? 
-        Math.ceil(players.length / 2) : players.length
+
+    // Menghitung tinggi berdasarkan lane per kolom
+    property int lanesPerColumn: useDualColumn ? Math.ceil(players.length / 2) : players.length
     property int trackHeight: Math.min(lanesPerColumn * 28 + 16, 150)
 
     implicitHeight: trackHeight
@@ -40,18 +48,18 @@ Rectangle {
     border.color: Theme.borderPrimary
     border.width: 1
 
-    // Two-column layout container
+    // Kontainer layout dua kolom
     Row {
         anchors.fill: parent
         anchors.margins: 8
         spacing: useDualColumn ? 12 : 0
 
-        // Left column (or only column in single mode)
+        // Kolom kiri (atau satu-satunya kolom dalam mode single)
         Item {
             width: useDualColumn ? (parent.width - 12) / 2 : parent.width
             height: parent.height
 
-            // Track header with start/finish labels
+            // Header trek dengan label start/finish
             Row {
                 id: leftHeader
                 anchors.top: parent.top
@@ -80,7 +88,7 @@ Rectangle {
                 }
             }
 
-            // Player lanes - left column
+            // Lane pemain - kolom kiri
             Column {
                 anchors.top: leftHeader.bottom
                 anchors.topMargin: 4
@@ -106,13 +114,13 @@ Rectangle {
             }
         }
 
-        // Right column (only visible in dual column mode)
+        // Kolom kanan (hanya terlihat dalam mode dual column)
         Item {
             visible: useDualColumn
             width: useDualColumn ? (parent.width - 12) / 2 : 0
             height: parent.height
 
-            // Track header with start/finish labels
+            // Header trek dengan label start/finish
             Row {
                 id: rightHeader
                 anchors.top: parent.top
@@ -141,7 +149,7 @@ Rectangle {
                 }
             }
 
-            // Player lanes - right column
+            // Lane pemain - kolom kanan
             Column {
                 anchors.top: rightHeader.bottom
                 anchors.topMargin: 4
@@ -168,11 +176,11 @@ Rectangle {
         }
     }
 
-    // Empty state
+    // State kosong
     Text {
         anchors.centerIn: parent
         visible: players.length === 0
-        text: "Waiting for players..."
+        text: "Menunggu pemain..."
         color: Theme.textMuted
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSizeSM

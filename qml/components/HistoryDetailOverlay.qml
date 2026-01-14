@@ -1,15 +1,15 @@
 /**
  * @file HistoryDetailOverlay.qml
- * @brief Modal overlay displaying detailed game record information.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Overlay modal yang menampilkan informasi detail record game.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * Premium overlay component that shows comprehensive game statistics
- * when a history record is clicked. Design inspired by MonkeyType
- * while maintaining consistency with RapidTexter's design system.
+ * @details Komponen overlay premium yang menampilkan statistik game komprehensif
+ * saat record history diklik. Desain terinspirasi dari MonkeyType
+ * sambil menjaga konsistensi dengan design system RapidTexter.
  *
  * @section shortcuts Keyboard Shortcuts
- * - Key_Escape: Close overlay
+ * - Key_Escape: Tutup overlay
  */
 import QtQuick
 import QtQuick.Controls
@@ -17,7 +17,7 @@ import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
 /**
- * @brief Modal overlay for displaying detailed history record.
+ * @brief Overlay modal untuk menampilkan detail record history.
  * @inherits Rectangle
  */
 Rectangle {
@@ -28,23 +28,23 @@ Rectangle {
     opacity: 0
     z: 10000
 
-    /** @property recordData @brief The history record object to display. */
+    /** @property recordData @brief Objek record history yang akan ditampilkan. */
     property var recordData: null
 
-    /** @property passed @brief Whether the target WPM was achieved. */
+    /** @property passed @brief Apakah target WPM telah tercapai. */
     property bool passed: recordData ? recordData.wpm >= recordData.targetWPM : false
 
-    /** @property showOverlay @brief Controls the overlay visibility with animation */
+    /** @property showOverlay @brief Mengontrol visibilitas overlay dengan animasi */
     property bool showOverlay: false
 
-    /** @signal close @brief Emitted when overlay should be closed. */
+    /** @signal close @brief Dipancarkan saat overlay harus ditutup. */
     signal close
 
-    /** @function formatTime @brief Formats seconds into human readable time (e.g., "15.3s" or "1m 30.5s") */
+    /** @function formatTime @brief Memformat detik menjadi waktu yang mudah dibaca (contoh: "15.3s" atau "1m 30.5s") */
     function formatTime(seconds) {
         if (seconds === undefined || seconds === null || seconds === 0)
             return "-";
-        // Show 1 decimal place for better precision
+        // Tampilkan 1 desimal untuk presisi lebih baik
         if (seconds < 60) {
             return seconds.toFixed(1) + "s";
         } else {
@@ -54,7 +54,7 @@ Rectangle {
         }
     }
 
-    // State machine for smooth open/close animations
+    // State machine untuk animasi buka/tutup yang halus
     states: [
         State {
             name: "hidden"
@@ -86,7 +86,7 @@ Rectangle {
     ]
 
     transitions: [
-        // Opening animation
+        // Animasi pembukaan
         Transition {
             from: "hidden"
             to: "visible"
@@ -112,7 +112,7 @@ Rectangle {
                 }
             }
         },
-        // Closing animation
+        // Animasi penutupan
         Transition {
             from: "visible"
             to: "hidden"
@@ -140,13 +140,13 @@ Rectangle {
         }
     ]
 
-    // Sync showOverlay with external binding on open only
+    // Sinkronisasi showOverlay dengan binding eksternal hanya saat dibuka
     onShowOverlayChanged: {
-        // When parent sets showOverlay to true, ensure we're ready
-        // When parent sets it to false, the state machine handles the animation
+        // Saat parent mengatur showOverlay ke true, pastikan kita siap
+        // Saat parent mengaturnya ke false, state machine menangani animasi
     }
 
-    // Focus handling for keyboard
+    // Penanganan fokus untuk keyboard
     focus: showOverlay
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
@@ -155,13 +155,13 @@ Rectangle {
         }
     }
 
-    // Background click to close
+    // Klik background untuk menutup
     MouseArea {
         anchors.fill: parent
         onClicked: overlay.close()
     }
 
-    // Content card
+    // Kartu konten
     Rectangle {
         id: contentCard
         anchors.centerIn: parent
@@ -174,13 +174,13 @@ Rectangle {
         opacity: 0
         scale: 0.95
 
-        // Prevent clicks from closing overlay
+        // Mencegah klik menutup overlay
         MouseArea {
             anchors.fill: parent
-            onClicked: {} // Absorb click
+            onClicked: {} // Menyerap klik
         }
 
-        // Left accent bar
+        // Aksen bar kiri
         Rectangle {
             width: 4
             height: parent.height
@@ -195,7 +195,7 @@ Rectangle {
             anchors.leftMargin: Theme.paddingXXL + 8
             spacing: Theme.spacingXL
 
-            // Header with title and close button
+            // Header dengan judul dan tombol tutup
             RowLayout {
                 Layout.fillWidth: true
 
@@ -232,7 +232,7 @@ Rectangle {
                     Layout.fillWidth: true
                 }
 
-                // Close button
+                // Tombol tutup
                 Rectangle {
                     width: 28
                     height: 28
@@ -267,7 +267,7 @@ Rectangle {
                 }
             }
 
-            // WPM Display (hero section)
+            // Tampilan WPM (bagian utama)
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 100
@@ -299,7 +299,7 @@ Rectangle {
                 }
             }
 
-            // Stats row
+            // Baris statistik
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.spacingM
@@ -361,7 +361,7 @@ Rectangle {
                 }
             }
 
-            // Session info section
+            // Bagian info sesi
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: sessionInfoCol.implicitHeight + Theme.paddingL * 2
@@ -390,7 +390,7 @@ Rectangle {
                         rowSpacing: Theme.spacingS
                         columnSpacing: Theme.spacingL
 
-                        // Difficulty
+                        // Tingkat kesulitan
                         Text {
                             text: "Difficulty"
                             color: Theme.textSecondary
@@ -406,7 +406,7 @@ Rectangle {
                             Layout.fillWidth: true
                         }
 
-                        // Language
+                        // Bahasa
                         Text {
                             text: "Language"
                             color: Theme.textSecondary
@@ -422,7 +422,7 @@ Rectangle {
                             Layout.fillWidth: true
                         }
 
-                        // Mode
+                        // Mode permainan
                         Text {
                             text: "Mode"
                             color: Theme.textSecondary
@@ -438,7 +438,7 @@ Rectangle {
                             Layout.fillWidth: true
                         }
 
-                        // Date/Time
+                        // Tanggal/Waktu
                         Text {
                             text: "Date/Time"
                             color: Theme.textSecondary
@@ -454,7 +454,7 @@ Rectangle {
                             Layout.fillWidth: true
                         }
 
-                        // Time Played
+                        // Waktu Bermain
                         Text {
                             text: "Time Played"
                             color: Theme.textSecondary
@@ -473,7 +473,7 @@ Rectangle {
                 }
             }
 
-            // Pass/Fail status banner
+            // Banner status lulus/gagal
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 50
@@ -514,7 +514,7 @@ Rectangle {
                 }
             }
 
-            // Close hint
+            // Petunjuk menutup
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: "Press ESC or click outside to close"

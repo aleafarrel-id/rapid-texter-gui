@@ -1,76 +1,76 @@
 /**
  * @file MenuItemC.qml
- * @brief Rich menu item component with keyboard badges, icons, and status indicators.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Komponen menu item yang kaya dengan badge keyboard, ikon, dan indikator status.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * MenuItemC provides a consistent menu item appearance throughout the application,
- * featuring keyboard shortcut badges, customizable icons, accent colors, and
- * support for various status states (locked, passed, certified).
+ * @details MenuItemC menyediakan tampilan menu item yang konsisten di seluruh aplikasi,
+ * menampilkan badge shortcut keyboard, ikon yang dapat dikustomisasi, warna aksen, dan
+ * dukungan untuk berbagai state status (terkunci, lulus, bersertifikat).
  *
- * @section variants Accent Types
- * - "default": Blue accent for neutral items
- * - "green": Green accent for success/passed items
- * - "yellow": Yellow accent for warnings/custom options
- * - "red": Red accent for danger/destructive items
+ * @section variants Tipe Aksen
+ * - "default": Aksen biru untuk item netral
+ * - "green": Aksen hijau untuk item sukses/lulus
+ * - "yellow": Aksen kuning untuk peringatan/opsi kustom
+ * - "red": Aksen merah untuk item destruktif/berbahaya
  *
- * @section statuses Status Types
- * - "passed": Green for completed levels
- * - "locked": Gray for unavailable items
- * - "certified": Blue for special achievements
+ * @section statuses Tipe Status
+ * - "passed": Hijau untuk level yang sudah selesai
+ * - "locked": Abu-abu untuk item yang tidak tersedia
+ * - "certified": Biru untuk pencapaian khusus
  */
 import QtQuick
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
 /**
- * @brief Interactive menu item with rich visual feedback.
+ * @brief Menu item interaktif dengan feedback visual yang kaya.
  * @inherits Rectangle
  */
 Rectangle {
     id: menuItem
 
     /* ========================================================================
-     * PUBLIC PROPERTIES
+     * PROPERTI PUBLIK
      * ======================================================================== */
 
-    /** @property keyText @brief Keyboard shortcut badge text (e.g., "[1]", "[ESC]"). */
+    /** @property keyText @brief Teks badge shortcut keyboard (contoh: "[1]", "[ESC]"). */
     property string keyText: "[1]"
 
-    /** @property iconSource @brief Path to SVG icon (qrc:/ format), rendered at 18x18px. */
+    /** @property iconSource @brief Path ke ikon SVG (format qrc:/), dirender pada 18x18px. */
     property string iconSource: ""
 
-    /** @property labelText @brief Main menu item text label. */
+    /** @property labelText @brief Label teks utama menu item. */
     property string labelText: "Menu Item"
 
-    /** @property accentType @brief Color accent variant: "default", "green", "yellow", "red". */
+    /** @property accentType @brief Varian warna aksen: "default", "green", "yellow", "red". */
     property string accentType: "default"  // "default", "green", "yellow", "red"
 
-    /** @property locked @brief Whether the menu item is disabled/locked. */
+    /** @property locked @brief Apakah menu item dinonaktifkan/dikunci. */
     property bool locked: false
 
-    /** @property statusText @brief Status badge text (e.g., "[PASSED]", "[LOCKED]"). */
-    property string statusText: ""  // e.g. "[PASSED]", "[LOCKED]", "[AVAILABLE]"
+    /** @property statusText @brief Teks badge status (contoh: "[PASSED]", "[LOCKED]"). */
+    property string statusText: ""  // contoh: "[PASSED]", "[LOCKED]", "[AVAILABLE]"
 
-    /** @property statusType @brief Status badge type: "passed", "locked", "certified". */
+    /** @property statusType @brief Tipe badge status: "passed", "locked", "certified". */
     property string statusType: ""  // "passed", "locked", "certified"
 
-    /** @property reqText @brief Requirement description text (e.g., "Min: 40 WPM, 80% Acc"). */
-    property string reqText: ""     // e.g. "Min: 40 WPM, 80% Acc"
+    /** @property reqText @brief Teks deskripsi persyaratan (contoh: "Min: 40 WPM, 80% Acc"). */
+    property string reqText: ""     // contoh: "Min: 40 WPM, 80% Acc"
 
-    /** @property busy @brief Whether the item is in a processing state (spinning icon). */
+    /** @property busy @brief Apakah item dalam state proses (ikon berputar). */
     property bool busy: false
 
-    /** @signal clicked @brief Emitted when the menu item is clicked (only if not locked). */
+    /** @signal clicked @brief Dipancarkan saat menu item diklik (hanya jika tidak dikunci). */
     signal clicked
 
     /* ========================================================================
-     * COMPUTED PROPERTIES
+     * PROPERTI COMPUTED
      * ======================================================================== */
 
     /**
      * @property hoverColor
-     * @brief Computed accent color based on accentType and locked state.
+     * @brief Warna aksen computed berdasarkan accentType dan state locked.
      * @readonly
      */
     readonly property color hoverColor: {
@@ -97,14 +97,14 @@ Rectangle {
     border.width: 1
     border.color: Theme.borderPrimary
 
-    // Left accent bar
+    // Aksen bar kiri
     Rectangle {
         width: 3
         height: parent.height
         color: menuItem.isHovered ? menuItem.hoverColor : Theme.borderSecondary
     }
 
-    // Hover animation
+    // Animasi hover
     transform: Translate {
         x: menuItem.isHovered ? 4 : 0
         Behavior on x {
@@ -120,7 +120,7 @@ Rectangle {
         anchors.rightMargin: Theme.paddingXXL
         spacing: Theme.spacingL
 
-        // Key badge
+        // Badge tombol
         Rectangle {
             Layout.preferredWidth: Math.max(Theme.menuKeyMinWidth, keyLbl.implicitWidth + Theme.paddingL * 2)
             Layout.preferredHeight: 26
@@ -139,7 +139,7 @@ Rectangle {
             }
         }
 
-        // Icon and label
+        // Ikon dan label
         Row {
             Layout.fillWidth: true
             spacing: Theme.spacingM
@@ -175,7 +175,7 @@ Rectangle {
             }
         }
 
-        // Status badge and requirement info (for campaign levels)
+        // Badge status dan info persyaratan (untuk level campaign)
         Column {
             visible: menuItem.statusText !== "" || menuItem.reqText !== ""
             spacing: 4

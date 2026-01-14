@@ -1,16 +1,16 @@
 /**
  * @file StatusBar.qml
- * @brief Application-wide status bar displaying game state and settings.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Status bar aplikasi yang menampilkan state game dan pengaturan.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * The StatusBar component provides a persistent header showing the current
- * game configuration (language, duration, mode) and provides quick access
- * to toggle sound effects on/off.
+ * @details Komponen StatusBar menyediakan header persisten yang menampilkan
+ * konfigurasi game saat ini (bahasa, durasi, mode) dan menyediakan akses cepat
+ * untuk toggle sound effects.
  *
- * @section integration Integration
- * Used in Main.qml as a fixed header above the StackView navigation.
- * Reads properties from mainWindow: currentLanguage, currentTime, currentMode, sfxEnabled.
+ * @section integration Integrasi
+ * Digunakan di Main.qml sebagai header tetap di atas navigasi StackView.
+ * Membaca properti dari mainWindow: currentLanguage, currentTime, currentMode, sfxEnabled.
  */
 import QtQuick
 import QtQuick.Controls
@@ -18,51 +18,51 @@ import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
 /**
- * @brief Status bar component showing game configuration.
+ * @brief Komponen status bar yang menampilkan konfigurasi game.
  * @inherits Rectangle
  */
 Rectangle {
     id: statusBar
 
     /* ========================================================================
-     * PUBLIC PROPERTIES
+     * PROPERTI PUBLIK
      * ======================================================================== */
 
-    /** @property currentLanguage @brief Currently selected language ("Indonesia", "English", "Prog"). */
+    /** @property currentLanguage @brief Bahasa yang sedang dipilih ("Indonesia", "English", "Prog"). */
     property string currentLanguage: "-"
 
-    /** @property currentTime @brief Selected game duration (e.g., "60s", "∞"). */
+    /** @property currentTime @brief Durasi game yang dipilih (contoh: "60s", "∞"). */
     property string currentTime: "-"
 
-    /** @property currentMode @brief Selected game mode ("Manual" or "Campaign"). */
+    /** @property currentMode @brief Mode game yang dipilih ("Manual" atau "Campaign"). */
     property string currentMode: "-"
 
-    /** @property sfxEnabled @brief Whether sound effects are enabled. */
+    /** @property sfxEnabled @brief Apakah efek suara diaktifkan. */
     property bool sfxEnabled: true
 
-    /** @property showShortcutHint @brief Show [S] shortcut indicator for SFX toggle. */
-    property bool showShortcutHint: true  // Show [S] shortcut indicator
+    /** @property showShortcutHint @brief Tampilkan indikator shortcut [S] untuk toggle SFX. */
+    property bool showShortcutHint: true  // Tampilkan indikator shortcut [S]
 
-    /** @property playerName @brief Name of the player to display. */
+    /** @property playerName @brief Nama pemain yang akan ditampilkan. */
     property string playerName: ""
 
-    /** @signal sfxToggled @brief Emitted when SFX toggle button is clicked. */
+    /** @signal sfxToggled @brief Dipancarkan saat tombol toggle SFX diklik. */
     signal sfxToggled
 
-    /** @signal nameClicked @brief Emitted when the player name is clicked. */
+    /** @signal nameClicked @brief Dipancarkan saat nama pemain diklik. */
     signal nameClicked
 
     /* ========================================================================
      * STYLING
      * ======================================================================== */
 
-    /** @brief Fixed height of 40px (Theme.statusBarHeight). */
+    /** @brief Tinggi tetap 40px (Theme.statusBarHeight). */
     height: Theme.statusBarHeight
 
-    /** @brief Secondary background for elevation appearance. */
+    /** @brief Background sekunder untuk tampilan terangkat. */
     color: Theme.bgSecondary
 
-    /** @brief 1-pixel bottom border for visual separation. */
+    /** @brief Border bawah 1 piksel untuk pemisah visual. */
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
@@ -70,7 +70,7 @@ Rectangle {
         color: Theme.borderPrimary
     }
 
-    // Debounce lock to prevent double clicks
+    // Kunci debounce untuk mencegah double click
     property bool _interactionLocked: false
 
     Timer {
@@ -85,11 +85,11 @@ Rectangle {
         anchors.leftMargin: Theme.paddingHuge
         anchors.rightMargin: Theme.paddingHuge
 
-        // Left side status items
+        // Item status sisi kiri
         Row {
             spacing: Theme.spacingXL
 
-            // Language
+            // Bahasa
             Row {
                 spacing: Theme.spacingS
                 Item {
@@ -133,7 +133,7 @@ Rectangle {
                 font.pixelSize: Theme.fontSizeM
             }
 
-            // Time
+            // Waktu
             Row {
                 spacing: Theme.spacingS
                 Item {
@@ -196,7 +196,7 @@ Rectangle {
                 font.pixelSize: Theme.fontSizeM
             }
 
-            // Mode
+            // Mode permainan
             Row {
                 spacing: Theme.spacingS
                 Item {
@@ -238,7 +238,7 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        // SFX Toggle
+        // Toggle SFX
         Rectangle {
             Layout.preferredWidth: sfxRow.implicitWidth + Theme.paddingL * 2
             Layout.preferredHeight: parent.height - Theme.spacingM
@@ -299,12 +299,12 @@ Rectangle {
             }
         }
 
-        // Spacer
+        // Pemisah
         Item {
             width: Theme.spacingL
         }
 
-        // Player Name Display
+        // Tampilan Nama Pemain
         Rectangle {
             Layout.preferredWidth: nameRow.implicitWidth + Theme.paddingL * 2
             Layout.preferredHeight: parent.height - Theme.spacingM
@@ -346,7 +346,7 @@ Rectangle {
                 id: nameMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                enabled: statusBar.showShortcutHint  // Disable interaction during gameplay
+                enabled: statusBar.showShortcutHint  // Nonaktifkan interaksi saat gameplay
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     if (statusBar._interactionLocked)
@@ -358,7 +358,7 @@ Rectangle {
 
                 ToolTip.visible: containsMouse
                 ToolTip.delay: 500
-                ToolTip.text: "Click to change name"
+                ToolTip.text: "Klik untuk mengubah nama"
             }
         }
     }

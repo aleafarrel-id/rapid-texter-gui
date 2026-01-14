@@ -1,319 +1,319 @@
 /**
  * @file Theme.qml
- * @brief Singleton design system providing consistent theming across the application.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Singleton design system yang menyediakan theming konsisten di seluruh aplikasi.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * This singleton defines all visual design tokens used throughout the RapidTexter
- * application, implementing a GitHub-inspired dark theme. By centralizing these
- * values, the application maintains visual consistency and enables easy theme
- * modifications.
+ * @details Singleton ini mendefinisikan semua design token visual yang digunakan di seluruh
+ * aplikasi RapidTexter, mengimplementasikan tema gelap terinspirasi GitHub. Dengan
+ * memusatkan nilai-nilai ini, aplikasi menjaga konsistensi visual dan memungkinkan
+ * modifikasi tema dengan mudah.
  *
- * @note This is a QML Singleton - only one instance exists and is accessible
- *       application-wide without instantiation.
+ * @note Ini adalah QML Singleton - hanya ada satu instance dan dapat diakses
+ *       di seluruh aplikasi tanpa perlu instantiasi.
  *
- * @section colors Color Palette
- * The color scheme uses a dark background with high-contrast accent colors:
- * - Background: Dark grays (#0d1117 → #21262d)
- * - Text: Light grays (#c9d1d9 for primary, #484f58 for muted)
- * - Accents: Blue (#58a6ff), Green (#3fb950), Yellow (#d29922), Red (#f85149)
+ * @section colors Palet Warna
+ * Skema warna menggunakan background gelap dengan warna aksen kontras tinggi:
+ * - Background: Abu-abu gelap (#0d1117 → #21262d)
+ * - Teks: Abu-abu terang (#c9d1d9 untuk primer, #484f58 untuk muted)
+ * - Aksen: Biru (#58a6ff), Hijau (#3fb950), Kuning (#d29922), Merah (#f85149)
  *
- * @section typography Typography Scale
- * Uses JetBrains Mono font with a modular size scale from 11px to 64px.
+ * @section typography Skala Tipografi
+ * Menggunakan font JetBrains Mono dengan skala ukuran modular dari 11px hingga 64px.
  *
- * @section spacing Spacing System
- * Consistent spacing values from 6px (small) to 50px (logo spacing).
+ * @section spacing Sistem Spacing
+ * Nilai spacing konsisten dari 6px (small) hingga 50px (logo spacing).
  */
 pragma Singleton
 import QtQuick
 
 /**
- * @brief Root theme object containing all design tokens.
+ * @brief Objek tema root yang berisi semua design token.
  *
- * Access properties via Theme.propertyName (e.g., Theme.bgPrimary, Theme.fontSizeL)
+ * @details Akses properti via Theme.propertyName (contoh: Theme.bgPrimary, Theme.fontSizeL)
  */
 QtObject {
     id: theme
 
     /* ========================================================================
-     * TYPOGRAPHY
+     * TIPOGRAFI
      * ======================================================================== */
 
     /**
      * @property fontFamily
-     * @brief Primary font family for all text elements.
-     * @details Set to "JetBrains Mono" after the font loads in Main.qml.
-     *          This monospace font is ideal for typing applications as it
-     *          provides consistent character widths for accurate cursor positioning.
+     * @brief Keluarga font utama untuk semua elemen teks.
+     * @details Diatur ke "JetBrains Mono" setelah font dimuat di Main.qml.
+     *          Font monospace ini ideal untuk aplikasi mengetik karena
+     *          menyediakan lebar karakter yang konsisten untuk posisi kursor yang akurat.
      */
     property string fontFamily: "JetBrains Mono"
 
     /* ========================================================================
-     * BACKGROUND COLORS
+     * WARNA BACKGROUND
      * ======================================================================== */
 
     /**
      * @property bgPrimary
-     * @brief Darkest background color for main content areas.
+     * @brief Warna background paling gelap untuk area konten utama.
      * @details Hex: #0d1117 (RGB: 13, 17, 23)
      */
     readonly property color bgPrimary: "#0d1117"
 
     /**
      * @property bgSecondary
-     * @brief Slightly lighter background for elevated elements (status bar, cards).
+     * @brief Background sedikit lebih terang untuk elemen terangkat (status bar, kartu).
      * @details Hex: #161b22 (RGB: 22, 27, 34)
      */
     readonly property color bgSecondary: "#161b22"
 
     /**
      * @property bgTertiary
-     * @brief Background for interactive hover states and key badges.
+     * @brief Background untuk state hover interaktif dan badge tombol.
      * @details Hex: #21262d (RGB: 33, 38, 45)
      */
     readonly property color bgTertiary: "#21262d"
 
     /**
      * @property bgHover
-     * @brief Background color for hover states.
-     * @details Hex: #21262d - Same as bgTertiary.
+     * @brief Warna background untuk state hover.
+     * @details Hex: #21262d - Sama dengan bgTertiary.
      */
     readonly property color bgHover: bgTertiary
 
     /* ========================================================================
-     * BORDER COLORS
+     * WARNA BORDER
      * ======================================================================== */
 
     /**
      * @property borderPrimary
-     * @brief Subtle border color for containers and separators.
-     * @details Hex: #21262d - Same as bgTertiary for consistency.
+     * @brief Warna border halus untuk kontainer dan pemisah.
+     * @details Hex: #21262d - Sama dengan bgTertiary untuk konsistensi.
      */
     readonly property color borderPrimary: "#21262d"
 
     /**
      * @property borderSecondary
-     * @brief Lighter border for hover states and higher contrast needs.
+     * @brief Border lebih terang untuk state hover dan kebutuhan kontras tinggi.
      * @details Hex: #30363d (RGB: 48, 54, 61)
      */
     readonly property color borderSecondary: "#30363d"
 
     /* ========================================================================
-     * TEXT COLORS
+     * WARNA TEKS
      * ======================================================================== */
 
     /**
      * @property textPrimary
-     * @brief Main text color for important content and headings.
-     * @details Hex: #c9d1d9 - High contrast against dark backgrounds.
+     * @brief Warna teks utama untuk konten penting dan heading.
+     * @details Hex: #c9d1d9 - Kontras tinggi terhadap background gelap.
      */
     readonly property color textPrimary: "#c9d1d9"
 
     /**
      * @property textSecondary
-     * @brief Subdued text color for labels and supporting content.
-     * @details Hex: #8b949e - Medium contrast for secondary information.
+     * @brief Warna teks redup untuk label dan konten pendukung.
+     * @details Hex: #8b949e - Kontras sedang untuk informasi sekunder.
      */
     readonly property color textSecondary: "#8b949e"
 
     /**
      * @property textMuted
-     * @brief Low-emphasis text for hints and disabled states.
-     * @details Hex: #484f58 - Low contrast, used sparingly.
+     * @brief Teks penekanan rendah untuk petunjuk dan state disabled.
+     * @details Hex: #484f58 - Kontras rendah, digunakan seperlunya.
      */
     readonly property color textMuted: "#484f58"
 
     /* ========================================================================
-     * ACCENT COLORS
+     * WARNA AKSEN
      * ======================================================================== */
 
     /**
      * @property accentBlue
-     * @brief Primary accent color for links, focus states, and neutral actions.
-     * @details Hex: #58a6ff - Used for language status, navigation hints.
+     * @brief Warna aksen utama untuk link, state fokus, dan aksi netral.
+     * @details Hex: #58a6ff - Digunakan untuk status bahasa, petunjuk navigasi.
      */
     readonly property color accentBlue: "#58a6ff"
 
     /**
      * @property accentGreen
-     * @brief Success accent color for positive states and primary actions.
-     * @details Hex: #3fb950 - Used for passed levels, correct input, start button.
+     * @brief Warna aksen sukses untuk state positif dan aksi utama.
+     * @details Hex: #3fb950 - Digunakan untuk level lulus, input benar, tombol start.
      */
     readonly property color accentGreen: "#3fb950"
 
     /**
      * @property accentYellow
-     * @brief Warning accent color for caution states and secondary actions.
-     * @details Hex: #d29922 - Used for reset buttons, custom options.
+     * @brief Warna aksen peringatan untuk state hati-hati dan aksi sekunder.
+     * @details Hex: #d29922 - Digunakan untuk tombol reset, opsi kustom.
      */
     readonly property color accentYellow: "#d29922"
 
     /**
      * @property accentRed
-     * @brief Danger accent color for errors and destructive actions.
-     * @details Hex: #f85149 - Used for quit button, failed levels, typing errors.
+     * @brief Warna aksen bahaya untuk error dan aksi destruktif.
+     * @details Hex: #f85149 - Digunakan untuk tombol keluar, level gagal, kesalahan ketik.
      */
     readonly property color accentRed: "#f85149"
 
     /* ========================================================================
-     * STATUS BACKGROUND COLORS (10% opacity tints)
+     * WARNA BACKGROUND STATUS (tint opacity 10%)
      * ======================================================================== */
 
     /**
      * @property successBg
-     * @brief Semi-transparent green background for success messages.
-     * @details RGBA: (63, 185, 80, 0.1) - 10% opacity green tint.
+     * @brief Background hijau semi-transparan untuk pesan sukses.
+     * @details RGBA: (63, 185, 80, 0.1) - tint hijau opacity 10%.
      */
     readonly property color successBg: Qt.rgba(0.247, 0.725, 0.314, 0.1)
 
     /**
      * @property warningBg
-     * @brief Semi-transparent yellow background for warning messages.
-     * @details RGBA: (210, 153, 34, 0.1) - 10% opacity yellow tint.
+     * @brief Background kuning semi-transparan untuk pesan peringatan.
+     * @details RGBA: (210, 153, 34, 0.1) - tint kuning opacity 10%.
      */
     readonly property color warningBg: Qt.rgba(0.824, 0.600, 0.133, 0.1)
 
     /**
      * @property dangerBg
-     * @brief Semi-transparent red background for danger/error states.
-     * @details RGBA: (248, 81, 73, 0.1) - 10% opacity red tint.
+     * @brief Background merah semi-transparan untuk state bahaya/error.
+     * @details RGBA: (248, 81, 73, 0.1) - tint merah opacity 10%.
      */
     readonly property color dangerBg: Qt.rgba(0.973, 0.318, 0.286, 0.1)
 
     /**
      * @property infoBg
-     * @brief Semi-transparent blue background for informational states.
-     * @details RGBA: (88, 166, 255, 0.1) - 10% opacity blue tint.
+     * @brief Background biru semi-transparan untuk state informasi.
+     * @details RGBA: (88, 166, 255, 0.1) - tint biru opacity 10%.
      */
     readonly property color infoBg: Qt.rgba(0.345, 0.651, 1.0, 0.1)
 
     /* ========================================================================
-     * FONT SIZES (in pixels)
+     * UKURAN FONT (dalam piksel)
      * ======================================================================== */
 
-    /** @property fontSizeS @brief Smallest text size (11px) - table headers, hints */
+    /** @property fontSizeS @brief Ukuran teks terkecil (11px) - header tabel, petunjuk */
     readonly property int fontSizeS: 11
 
-    /** @property fontSizeSM @brief Small-medium text (12px) - subtitles, captions */
+    /** @property fontSizeSM @brief Teks kecil-sedang (12px) - subtitle, caption */
     readonly property int fontSizeSM: 12
 
-    /** @property fontSizeM @brief Medium/default text (13px) - body text, labels */
+    /** @property fontSizeM @brief Teks sedang/default (13px) - body text, label */
     readonly property int fontSizeM: 13
 
-    /** @property fontSizeL @brief Large text (14px) - emphasized labels */
+    /** @property fontSizeL @brief Teks besar (14px) - label yang ditekankan */
     readonly property int fontSizeL: 14
 
-    /** @property fontSizeXL @brief Extra large text (15px) - menu item labels */
+    /** @property fontSizeXL @brief Teks ekstra besar (15px) - label menu item */
     readonly property int fontSizeXL: 15
 
-    /** @property fontSizeXXL @brief Double extra large (18px) - section headers */
+    /** @property fontSizeXXL @brief Teks double ekstra besar (18px) - header section */
     readonly property int fontSizeXXL: 18
 
-    /** @property fontSizeDisplay @brief Display size (24px) - page titles */
+    /** @property fontSizeDisplay @brief Ukuran display (24px) - judul halaman */
     readonly property int fontSizeDisplay: 24
 
-    /** @property fontSizeLogo @brief Logo text size (64px) - main menu "RAPID" */
+    /** @property fontSizeLogo @brief Ukuran teks logo (64px) - "RAPID" di menu utama */
     readonly property int fontSizeLogo: 64
 
-    /** @property fontSizeLogoSubtitle @brief Logo subtitle (12px) - main menu "TEXTER" */
+    /** @property fontSizeLogoSubtitle @brief Subtitle logo (12px) - "TEXTER" di menu utama */
     readonly property int fontSizeLogoSubtitle: 12
 
     /* ========================================================================
-     * SPACING (in pixels)
+     * SPACING (dalam piksel)
      * ======================================================================== */
 
-    /** @property spacingS @brief Small spacing (6px) - icon-text gaps */
+    /** @property spacingS @brief Spacing kecil (6px) - jarak ikon-teks */
     readonly property int spacingS: 6
 
-    /** @property spacingSM @brief Small-medium spacing (8px) - menu item gaps */
+    /** @property spacingSM @brief Spacing kecil-sedang (8px) - jarak menu item */
     readonly property int spacingSM: 8
 
-    /** @property spacingM @brief Medium spacing (12px) - section gaps */
+    /** @property spacingM @brief Spacing sedang (12px) - jarak section */
     readonly property int spacingM: 12
 
-    /** @property spacingL @brief Large spacing (16px) - component gaps */
+    /** @property spacingL @brief Spacing besar (16px) - jarak komponen */
     readonly property int spacingL: 16
 
-    /** @property spacingXL @brief Extra large spacing (20px) - major section gaps */
+    /** @property spacingXL @brief Spacing ekstra besar (20px) - jarak section utama */
     readonly property int spacingXL: 20
 
-    /** @property spacingXXL @brief Double extra large (24px) - page margins */
+    /** @property spacingXXL @brief Spacing double ekstra besar (24px) - margin halaman */
     readonly property int spacingXXL: 24
 
-    /** @property spacingHuge @brief Huge spacing (32px) - page content margins */
+    /** @property spacingHuge @brief Spacing sangat besar (32px) - margin konten halaman */
     readonly property int spacingHuge: 32
 
-    /** @property spacingLogo @brief Logo bottom margin (50px) - main menu layout */
+    /** @property spacingLogo @brief Margin bawah logo (50px) - layout menu utama */
     readonly property int spacingLogo: 50
 
     /* ========================================================================
-     * PADDING (in pixels)
+     * PADDING (dalam piksel)
      * ======================================================================== */
 
-    /** @property paddingS @brief Small padding (6px) */
+    /** @property paddingS @brief Padding kecil (6px) */
     readonly property int paddingS: 6
 
-    /** @property paddingM @brief Medium padding (10px) */
+    /** @property paddingM @brief Padding sedang (10px) */
     readonly property int paddingM: 10
 
-    /** @property paddingL @brief Large padding (14px) */
+    /** @property paddingL @brief Padding besar (14px) */
     readonly property int paddingL: 14
 
-    /** @property paddingXL @brief Extra large padding (18px) - button horizontal */
+    /** @property paddingXL @brief Padding ekstra besar (18px) - horizontal tombol */
     readonly property int paddingXL: 18
 
-    /** @property paddingXXL @brief Double extra large (24px) - content areas */
+    /** @property paddingXXL @brief Padding double ekstra besar (24px) - area konten */
     readonly property int paddingXXL: 24
 
-    /** @property paddingHuge @brief Huge padding (28px) - page margins */
+    /** @property paddingHuge @brief Padding sangat besar (28px) - margin halaman */
     readonly property int paddingHuge: 28
 
     /* ========================================================================
-     * COMPONENT SIZES
+     * UKURAN KOMPONEN
      * ======================================================================== */
 
     /**
      * @property menuKeyMinWidth
-     * @brief Minimum width for keyboard shortcut badges in menus (40px).
-     * @details Ensures [1], [2], etc. badges have consistent sizing.
+     * @brief Lebar minimum untuk badge shortcut keyboard di menu (40px).
+     * @details Memastikan badge [1], [2], dll. memiliki ukuran konsisten.
      */
     readonly property int menuKeyMinWidth: 40
 
     /**
      * @property statusBarHeight
-     * @brief Height of the top status bar (40px).
-     * @details Contains language, time, mode indicators and SFX toggle.
+     * @brief Tinggi status bar atas (40px).
+     * @details Berisi indikator bahasa, waktu, mode dan toggle SFX.
      */
     readonly property int statusBarHeight: 40
 
     /**
      * @property maxContentWidth
-     * @brief Maximum width for centered content containers (800px).
-     * @details Prevents content from stretching too wide on large screens.
+     * @brief Lebar maksimum untuk kontainer konten terpusat (800px).
+     * @details Mencegah konten melebar terlalu lebar di layar besar.
      */
     readonly property int maxContentWidth: 800
 
     /* ========================================================================
-     * ANIMATION
+     * ANIMASI
      * ======================================================================== */
 
     /**
      * @property animationDuration
-     * @brief Default animation duration in milliseconds (150ms).
-     * @details Used for hover transitions, color changes, translations.
+     * @brief Durasi animasi default dalam milidetik (150ms).
+     * @details Digunakan untuk transisi hover, perubahan warna, translasi.
      */
     readonly property int animationDuration: 150
 
     /* ========================================================================
-     * BORDER RADIUS
+     * RADIUS BORDER
      * ======================================================================== */
 
-    /** @property radiusS @brief Small radius (4px) - buttons, badges */
+    /** @property radiusS @brief Radius kecil (4px) - tombol, badge */
     readonly property int radiusS: 4
 
-    /** @property radiusM @brief Medium radius (8px) - cards, inputs */
+    /** @property radiusM @brief Radius sedang (8px) - kartu, input */
     readonly property int radiusM: 8
 
-    /** @property radiusL @brief Large radius (12px) - modals, panels */
+    /** @property radiusL @brief Radius besar (12px) - modal, panel */
     readonly property int radiusL: 12
 }

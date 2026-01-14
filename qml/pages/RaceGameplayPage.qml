@@ -1,9 +1,34 @@
 /**
  * @file RaceGameplayPage.qml
- * @brief Multiplayer race gameplay page with compact race track visualization.
+ * @brief Halaman gameplay race multiplayer dengan visualisasi track balapan yang kompak.
+ * @author Alea Farrel & Team
+ * @date 2026
  *
- * Combines the single-player GameplayPage mechanics with a race track display.
- * Layout matches single-player style with centered text area.
+ * @details RaceGameplayPage menggabungkan mekanik single-player GameplayPage dengan
+ * tampilan race track untuk mode multiplayer. Layout mengikuti style single-player
+ * dengan area teks yang di-center.
+ *
+ * @par Fitur Utama:
+ * - Race track di bagian atas menampilkan progress semua pemain
+ * - Area pengetikan dengan visualisasi karakter (correct/incorrect/current)
+ * - Statistik real-time (WPM, akurasi, errors, waktu)
+ * - Sinkronisasi start game dengan countdown dari NetworkManager
+ * - CAPS LOCK warning indicator
+ *
+ * @par Mekanik Pengetikan:
+ * - Karakter yang benar berwarna putih
+ * - Karakter yang salah berwarna merah dengan background
+ * - Caret cursor berkedip pada posisi saat ini
+ * - Backspace hanya bisa menghapus dalam kata yang sama (word locking)
+ *
+ * @par Integrasi Network:
+ * - Menerima signal gameStarted untuk sinkronisasi start
+ * - Update progress ke NetworkManager setiap keystroke
+ * - Memanggil finishRace saat selesai mengetik
+ *
+ * @see GameplayPage.qml
+ * @see RaceTrack.qml
+ * @see NetworkManager
  */
 import QtQuick
 import QtQuick.Controls
@@ -12,49 +37,199 @@ import Qt5Compat.GraphicalEffects
 import rapid_texter
 import "../components"
 
+/**
+ * @brief Komponen utama halaman gameplay race multiplayer.
+ *
+ * @details FocusScope digunakan untuk menangani keyboard input
+ * melalui hidden TextInput.
+ */
 FocusScope {
     id: raceGameplayPage
     focus: true
 
-    // Game state
+    //=========================================================================
+    // GAME STATE PROPERTIES - Properti state permainan
+    //=========================================================================
+
+    /**
+     * @property targetText
+     * @brief Teks target yang harus diketik oleh pemain.
+     * @details Diambil dari NetworkManager.gameText yang di-sync dari host.
+     */
     property string targetText: NetworkManager.gameText
+
+    /**
+     * @property typedChars
+     * @brief Array karakter yang sudah diketik oleh pemain.
+     */
     property var typedChars: []
+
+    /**
+     * @property typedText
+     * @brief String gabungan dari typedChars untuk kemudahan.
+     */
     property string typedText: typedChars.join("")
+
+    /**
+     * @property cursorPosition
+     * @brief Posisi cursor saat ini (sama dengan jumlah karakter yang diketik).
+     */
     property int cursorPosition: typedChars.length
+
+    /**
+     * @property gameStarted
+     * @brief Flag apakah game sudah dimulai.
+     * @details Diset true oleh signal onGameStarted dari NetworkManager.
+     */
     property bool gameStarted: false
+
+    /**
+     * @property gameEnded
+     * @brief Flag apakah game sudah selesai.
+     */
     property bool gameEnded: false
+
+    /**
+     * @property correctChars
+     * @brief Jumlah karakter yang diketik dengan benar.
+     */
     property int correctChars: 0
+
+    /**
+     * @property incorrectChars
+     * @brief Jumlah karakter yang diketik dengan salah.
+     */
     property int incorrectChars: 0
+
+    /**
+     * @property totalKeystrokes
+     * @brief Total jumlah keystroke (untuk perhitungan akurasi).
+     */
     property int totalKeystrokes: 0
+
+    /**
+     * @property startTime
+     * @brief Timestamp saat game dimulai (dalam milliseconds).
+     */
     property real startTime: 0
+
+    /**
+     * @property elapsedTime
+     * @brief Waktu yang sudah berlalu dalam detik.
+     */
     property int elapsedTime: 0
+
+    /**
+     * @property correctPositions
+     * @brief Map posisi yang sudah diketik dengan benar (untuk tracking first-time correct).
+     */
     property var correctPositions: ({})
+
+    /**
+     * @property errorPositions
+     * @brief Map posisi yang sudah diketik dengan salah (untuk tracking first-time error).
+     */
     property var errorPositions: ({})
 
-    // Race state - use a simple counter to force rebinding
+    //=========================================================================
+    // RACE STATE PROPERTIES - Properti state balapan
+    //=========================================================================
+
+    /**
+     * @property players
+     * @brief Daftar pemain dari NetworkManager untuk ditampilkan di race track.
+     */
     property var players: NetworkManager.players
+
+    /**
+     * @property playerUpdateCounter
+     * @brief Counter untuk memaksa rebinding UI saat players berubah.
+     */
     property int playerUpdateCounter: 0
+
+    /**
+     * @property showCountdown
+     * @brief Flag untuk menampilkan countdown overlay.
+     */
     property bool showCountdown: false
+
+    /**
+     * @property trackHeight
+     * @brief Tinggi komponen race track dalam pixel.
+     */
     property int trackHeight: 100
 
-    // Reactive stats properties
+    //=========================================================================
+    // REACTIVE STATS PROPERTIES - Properti statistik real-time
+    //=========================================================================
+
+    /**
+     * @property currentWpm
+     * @brief Words per minute saat ini (dihitung dari correctChars).
+     */
     property int currentWpm: 0
+
+    /**
+     * @property currentAccuracy
+     * @brief Akurasi saat ini dalam persen.
+     */
     property real currentAccuracy: 100
 
+    /**
+     * @property capsLockOn
+     * @brief Flag apakah CAPS LOCK sedang aktif.
+     */
     property bool capsLockOn: false
 
+    //=========================================================================
+    // SIGNALS - Sinyal untuk komunikasi dengan parent
+    //=========================================================================
+
+    /**
+     * @brief Dipancarkan saat race selesai dengan hasil pemain.
+     * @param wpm Words per minute yang dicapai
+     * @param accuracy Akurasi dalam persen
+     * @param errors Jumlah kesalahan
+     */
     signal raceCompleted(int wpm, real accuracy, int errors)
+
+    /**
+     * @brief Dipancarkan saat user memilih untuk keluar dari race.
+     */
     signal exitClicked
 
+    //=========================================================================
+    // BACKGROUND - Latar belakang halaman
+    //=========================================================================
+
+    /**
+     * @brief Rectangle latar belakang.
+     */
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
         z: -100
     }
 
-    // Word processing
+    //=========================================================================
+    // WORD PROCESSING - Pemrosesan kata-kata untuk tampilan
+    //=========================================================================
+
+    /**
+     * @property words
+     * @brief Array kata-kata dari targetText yang dipisah oleh spasi.
+     */
     property var words: targetText.split(" ")
 
+    /**
+     * @brief Membangun informasi struktur kata untuk rendering.
+     * @return Array objek dengan word, startIndex, dan endIndex.
+     *
+     * @details Setiap objek berisi:
+     * - word: String kata
+     * - startIndex: Indeks karakter pertama dalam targetText
+     * - endIndex: Indeks karakter terakhir dalam targetText
+     */
     function buildWordInfo() {
         var result = [];
         var currentIndex = 0;
@@ -64,12 +239,28 @@ FocusScope {
                 startIndex: currentIndex,
                 endIndex: currentIndex + words[i].length - 1
             });
-            currentIndex += words[i].length + 1;
+            currentIndex += words[i].length + 1;  // +1 untuk spasi
         }
         return result;
     }
+
+    /**
+     * @property wordInfo
+     * @brief Struktur informasi kata hasil dari buildWordInfo().
+     */
     property var wordInfo: buildWordInfo()
 
+    /**
+     * @brief Mendapatkan state karakter pada posisi tertentu.
+     * @param index Indeks karakter dalam targetText
+     * @return String state: "correct", "incorrect", "current", atau "pending"
+     *
+     * @details State menentukan warna dan style karakter:
+     * - correct: Sudah diketik dengan benar
+     * - incorrect: Sudah diketik dengan salah
+     * - current: Posisi cursor saat ini
+     * - pending: Belum diketik
+     */
     function getCharState(index) {
         if (index < cursorPosition) {
             if (index < typedChars.length) {
@@ -84,6 +275,10 @@ FocusScope {
         return "pending";
     }
 
+    /**
+     * @brief Mencari indeks awal kata yang sedang diketik.
+     * @return Indeks karakter pertama dari kata saat ini.
+     */
     function findCurrentWordStart() {
         for (var i = 0; i < wordInfo.length; i++) {
             if (cursorPosition >= wordInfo[i].startIndex && cursorPosition <= wordInfo[i].endIndex + 1) {
@@ -93,6 +288,14 @@ FocusScope {
         return cursorPosition;
     }
 
+    /**
+     * @brief Memeriksa apakah backspace diizinkan pada posisi saat ini.
+     * @return true jika bisa menghapus, false jika tidak.
+     *
+     * @details Implementasi word-locking: user tidak bisa menghapus
+     * kata yang sudah selesai dengan benar. Ini mencegah cheating
+     * dengan menghapus kata yang sudah benar.
+     */
     function canDeleteAtPosition() {
         if (cursorPosition <= 0)
             return false;
@@ -116,6 +319,16 @@ FocusScope {
         return cursorPosition > lockedLimit;
     }
 
+    /**
+     * @brief Memperbarui statistik WPM dan akurasi.
+     *
+     * @details Perhitungan:
+     * - WPM = (correctChars / 5) / minutes
+     * - Accuracy = (correctChars / totalKeystrokes) * 100
+     *
+     * Menunggu minimal 0.5 detik sebelum menghitung untuk menghindari
+     * nilai yang tidak masuk akal.
+     */
     function updateStats() {
         if (!gameStarted || startTime <= 0) {
             currentWpm = 0;
@@ -133,6 +346,16 @@ FocusScope {
         currentAccuracy = totalKeystrokes > 0 ? Math.round((correctChars / totalKeystrokes) * 1000) / 10 : 100;
     }
 
+    /**
+     * @brief Handler untuk setiap key press dari user.
+     * @param event Event keyboard yang diterima
+     *
+     * @details Menangani:
+     * - Backspace: Menghapus karakter terakhir (jika diizinkan)
+     * - Karakter lain: Menambah ke typedChars dan update stats
+     *
+     * Setiap keystroke juga memperbarui NetworkManager dengan progress terbaru.
+     */
     function handleKeyPress(event) {
         if (gameEnded)
             return;
@@ -195,6 +418,12 @@ FocusScope {
         }
     }
 
+    /**
+     * @brief Menyelesaikan race dan mengirim hasil ke NetworkManager.
+     *
+     * @details Dipanggil saat user sudah mengetik semua karakter.
+     * Menghentikan timer dan mengirim hasil final ke server.
+     */
     function finishRace() {
         if (gameEnded)
             return;
@@ -206,6 +435,11 @@ FocusScope {
         NetworkManager.finishRace(currentWpm, currentAccuracy, incorrectChars, elapsedTime);
     }
 
+    /**
+     * @brief Mereset semua state game ke kondisi awal.
+     *
+     * @details Digunakan untuk memulai ulang game baru.
+     */
     function resetGame() {
         typedChars = [];
         correctPositions = {};
@@ -223,7 +457,13 @@ FocusScope {
         hiddenInput.forceActiveFocus();
     }
 
-    // Timers
+    //=========================================================================
+    // TIMERS - Timer untuk tracking waktu dan update stats
+    //=========================================================================
+
+    /**
+     * @brief Timer untuk menghitung waktu yang berlalu (per detik).
+     */
     Timer {
         id: elapsedTimer
         interval: 1000
@@ -231,6 +471,9 @@ FocusScope {
         onTriggered: elapsedTime++
     }
 
+    /**
+     * @brief Timer untuk memperbarui statistik (per 500ms).
+     */
     Timer {
         id: statsTimer
         interval: 500
@@ -238,12 +481,23 @@ FocusScope {
         onTriggered: updateStats()
     }
 
-    // Network event handlers
+    //=========================================================================
+    // NETWORK EVENT HANDLERS - Handler untuk event dari NetworkManager
+    //=========================================================================
+
+    /**
+     * @brief Connections untuk menangani signal dari NetworkManager.
+     */
     Connections {
         target: NetworkManager
 
+        /**
+         * @brief Handler saat game dimulai (synced dari host/countdown).
+         *
+         * @details Memulai timer dan mengaktifkan input focus.
+         * Signal ini dipancarkan bersamaan untuk semua pemain.
+         */
         function onGameStarted() {
-            // Start game immediately when signal is received (synced with host/countdown)
             gameStarted = true;
             startTime = Date.now();
             elapsedTimer.start();
@@ -251,16 +505,38 @@ FocusScope {
             hiddenInput.forceActiveFocus();
         }
 
+        /**
+         * @brief Handler saat progress pemain lain diperbarui.
+         * @param id ID pemain
+         * @param name Nama pemain
+         * @param progress Progress dalam persen
+         * @param wpm WPM pemain
+         * @param finished Apakah sudah selesai
+         * @param position Posisi finish
+         */
         function onPlayerProgressUpdated(id, name, progress, wpm, finished, position) {
             players = NetworkManager.players;
         }
 
+        /**
+         * @brief Handler saat race selesai (semua pemain finish atau timeout).
+         * @param rankings Daftar ranking pemain
+         */
         function onRaceFinished(rankings) {
             raceGameplayPage.raceCompleted(currentWpm, currentAccuracy, incorrectChars);
         }
     }
 
-    // Countdown overlay
+    //=========================================================================
+    // COUNTDOWN OVERLAY - Overlay hitungan mundur
+    //=========================================================================
+
+    /**
+     * @brief Overlay countdown sebelum race dimulai.
+     *
+     * @details Menampilkan hitungan mundur 3-2-1-GO!
+     * Setelah selesai, mengaktifkan focus untuk input.
+     */
     CountdownOverlay {
         id: countdownOverlay
         anchors.fill: parent
@@ -270,7 +546,16 @@ FocusScope {
         }
     }
 
-    // Compact Race Track (fixed at top)
+    //=========================================================================
+    // RACE TRACK HEADER - Visualisasi track balapan
+    //=========================================================================
+
+    /**
+     * @brief Komponen race track yang menampilkan progress semua pemain.
+     *
+     * @details Posisi di atas halaman dengan binding ke players list.
+     * Counter digunakan untuk memaksa update UI.
+     */
     RaceTrack {
         id: raceTrackHeader
         anchors.top: parent.top
@@ -278,11 +563,16 @@ FocusScope {
         anchors.right: parent.right
         anchors.margins: Theme.paddingL
         height: trackHeight
-        // Bind with counter to force updates
-        players: playerUpdateCounter >= 0 ? raceGameplayPage.players : []
+        players: playerUpdateCounter >= 0 ? raceGameplayPage.players : []  ///< Bind dengan counter untuk force updates
     }
 
-    // Main centered content (like single-player)
+    //=========================================================================
+    // MAIN CONTENT - Konten utama yang di-center
+    //=========================================================================
+
+    /**
+     * @brief Container untuk konten utama (seperti single-player GameplayPage).
+     */
     Item {
         anchors.top: raceTrackHeader.bottom
         anchors.topMargin: Theme.paddingL
@@ -290,22 +580,37 @@ FocusScope {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
 
+        /**
+         * @brief Item yang memusatkan konten dengan lebar maksimum 800px.
+         */
         Item {
             anchors.centerIn: parent
             width: Math.min(parent.width - Theme.paddingHuge * 2, 800)
             height: gameCol.implicitHeight
 
+            /**
+             * @brief ColumnLayout utama untuk konten game.
+             */
             ColumnLayout {
                 id: gameCol
                 anchors.fill: parent
                 spacing: 0
 
-                // Timer display (like single-player)
+                //=============================================================
+                // TIMER ROW - Baris timer dan CAPS LOCK warning
+                //=============================================================
+
+                /**
+                 * @brief Row untuk menampilkan timer dan CAPS LOCK warning.
+                 */
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.bottomMargin: 10
                     spacing: Theme.spacingL
 
+                    /**
+                     * @brief Teks timer menampilkan waktu dalam detik.
+                     */
                     Text {
                         Layout.leftMargin: 48
                         text: elapsedTime
@@ -315,11 +620,13 @@ FocusScope {
                         font.weight: Font.DemiBold
                     }
 
-                    // CAPS LOCK Warning
+                    /**
+                     * @brief Warning box saat CAPS LOCK aktif.
+                     */
                     Rectangle {
                         id: capsLockBox
                         visible: raceGameplayPage.capsLockOn
-                        color: "#3D2800"
+                        color: "#3D2800"  ///< Background kuning gelap
                         border.color: Theme.accentYellow
                         border.width: 1
                         radius: 4
@@ -343,32 +650,57 @@ FocusScope {
                     }
                 }
 
-                // Text Display (borderless, clean like single-player)
+                //=============================================================
+                // TEXT DISPLAY - Area tampilan teks target
+                //=============================================================
+
+                /**
+                 * @brief Container untuk area tampilan teks (borderless, clean).
+                 */
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: textFlow.implicitHeight + 96
                     color: "transparent"
 
+                    /**
+                     * @brief Flow layout untuk kata-kata yang di-wrap.
+                     */
                     Flow {
                         id: textFlow
                         anchors.fill: parent
                         anchors.margins: 48
                         spacing: 0
 
+                        /**
+                         * @brief Repeater untuk setiap kata dalam teks.
+                         */
                         Repeater {
                             model: wordInfo.length
 
+                            /**
+                             * @brief Row untuk satu kata dan spasi setelahnya.
+                             */
                             Row {
                                 property int wordIndex: index
                                 spacing: 0
                                 height: 48
 
+                                /**
+                                 * @brief Repeater untuk setiap karakter dalam kata.
+                                 */
                                 Repeater {
                                     model: wordInfo[wordIndex] ? wordInfo[wordIndex].word.length : 0
 
+                                    /**
+                                     * @brief Teks untuk satu karakter dengan styling dinamis.
+                                     *
+                                     * @details Warna berdasarkan state:
+                                     * - correct: textPrimary (putih)
+                                     * - incorrect: accentRed (merah)
+                                     * - current/pending: textMuted (abu-abu)
+                                     */
                                     Text {
                                         property int charIndex: wordInfo[parent.wordIndex].startIndex + index
-                                        // Explicitly depend on cursorPosition for reactivity
                                         property string charState: cursorPosition >= 0 ? getCharState(charIndex) : "pending"
 
                                         text: targetText.charAt(charIndex)
@@ -389,7 +721,9 @@ FocusScope {
                                             }
                                         }
 
-                                        // Background for incorrect chars
+                                        /**
+                                         * @brief Background merah untuk karakter salah.
+                                         */
                                         Rectangle {
                                             anchors.left: parent.left
                                             anchors.right: parent.right
@@ -399,7 +733,9 @@ FocusScope {
                                             z: -1
                                         }
 
-                                        // Caret cursor
+                                        /**
+                                         * @brief Caret cursor berkedip pada posisi saat ini.
+                                         */
                                         Rectangle {
                                             visible: parent.charState === "current"
                                             anchors.left: parent.left
@@ -425,12 +761,16 @@ FocusScope {
                                     }
                                 }
 
-                                // Space after word
+                                /**
+                                 * @brief Teks untuk spasi setelah kata.
+                                 *
+                                 * @details Menampilkan karakter yang diketik jika salah,
+                                 * atau spasi normal jika benar/pending.
+                                 */
                                 Text {
                                     id: spaceText
                                     visible: wordIndex < wordInfo.length - 1
                                     property int spaceIndex: wordInfo[wordIndex].endIndex + 1
-                                    // Explicitly depend on cursorPosition for reactivity
                                     property string charState: cursorPosition >= 0 ? getCharState(spaceIndex) : "pending"
                                     property string typedChar: spaceIndex < typedChars.length ? typedChars[spaceIndex] : ""
                                     property string displayChar: charState === "incorrect" && typedChar.length > 0 ? typedChar : " "
@@ -441,7 +781,9 @@ FocusScope {
                                     font.letterSpacing: 0.5
                                     color: charState === "incorrect" ? Theme.accentRed : Theme.textMuted
 
-                                    // Background for incorrect space
+                                    /**
+                                     * @brief Background untuk spasi yang salah.
+                                     */
                                     Rectangle {
                                         visible: parent.charState === "incorrect"
                                         anchors.left: parent.left
@@ -452,7 +794,9 @@ FocusScope {
                                         z: -1
                                     }
 
-                                    // Caret cursor at space
+                                    /**
+                                     * @brief Caret cursor pada posisi spasi.
+                                     */
                                     Rectangle {
                                         visible: parent.charState === "current"
                                         anchors.left: parent.left
@@ -481,13 +825,25 @@ FocusScope {
                     }
                 }
 
-                // Statistics Row (like single-player - shows during gameplay)
+                //=============================================================
+                // STATISTICS ROW - Baris statistik real-time
+                //=============================================================
+
+                /**
+                 * @brief Row untuk menampilkan statistik saat gameplay.
+                 *
+                 * @details Hanya terlihat setelah game dimulai.
+                 * Menampilkan: WPM, Correct, Errors, Time.
+                 */
                 Row {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 20
                     spacing: Theme.spacingXL
                     visible: gameStarted
 
+                    /**
+                     * @brief Statistik WPM (Words Per Minute).
+                     */
                     Row {
                         spacing: Theme.spacingS
                         Text {
@@ -505,6 +861,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Statistik karakter benar.
+                     */
                     Row {
                         spacing: Theme.spacingS
                         Text {
@@ -522,6 +881,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Statistik jumlah error.
+                     */
                     Row {
                         spacing: Theme.spacingS
                         Text {
@@ -539,6 +901,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Statistik waktu yang berlalu.
+                     */
                     Row {
                         spacing: Theme.spacingS
                         Text {
@@ -556,12 +921,23 @@ FocusScope {
                     }
                 }
 
-                // Navigation Buttons
+                //=============================================================
+                // NAVIGATION BUTTONS - Tombol navigasi
+                //=============================================================
+
+                /**
+                 * @brief Row untuk tombol navigasi.
+                 */
                 Row {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 40
                     spacing: Theme.spacingM
 
+                    /**
+                     * @brief Tombol Exit untuk keluar dari race.
+                     *
+                     * @details Memanggil NetworkManager.leaveRoom() sebelum keluar.
+                     */
                     NavBtn {
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                         labelText: "Exit (ESC)"
@@ -572,7 +948,13 @@ FocusScope {
                     }
                 }
 
-                // Instruction hint
+                //=============================================================
+                // INSTRUCTION HINT - Petunjuk untuk user
+                //=============================================================
+
+                /**
+                 * @brief Teks petunjuk yang berubah berdasarkan state game.
+                 */
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 20
@@ -585,7 +967,16 @@ FocusScope {
         }
     }
 
-    // Hidden input
+    //=========================================================================
+    // HIDDEN INPUT - Input tersembunyi untuk keyboard capture
+    //=========================================================================
+
+    /**
+     * @brief TextInput tersembunyi untuk menangkap keyboard input.
+     *
+     * @details Diperlukan karena QML tidak memiliki low-level keyboard
+     * event handling yang baik tanpa focused text input.
+     */
     TextInput {
         id: hiddenInput
         width: 1
@@ -606,13 +997,22 @@ FocusScope {
         }
     }
 
-    // Focus handling
+    //=========================================================================
+    // FOCUS HANDLING - Handling untuk focus management
+    //=========================================================================
+
+    /**
+     * @brief MouseArea untuk me-refocus input saat user klik di mana saja.
+     */
     MouseArea {
         anchors.fill: parent
         z: -1
         onClicked: hiddenInput.forceActiveFocus()
     }
 
+    /**
+     * @brief Handler keyboard untuk ESC di level FocusScope.
+     */
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
             NetworkManager.leaveRoom();
@@ -621,11 +1021,23 @@ FocusScope {
         }
     }
 
+    //=========================================================================
+    // COMPONENT LIFECYCLE - Lifecycle komponen
+    //=========================================================================
+
+    /**
+     * @brief Handler saat komponen selesai dimuat.
+     *
+     * @details Memulai countdown overlay dan timer untuk CAPS LOCK detection.
+     */
     Component.onCompleted: {
         countdownOverlay.start();
         capsLockTimer.start();
     }
 
+    /**
+     * @brief Timer untuk memeriksa status CAPS LOCK secara periodik.
+     */
     Timer {
         id: capsLockTimer
         interval: 200

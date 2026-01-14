@@ -1,6 +1,31 @@
 /**
  * @file RaceResultsPage.qml
- * @brief Race results page showing final rankings.
+ * @brief Halaman hasil race yang menampilkan ranking final.
+ * @author Alea Farrel & Team
+ * @date 2026
+ *
+ * @details RaceResultsPage menampilkan hasil akhir dari race multiplayer
+ * dengan informasi lengkap tentang performa semua pemain.
+ *
+ * @par Fitur Utama:
+ * - Statistik pemain lokal (WPM, akurasi, errors)
+ * - Daftar ranking dengan medal untuk top 3
+ * - Tombol Play Again untuk host
+ * - Popup invitation untuk guest saat host ingin bermain lagi
+ * - Handling untuk late join (game in progress)
+ *
+ * @par Flow Play Again:
+ * 1. Host mengklik "Play Again" → mengirim invite ke semua guest
+ * 2. Guest menerima popup invitation
+ * 3. Jika Accept: kembali ke lobby, jika Decline: exit
+ *
+ * @par Keyboard Shortcuts:
+ * - ESC: Keluar dari hasil/decline invite
+ * - P: Play Again (host) atau Accept invite (guest)
+ *
+ * @see RaceGameplayPage.qml
+ * @see MultiplayerLobbyPage.qml
+ * @see NetworkManager
  */
 import QtQuick
 import QtQuick.Layouts
@@ -8,60 +33,180 @@ import Qt5Compat.GraphicalEffects
 import rapid_texter
 import "../components"
 
+/**
+ * @brief Komponen utama halaman hasil race.
+ *
+ * @details FocusScope digunakan untuk menangani keyboard shortcuts.
+ */
 FocusScope {
     id: resultsPage
     focus: true
 
-    property var rankings: []  // Array of {id, name, wpm, position, isLocal}
+    //=========================================================================
+    // RESULTS DATA PROPERTIES - Properti data hasil race
+    //=========================================================================
+
+    /**
+     * @property rankings
+     * @brief Array ranking pemain dari race.
+     *
+     * @details Setiap objek berisi:
+     * - id: ID pemain
+     * - name: Nama pemain
+     * - wpm: Words per minute
+     * - position: Posisi finish (1, 2, 3, ...)
+     * - isLocal: true jika pemain lokal
+     * - accuracy: Akurasi dalam persen
+     * - errors: Jumlah kesalahan
+     * - duration: Durasi dalam detik
+     * - hasLeft: true jika pemain disconnect
+     */
+    property var rankings: []
+
+    /**
+     * @property localWpm
+     * @brief WPM pemain lokal.
+     */
     property int localWpm: 0
+
+    /**
+     * @property localAccuracy
+     * @brief Akurasi pemain lokal dalam persen.
+     */
     property real localAccuracy: 0
+
+    /**
+     * @property localErrors
+     * @brief Jumlah kesalahan pemain lokal.
+     */
     property int localErrors: 0
+
+    /**
+     * @property localPosition
+     * @brief Posisi finish pemain lokal.
+     */
     property int localPosition: 0
 
+    //=========================================================================
+    // SIGNALS - Sinyal untuk komunikasi dengan parent
+    //=========================================================================
+
+    /**
+     * @brief Dipancarkan saat user memilih untuk bermain lagi.
+     * @note Hanya untuk host.
+     */
     signal playAgainClicked
+
+    /**
+     * @brief Dipancarkan saat user memilih untuk keluar.
+     */
     signal exitClicked
+
+    /**
+     * @brief Dipancarkan saat user kembali ke lobby (setelah accept play again).
+     */
     signal returnToLobbyClicked
 
-    // Play again invitation state (for guests)
+    //=========================================================================
+    // POPUP STATE PROPERTIES - State untuk popup dialog
+    //=========================================================================
+
+    /**
+     * @property showInvitePopup
+     * @brief Flag untuk menampilkan popup invitation play again.
+     * @details Hanya untuk guest saat host mengirim invite.
+     */
     property bool showInvitePopup: false
+
+    /**
+     * @property showGameInProgressPopup
+     * @brief Flag untuk menampilkan popup game in progress.
+     * @details Ditampilkan saat guest mencoba join padahal race sudah dimulai.
+     */
     property bool showGameInProgressPopup: false
 
-    // Dynamic host state - updates when authority changes
+    //=========================================================================
+    // HOST STATE - State dinamis untuk status host
+    //=========================================================================
+
+    /**
+     * @property isHost
+     * @brief Flag apakah pemain ini adalah host.
+     * @details Diupdate saat authority berubah (misal host disconnect).
+     */
     property bool isHost: NetworkManager.isAuthority
 
-    // Refresh isHost on component creation
+    /**
+     * @brief Refresh isHost saat komponen selesai dimuat.
+     */
     Component.onCompleted: {
         resultsPage.isHost = NetworkManager.isAuthority;
     }
 
+    /**
+     * @brief Connections untuk menangani perubahan authority.
+     */
     Connections {
         target: NetworkManager
+
+        /**
+         * @brief Handler saat authority berubah.
+         */
         function onAuthorityChanged() {
             resultsPage.isHost = NetworkManager.isAuthority;
         }
+
+        /**
+         * @brief Handler saat daftar pemain berubah.
+         * @details Juga refresh isHost karena mungkin ada yang keluar.
+         */
         function onPlayersChanged() {
-            // Also refresh when players change (someone leaves)
             resultsPage.isHost = NetworkManager.isAuthority;
         }
     }
 
+    //=========================================================================
+    // BACKGROUND - Latar belakang halaman
+    //=========================================================================
+
+    /**
+     * @brief Rectangle latar belakang.
+     */
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
         z: -100
     }
 
+    //=========================================================================
+    // MAIN CONTENT - Konten utama hasil race
+    //=========================================================================
+
+    /**
+     * @brief Container yang memusatkan konten dengan lebar maksimum 500px.
+     */
     Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.paddingHuge * 2, 500)
         height: contentCol.implicitHeight
 
+        /**
+         * @brief ColumnLayout utama untuk konten hasil race.
+         */
         ColumnLayout {
             id: contentCol
             anchors.fill: parent
             spacing: 0
 
-            // Trophy icon
+            //=================================================================
+            // TROPHY ICON - Ikon trophy untuk header
+            //=================================================================
+
+            /**
+             * @brief Container untuk ikon trophy.
+             *
+             * @details Warna hijau jika juara 1, abu-abu jika tidak.
+             */
             Item {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.bottomMargin: 16
@@ -83,7 +228,13 @@ FocusScope {
                 }
             }
 
-            // Header
+            //=================================================================
+            // HEADER - Judul dan posisi finish
+            //=================================================================
+
+            /**
+             * @brief Judul "RACE COMPLETE".
+             */
             Text {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 8
@@ -95,7 +246,11 @@ FocusScope {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Your position
+            /**
+             * @brief Teks posisi finish pemain lokal.
+             *
+             * @details Warna hijau jika juara 1.
+             */
             Text {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 24
@@ -106,7 +261,16 @@ FocusScope {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Your stats
+            //=================================================================
+            // LOCAL STATS BOX - Box statistik pemain lokal
+            //=================================================================
+
+            /**
+             * @brief Rectangle untuk menampilkan statistik pemain lokal.
+             *
+             * @details Menampilkan WPM, Accuracy, dan Errors dalam format
+             * yang prominent dengan border biru.
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 20
@@ -119,6 +283,9 @@ FocusScope {
                     anchors.centerIn: parent
                     spacing: 40
 
+                    /**
+                     * @brief Kolom WPM.
+                     */
                     Column {
                         spacing: 4
                         Text {
@@ -138,6 +305,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Kolom Accuracy.
+                     */
                     Column {
                         spacing: 4
                         Text {
@@ -157,6 +327,11 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Kolom Errors.
+                     *
+                     * @details Warna merah jika ada error, hijau jika 0.
+                     */
                     Column {
                         spacing: 4
                         Text {
@@ -178,7 +353,16 @@ FocusScope {
                 }
             }
 
-            // Rankings list
+            //=================================================================
+            // RANKINGS LIST - Daftar ranking pemain
+            //=================================================================
+
+            /**
+             * @brief Container untuk daftar ranking.
+             *
+             * @details Tinggi dinamis berdasarkan jumlah pemain dengan
+             * maksimum 170px.
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(rankings.length * 44 + 40, 170)
@@ -187,7 +371,9 @@ FocusScope {
                 border.color: Theme.borderPrimary
                 border.width: 1
 
-                // Header
+                /**
+                 * @brief Header "FINAL RANKINGS".
+                 */
                 Rectangle {
                     id: rankHeader
                     anchors.top: parent.top
@@ -214,6 +400,9 @@ FocusScope {
                     }
                 }
 
+                /**
+                 * @brief ListView untuk menampilkan ranking pemain.
+                 */
                 ListView {
                     anchors.top: rankHeader.bottom
                     anchors.left: parent.left
@@ -224,10 +413,18 @@ FocusScope {
 
                     model: rankings
 
+                    /**
+                     * @brief Delegate untuk setiap item ranking.
+                     *
+                     * @details Menampilkan:
+                     * - Medal posisi (gold/silver/bronze untuk top 3)
+                     * - Nama pemain (dengan tag "(You)" dan "(Left)")
+                     * - WPM, Accuracy, Errors, Duration
+                     */
                     delegate: Rectangle {
                         width: parent.width
                         height: 40
-                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : (modelData.hasLeft ? Qt.rgba(1, 0.8, 0.3, 0.1) : "transparent") // Yellow tint for left players
+                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : (modelData.hasLeft ? Qt.rgba(1, 0.8, 0.3, 0.1) : "transparent")
 
                         RowLayout {
                             anchors.left: parent.left
@@ -237,7 +434,15 @@ FocusScope {
                             anchors.rightMargin: 12
                             spacing: 8
 
-                            // Position medal
+                            /**
+                             * @brief Medal posisi dengan warna berdasarkan ranking.
+                             *
+                             * @details Warna:
+                             * - 1st: Gold (#FFD700)
+                             * - 2nd: Silver (#C0C0C0)
+                             * - 3rd: Bronze (#CD7F32)
+                             * - Lainnya: bgTertiary
+                             */
                             Rectangle {
                                 width: 24
                                 height: 24
@@ -265,7 +470,9 @@ FocusScope {
                                 }
                             }
 
-                            // Name
+                            /**
+                             * @brief Nama pemain dengan status.
+                             */
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " (Left)" : "")
@@ -277,7 +484,9 @@ FocusScope {
                                 elide: Text.ElideRight
                             }
 
-                            // WPM
+                            /**
+                             * @brief WPM pemain.
+                             */
                             Text {
                                 Layout.preferredWidth: 65
                                 text: modelData.wpm + " WPM"
@@ -287,7 +496,9 @@ FocusScope {
                                 font.bold: true
                             }
 
-                            // Accuracy
+                            /**
+                             * @brief Akurasi pemain.
+                             */
                             Text {
                                 Layout.preferredWidth: 50
                                 text: (modelData.accuracy !== undefined ? modelData.accuracy.toFixed(1) : "100.0") + "%"
@@ -296,7 +507,9 @@ FocusScope {
                                 font.pixelSize: Theme.fontSizeSM
                             }
 
-                            // Errors
+                            /**
+                             * @brief Jumlah error pemain.
+                             */
                             Text {
                                 Layout.preferredWidth: 40
                                 text: (modelData.errors !== undefined ? modelData.errors : 0) + " err"
@@ -305,7 +518,9 @@ FocusScope {
                                 font.pixelSize: Theme.fontSizeSM
                             }
 
-                            // Time - show actual race duration or "Left"
+                            /**
+                             * @brief Durasi atau status "Left".
+                             */
                             Text {
                                 Layout.preferredWidth: 50
                                 horizontalAlignment: Text.AlignRight
@@ -322,6 +537,9 @@ FocusScope {
                             }
                         }
 
+                        /**
+                         * @brief Garis pembatas antar item.
+                         */
                         Rectangle {
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
@@ -334,13 +552,23 @@ FocusScope {
                 }
             }
 
-            // Action buttons
+            //=================================================================
+            // ACTION BUTTONS - Tombol aksi
+            //=================================================================
+
+            /**
+             * @brief Row untuk tombol aksi.
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 32
                 spacing: Theme.spacingM
 
-                // Host: Play Again button
+                /**
+                 * @brief Tombol Play Again (hanya untuk host).
+                 *
+                 * @details Mengirim invite ke semua guest dan kembali ke lobby.
+                 */
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                     labelText: "Play Again"
@@ -352,7 +580,9 @@ FocusScope {
                     }
                 }
 
-                // Exit button (always visible)
+                /**
+                 * @brief Tombol Exit (selalu terlihat).
+                 */
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                     labelText: "Exit"
@@ -365,7 +595,16 @@ FocusScope {
         }
     }
 
-    // Play Again Invitation Popup (Guest only)
+    //=========================================================================
+    // PLAY AGAIN INVITATION POPUP - Popup invitation untuk guest
+    //=========================================================================
+
+    /**
+     * @brief Overlay popup untuk invitation play again.
+     *
+     * @details Hanya ditampilkan untuk guest saat host mengirim invite.
+     * Berisi tombol Accept dan Decline.
+     */
     Rectangle {
         id: invitePopup
         anchors.fill: parent
@@ -373,12 +612,17 @@ FocusScope {
         visible: showInvitePopup && !resultsPage.isHost
         z: 100
 
-        // Block clicks on background
+        /**
+         * @brief MouseArea untuk memblokir klik pada background.
+         */
         MouseArea {
             anchors.fill: parent
-            onClicked: {} // Absorb clicks
+            onClicked: {}  // Absorb clicks
         }
 
+        /**
+         * @brief Dialog box untuk invitation.
+         */
         Rectangle {
             anchors.centerIn: parent
             width: 380
@@ -391,11 +635,16 @@ FocusScope {
                 anchors.centerIn: parent
                 spacing: 24
 
-                // Icon and title
+                /**
+                 * @brief Ikon dan judul popup.
+                 */
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 12
 
+                    /**
+                     * @brief Container untuk ikon refresh.
+                     */
                     Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: 48
@@ -416,6 +665,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Judul popup "Play Again?".
+                     */
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Play Again?"
@@ -426,6 +678,9 @@ FocusScope {
                     }
                 }
 
+                /**
+                 * @brief Pesan invitation.
+                 */
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Host wants to start another race!"
@@ -434,10 +689,16 @@ FocusScope {
                     font.pixelSize: 16
                 }
 
+                /**
+                 * @brief Tombol Accept dan Decline.
+                 */
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 20
 
+                    /**
+                     * @brief Tombol Accept invitation.
+                     */
                     NavBtn {
                         labelText: "Accept"
                         variant: "primary"
@@ -449,6 +710,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Tombol Decline invitation.
+                     */
                     NavBtn {
                         labelText: "Decline"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
@@ -463,7 +727,15 @@ FocusScope {
         }
     }
 
-    // Game In Progress Popup (Late Join Attempt)
+    //=========================================================================
+    // GAME IN PROGRESS POPUP - Popup untuk late join
+    //=========================================================================
+
+    /**
+     * @brief Overlay popup untuk menginformasikan game sudah dimulai.
+     *
+     * @details Ditampilkan saat guest mencoba join padahal race sudah berjalan.
+     */
     Rectangle {
         id: gameInProgressPopupOverlay
         anchors.fill: parent
@@ -476,6 +748,9 @@ FocusScope {
             onClicked: {}
         }
 
+        /**
+         * @brief Dialog box untuk game in progress.
+         */
         Rectangle {
             anchors.centerIn: parent
             width: 380
@@ -489,11 +764,16 @@ FocusScope {
                 spacing: 24
                 width: parent.width - 40
 
-                // Icon and title
+                /**
+                 * @brief Ikon dan judul popup.
+                 */
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 12
 
+                    /**
+                     * @brief Container untuk ikon clock/warning.
+                     */
                     Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: 40
@@ -511,7 +791,10 @@ FocusScope {
                             source: clockIcon
                             color: Theme.accentRed
                         }
-                        // Fallback circle if icon missing (play again popup used refresh)
+
+                        /**
+                         * @brief Fallback lingkaran jika ikon tidak ditemukan.
+                         */
                         Rectangle {
                             anchors.fill: parent
                             radius: 20
@@ -530,6 +813,9 @@ FocusScope {
                         }
                     }
 
+                    /**
+                     * @brief Judul "Race Already Started".
+                     */
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Race Already Started"
@@ -540,6 +826,9 @@ FocusScope {
                     }
                 }
 
+                /**
+                 * @brief Pesan penjelasan.
+                 */
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: parent.width
@@ -551,6 +840,9 @@ FocusScope {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
+                /**
+                 * @brief Tombol OK untuk menutup popup.
+                 */
                 NavBtn {
                     anchors.horizontalCenter: parent.horizontalCenter
                     labelText: "OK"
@@ -558,7 +850,7 @@ FocusScope {
                     onClicked: {
                         resultsPage.showGameInProgressPopup = false;
                         resultsPage.showInvitePopup = false;
-                        NetworkManager.declinePlayAgain(); // Leave room
+                        NetworkManager.declinePlayAgain();  // Leave room
                         resultsPage.exitClicked();
                     }
                 }
@@ -566,29 +858,55 @@ FocusScope {
         }
     }
 
-    // Network connections for play again
+    //=========================================================================
+    // NETWORK CONNECTIONS - Handler untuk signal dari NetworkManager
+    //=========================================================================
+
+    /**
+     * @brief Connections untuk play again flow.
+     */
     Connections {
         target: NetworkManager
 
+        /**
+         * @brief Handler saat menerima invitation play again dari host.
+         */
         function onPlayAgainInviteReceived() {
             console.log("[RaceResultsPage] Received play again invite");
             resultsPage.showInvitePopup = true;
         }
 
+        /**
+         * @brief Handler saat game sudah in progress (late join).
+         */
         function onGameInProgress() {
             console.log("[RaceResultsPage] Game in progress - late join prevented");
-            resultsPage.showInvitePopup = false; // Hide invite popup if open
+            resultsPage.showInvitePopup = false;  // Hide invite popup if open
             resultsPage.showGameInProgressPopup = true;
         }
 
+        /**
+         * @brief Handler saat berhasil kembali ke lobby.
+         */
         function onReturnedToLobby() {
             console.log("[RaceResultsPage] Successfully returned to lobby - navigating");
             resultsPage.returnToLobbyClicked();
         }
     }
 
+    //=========================================================================
+    // KEYBOARD SHORTCUTS - Handler untuk shortcut keyboard
+    //=========================================================================
+
+    /**
+     * @brief Handler untuk keyboard shortcuts.
+     *
+     * @details Mapping:
+     * - ESC: Keluar (atau decline jika popup terbuka)
+     * - P: Play Again (host) atau Accept (guest dengan popup)
+     */
     Keys.onPressed: function (event) {
-        // ESC to exit (or decline when popup shown)
+        // ESC key: exit atau decline invite
         if (event.key === Qt.Key_Escape) {
             if (resultsPage.showInvitePopup) {
                 // Decline invite
@@ -601,7 +919,7 @@ FocusScope {
             return;
         }
 
-        // P for Play Again (host) or Accept (guest with popup)
+        // P untuk Play Again (host) atau Accept (guest dengan popup)
         if (event.key === Qt.Key_P) {
             if (showInvitePopup && !resultsPage.isHost) {
                 // Guest accepts invite

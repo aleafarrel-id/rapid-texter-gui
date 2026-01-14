@@ -102,7 +102,7 @@ Rectangle {
         // Subtitle
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: countdown > 0 ? "Bersiap!" : "Ketik!"
+            text: countdown > 0 ? "Get Ready!" : "Type!"
             color: Theme.textSecondary
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSizeXL

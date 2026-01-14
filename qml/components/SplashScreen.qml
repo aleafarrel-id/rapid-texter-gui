@@ -41,7 +41,7 @@ Rectangle {
     signal finished
 
     // Pesan loading
-    readonly property var loadingMessages: ["Menginisialisasi...", "Memuat resources...", "Menyiapkan antarmuka...", "Hampir siap..."]
+    readonly property var loadingMessages: ["Initializing...", "Loading resources...", "Preparing interface...", "Almost ready..."]
 
     // Timer tampilan minimum
     Timer {

@@ -1,6 +1,35 @@
 /**
  * @file GameBrowserPage.qml
- * @brief Auto-discovery game browser - scans network for available games.
+ * @brief Halaman browser game dengan auto-discovery untuk mencari game multiplayer.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
+ *
+ * @details Komponen ini menyediakan antarmuka untuk mencari dan bergabung
+ * ke permainan multiplayer yang tersedia di jaringan lokal.
+ *
+ * @par Fitur Utama:
+ * - Auto-discovery game di jaringan lokal via UDP broadcast
+ * - Daftar game yang ditemukan dengan info host dan status
+ * - Input manual IP untuk koneksi langsung
+ * - Indikator status koneksi (scanning/connecting)
+ * - Overlay error handling
+ *
+ * @par Proses Discovery:
+ * 1. Saat halaman dimuat, NetworkManager.startScanning() dipanggil
+ * 2. NetworkManager mengirim UDP broadcast ke jaringan lokal
+ * 3. Game yang ditemukan ditampilkan dalam ListView
+ * 4. User dapat double-click game untuk bergabung
+ * 5. Saat halaman di-destroy, scanning dihentikan
+ *
+ * @section shortcuts Pintasan Keyboard
+ * | Tombol | Aksi |
+ * |--------|------|
+ * | Escape | Kembali ke menu |
+ * | Ctrl+R | Refresh daftar game |
+ *
+ * @see NetworkManager Backend untuk discovery dan networking
+ * @see LobbyPage Halaman setelah berhasil bergabung
+ * @see MultiplayerMenuPage Menu multiplayer utama
  */
 import QtQuick
 import QtQuick.Layouts
@@ -8,29 +37,136 @@ import Qt5Compat.GraphicalEffects
 import rapid_texter
 import "../components"
 
+/**
+ * @brief Komponen halaman browser game multiplayer.
+ * @inherits FocusScope
+ *
+ * @details FocusScope ini berfungsi sebagai container utama untuk
+ * fitur discovery dan join game multiplayer. Menangani state
+ * scanning, connecting, dan error.
+ *
+ * @par Alur Penggunaan:
+ * 1. Halaman dimuat dan mulai scanning otomatis
+ * 2. Game yang ditemukan ditampilkan dalam list
+ * 3. User double-click game atau input IP manual
+ * 4. Loading overlay muncul saat connecting
+ * 5. Success: navigasi ke LobbyPage, Fail: tampilkan error
+ */
 FocusScope {
     id: gameBrowserPage
     focus: true
 
+    /* ========================================================================
+     * SIGNAL NAVIGASI
+     * ======================================================================== */
+
+    /**
+     * @signal gameSelected
+     * @brief Dipancarkan ketika user memilih game untuk bergabung.
+     * @param hostIp string IP address host game.
+     * @param port int Port untuk koneksi.
+     *
+     * @details Signal ini di-emit ketika:
+     * - User double-click game dalam list
+     * - User menekan Connect setelah input IP manual
+     *
+     * Parent component harus memanggil NetworkManager.joinGame().
+     */
     signal gameSelected(string hostIp, int port)
+
+    /**
+     * @signal joinSuccess
+     * @brief Dipancarkan ketika berhasil bergabung ke game.
+     *
+     * @details Signal ini di-emit oleh Connections handler saat
+     * NetworkManager.onJoinSucceeded() dipanggil. Parent harus
+     * menavigasi ke LobbyPage.
+     */
     signal joinSuccess
+
+    /**
+     * @signal backClicked
+     * @brief Dipancarkan ketika user menekan tombol kembali.
+     *
+     * @details Signal ini di-emit ketika:
+     * - User menekan tombol Escape
+     * - User mengklik tombol Back
+     */
     signal backClicked
 
+    /* ========================================================================
+     * PROPERTI STATE
+     * ======================================================================== */
+
+    /**
+     * @property isScanning
+     * @brief Menandakan apakah sedang mencari game.
+     * @type bool
+     *
+     * @details Binding dari NetworkManager.isScanning.
+     * Digunakan untuk menampilkan animasi scanning.
+     */
     property bool isScanning: NetworkManager.isScanning
+
+    /**
+     * @property isConnecting
+     * @brief Menandakan apakah sedang connecting ke game.
+     * @type bool
+     *
+     * @details Binding dari NetworkManager.isConnecting.
+     * Digunakan untuk menampilkan loading overlay.
+     */
     property bool isConnecting: NetworkManager.isConnecting
+
+    /**
+     * @property discoveredGames
+     * @brief Daftar game yang ditemukan.
+     * @type var (QVariantList)
+     *
+     * @details Setiap item berisi:
+     * - hostName: Nama host
+     * - hostIp: IP address host
+     * - port: Port game
+     * - playerCount: Jumlah pemain saat ini
+     * - maxPlayers: Maksimum pemain
+     * - status: "waiting" atau "playing"
+     */
     property var discoveredGames: NetworkManager.discoveredRooms
+
+    /**
+     * @property errorMsg
+     * @brief Pesan error saat koneksi gagal.
+     * @type string
+     * @default ""
+     *
+     * @details Jika tidak kosong, error overlay akan ditampilkan.
+     */
     property string errorMsg: ""
 
+    /**
+     * @brief Connections untuk signal dari NetworkManager.
+     *
+     * @details Menangani callback dari proses join:
+     * - onJoinFailed: Tampilkan error message
+     * - onJoinSucceeded: Emit signal joinSuccess
+     * - onConnectingChanged: Tampilkan/sembunyikan loading overlay
+     */
     Connections {
         target: NetworkManager
+
+        /// @brief Handler saat join gagal
         function onJoinFailed(reason) {
             errorMsg = reason;
             loadingOverlay.visible = false;
         }
+
+        /// @brief Handler saat join berhasil
         function onJoinSucceeded() {
             loadingOverlay.visible = false;
             gameBrowserPage.joinSuccess();
         }
+
+        /// @brief Handler saat status connecting berubah
         function onConnectingChanged() {
             if (NetworkManager.isConnecting) {
                 loadingOverlay.visible = true;
@@ -39,31 +175,56 @@ FocusScope {
         }
     }
 
+    /**
+     * @brief Handler inisialisasi saat komponen dimuat.
+     * @details Mulai scanning game otomatis.
+     */
     Component.onCompleted: {
         NetworkManager.startScanning();
     }
 
+    /**
+     * @brief Handler cleanup saat komponen di-destroy.
+     * @details Hentikan scanning untuk menghemat resource.
+     */
     Component.onDestruction: {
         NetworkManager.stopScanning();
     }
 
+    /// @brief Background halaman
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
         z: -100
     }
 
+    /**
+     * @brief Container utama untuk konten browser.
+     *
+     * @details Item ini berisi seluruh UI browser game,
+     * termasuk header, list game, tombol, dan input manual IP.
+     */
     Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.paddingHuge * 2, 550)
         height: contentCol.implicitHeight
 
+        /**
+         * @brief Layout kolom utama.
+         *
+         * @details ColumnLayout ini mengatur susunan vertikal dari:
+         * 1. Header "JOIN GAME"
+         * 2. Indikator scanning
+         * 3. List game yang ditemukan
+         * 4. Tombol Refresh dan Back
+         * 5. Input manual IP
+         */
         ColumnLayout {
             id: contentCol
             anchors.fill: parent
             spacing: 0
 
-            // Header
+            /// @brief Header halaman
             Text {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 12
@@ -75,12 +236,18 @@ FocusScope {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Scanning indicator
+            /**
+             * @brief Indikator status scanning.
+             *
+             * @details Menampilkan ikon globe berputar dan teks status
+             * saat sedang mencari game di jaringan.
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.bottomMargin: 20
                 spacing: 10
 
+                /// @brief Ikon scanning dengan animasi rotasi
                 Item {
                     width: 16
                     height: 16
@@ -110,6 +277,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Teks status scanning
                 Text {
                     text: isScanning ? "Scanning for games..." : "Scan complete"
                     color: Theme.textSecondary
@@ -118,7 +286,12 @@ FocusScope {
                 }
             }
 
-            // Games list container
+            /**
+             * @brief Container daftar game.
+             *
+             * @details Rectangle ini berisi header dan ListView
+             * untuk menampilkan game yang ditemukan.
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 220
@@ -126,7 +299,7 @@ FocusScope {
                 border.color: Theme.borderPrimary
                 border.width: 1
 
-                // Header
+                /// @brief Header daftar game
                 Rectangle {
                     id: listHeader
                     anchors.top: parent.top
@@ -145,7 +318,17 @@ FocusScope {
                     }
                 }
 
-                // Games list
+                /**
+                 * @brief ListView untuk daftar game.
+                 *
+                 * @details Menampilkan setiap game dengan:
+                 * - Ikon gamepad
+                 * - Nama host
+                 * - Jumlah pemain
+                 * - Status (Open/Playing)
+                 *
+                 * Double-click untuk bergabung ke game.
+                 */
                 ListView {
                     id: gamesListView
                     anchors.top: listHeader.bottom
@@ -158,6 +341,7 @@ FocusScope {
 
                     model: discoveredGames
 
+                    /// @brief Delegate untuk setiap game
                     delegate: Rectangle {
                         width: gamesListView.width
                         height: 50
@@ -168,7 +352,7 @@ FocusScope {
                             anchors.margins: 12
                             spacing: 12
 
-                            // Game icon
+                            /// @brief Ikon gamepad
                             Item {
                                 width: 20
                                 height: 20
@@ -186,7 +370,7 @@ FocusScope {
                                 }
                             }
 
-                            // Game info
+                            /// @brief Info game (nama host dan jumlah pemain)
                             Column {
                                 Layout.fillWidth: true
                                 spacing: 2
@@ -229,11 +413,17 @@ FocusScope {
                                 }
                             }
 
-                            // Status indicator (dot style - more subtle)
+                            /**
+                             * @brief Indikator status game.
+                             *
+                             * @details Dot berwarna + teks:
+                             * - Hijau "Open": Game bisa di-join
+                             * - Kuning "Playing": Game sedang berlangsung
+                             */
                             Row {
                                 spacing: 6
 
-                                // Status dot
+                                /// @brief Status dot dengan animasi pulse
                                 Rectangle {
                                     width: 8
                                     height: 8
@@ -241,7 +431,6 @@ FocusScope {
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: modelData.status === "waiting" ? Theme.accentGreen : Theme.accentYellow
 
-                                    // Pulsing animation for open games
                                     SequentialAnimation on opacity {
                                         running: modelData.status === "waiting"
                                         loops: Animation.Infinite
@@ -268,6 +457,7 @@ FocusScope {
                             }
                         }
 
+                        /// @brief Mouse area untuk double-click join
                         MouseArea {
                             id: mouseArea
                             anchors.fill: parent
@@ -279,7 +469,7 @@ FocusScope {
                             }
                         }
 
-                        // Bottom border
+                        /// @brief Border bawah
                         Rectangle {
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
@@ -290,7 +480,12 @@ FocusScope {
                         }
                     }
 
-                    // Empty state
+                    /**
+                     * @brief Empty state saat tidak ada game.
+                     *
+                     * @details Menampilkan ikon globe dan teks
+                     * saat daftar game kosong.
+                     */
                     Column {
                         anchors.centerIn: parent
                         spacing: 8
@@ -327,13 +522,18 @@ FocusScope {
                 }
             }
 
-            // Buttons row
+            /// @brief Baris tombol aksi
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 20
                 spacing: Theme.spacingM
 
-                // Refresh button with animation
+                /**
+                 * @brief Tombol Refresh dengan animasi.
+                 *
+                 * @details Tombol kuning untuk me-refresh daftar game.
+                 * Menampilkan animasi rotasi saat scanning aktif.
+                 */
                 Rectangle {
                     id: refreshBtn
                     width: 120
@@ -399,6 +599,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Tombol Back
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
                     labelText: "Back (ESC)"
@@ -406,7 +607,11 @@ FocusScope {
                 }
             }
 
-            // Manual IP fallback section
+            /* ================================================================
+             * INPUT MANUAL IP
+             * ================================================================ */
+
+            /// @brief Separator sebelum input manual
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 24
@@ -414,6 +619,7 @@ FocusScope {
                 color: Theme.borderSecondary
             }
 
+            /// @brief Teks instruksi input manual
             Text {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
@@ -424,11 +630,18 @@ FocusScope {
                 horizontalAlignment: Text.AlignHCenter
             }
 
+            /**
+             * @brief Baris input manual IP dan tombol Connect.
+             *
+             * @details Fallback untuk koneksi langsung jika
+             * auto-discovery tidak menemukan game.
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10
                 spacing: Theme.spacingM
 
+                /// @brief Container input IP
                 Rectangle {
                     width: 180
                     height: 36
@@ -447,6 +660,7 @@ FocusScope {
                         verticalAlignment: Text.AlignVCenter
                         selectByMouse: true
 
+                        /// @brief Placeholder text
                         Text {
                             anchors.fill: parent
                             text: "192.168.1.xxx"
@@ -464,6 +678,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Tombol Connect
                 NavBtn {
                     labelText: "Connect"
                     enabled: manualIpInput.text.length > 0
@@ -475,6 +690,15 @@ FocusScope {
         }
     }
 
+    /**
+     * @brief Handler untuk input keyboard.
+     *
+     * @details Menangani pintasan keyboard:
+     * - Escape: Kembali ke menu
+     * - Ctrl+R: Refresh daftar game
+     *
+     * @param event KeyEvent yang berisi informasi tombol yang ditekan.
+     */
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
             gameBrowserPage.backClicked();
@@ -484,7 +708,17 @@ FocusScope {
             event.accepted = true;
         }
     }
-    // Loading Overlay
+
+    /* ========================================================================
+     * OVERLAY LOADING
+     * ======================================================================== */
+
+    /**
+     * @brief Overlay loading saat connecting.
+     *
+     * @details Menampilkan animasi loading dan teks "Connecting..."
+     * saat sedang mencoba bergabung ke game.
+     */
     Rectangle {
         id: loadingOverlay
         anchors.fill: parent
@@ -496,6 +730,7 @@ FocusScope {
             anchors.centerIn: parent
             spacing: 20
 
+            /// @brief Ikon loading berputar
             Item {
                 width: 48
                 height: 48
@@ -525,6 +760,7 @@ FocusScope {
                 }
             }
 
+            /// @brief Teks "Connecting..."
             Text {
                 text: "Connecting..."
                 color: Theme.textPrimary
@@ -536,7 +772,16 @@ FocusScope {
         }
     }
 
-    // Error Overlay
+    /* ========================================================================
+     * OVERLAY ERROR
+     * ======================================================================== */
+
+    /**
+     * @brief Overlay error saat koneksi gagal.
+     *
+     * @details Menampilkan dialog dengan pesan error dan tombol Close.
+     * Visible jika errorMsg tidak kosong.
+     */
     Rectangle {
         id: errorOverlay
         anchors.fill: parent
@@ -544,6 +789,7 @@ FocusScope {
         z: 100
         visible: errorMsg !== ""
 
+        /// @brief Dialog box error
         Rectangle {
             width: 400
             height: 200
@@ -557,6 +803,7 @@ FocusScope {
                 anchors.margins: 24
                 spacing: 16
 
+                /// @brief Judul error
                 Text {
                     Layout.fillWidth: true
                     text: "Connection Failed"
@@ -567,6 +814,7 @@ FocusScope {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
+                /// @brief Pesan error
                 Text {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -579,6 +827,7 @@ FocusScope {
                     verticalAlignment: Text.AlignVCenter
                 }
 
+                /// @brief Tombol Close
                 NavBtn {
                     Layout.alignment: Qt.AlignHCenter
                     labelText: "Close"

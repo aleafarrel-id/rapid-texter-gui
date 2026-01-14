@@ -1,20 +1,37 @@
 /**
  * @file GameplayPage.qml
- * @brief Core typing game interface with real-time character tracking.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Halaman utama permainan mengetik dengan pelacakan karakter real-time.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * The GameplayPage provides the main typing experience:
- * - Real-time character-by-character input tracking
- * - Visual feedback for correct/incorrect characters
- * - Blinking cursor animation
- * - Timer countdown
- * - Backspace support with skip logic
- * - CAPS LOCK warning
+ * @details Komponen ini menyediakan pengalaman mengetik utama dengan fitur:
+ * - Pelacakan input karakter per karakter secara real-time
+ * - Feedback visual untuk karakter benar/salah
+ * - Animasi kursor berkedip
+ * - Countdown timer atau mode infinity
+ * - Dukungan backspace dengan logika skip
+ * - Peringatan CAPS LOCK aktif
  *
- * @section architecture Architecture
- * Uses a hidden TextInput for keyboard capture and a Flow/Repeater
- * for character-level rendering with per-character styling.
+ * @par Arsitektur:
+ * Menggunakan TextInput tersembunyi untuk menangkap keyboard dan
+ * Flow/Repeater untuk rendering karakter dengan styling per karakter.
+ * Setiap karakter di-render sebagai Text element terpisah untuk
+ * kontrol warna yang presisi.
+ *
+ * @par Metrik Performa:
+ * - WPM: Words Per Minute = (correctChars / 5) / (time in minutes)
+ * - Accuracy: (correctChars / totalKeystrokes) * 100%
+ *
+ * @section shortcuts Pintasan Keyboard
+ * | Tombol | Aksi |
+ * |--------|------|
+ * | TAB | Reset permainan |
+ * | Escape | Keluar dari permainan |
+ * | Backspace | Hapus karakter (dengan batasan) |
+ *
+ * @see ResultsPage Halaman hasil setelah permainan selesai
+ * @see GameBackend Backend untuk logika permainan dan audio
+ * @see TextProvider Penyedia teks berdasarkan bahasa
  */
 import QtQuick
 import QtQuick.Controls
@@ -24,14 +41,27 @@ import rapid_texter
 import "../components"
 
 /**
- * @brief Core gameplay page with typing mechanics.
+ * @brief Komponen halaman gameplay utama dengan mekanik mengetik.
  * @inherits FocusScope
+ *
+ * @details FocusScope ini berfungsi sebagai container utama untuk permainan.
+ * Menggunakan FocusScope untuk menangani delegate fokus ke TextInput tersembunyi.
+ *
+ * @par Alur Permainan:
+ * 1. Halaman dimuat dengan targetText dari parent
+ * 2. User mulai mengetik (gameStarted = true, timer dimulai)
+ * 3. Setiap karakter dicek benar/salah dengan feedback visual
+ * 4. Game selesai saat: semua karakter diketik ATAU waktu habis
+ * 5. Signal gameCompleted di-emit dengan statistik
  */
 FocusScope {
     id: gameplayPage
     focus: true
 
-    /** @brief Background rectangle for consistent theming. */
+    /**
+     * @brief Background rectangle untuk konsistensi tema.
+     * @details Menggunakan z-index rendah agar konten tampil di atasnya.
+     */
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -39,61 +69,210 @@ FocusScope {
     }
 
     /* ========================================================================
-     * PROPERTIES - Game State
+     * PROPERTI - State Permainan
      * ======================================================================== */
 
-    /** @property targetText @brief The text the user must type. */
+    /**
+     * @property targetText
+     * @brief Teks target yang harus diketik user.
+     * @type string
+     *
+     * @details Teks ini di-set oleh parent component dari TextProvider.
+     * Panjang teks menentukan durasi dan kesulitan permainan.
+     */
     property string targetText: "darah salah tidak mulut ada di situ berbunyi melihat sekali"
 
-    /** @property typedChars @brief Array of typed characters for reactivity. */
+    /**
+     * @property typedChars
+     * @brief Array karakter yang sudah diketik untuk reaktivitas.
+     * @type var (Array)
+     *
+     * @details Menggunakan array (bukan string) untuk memastikan
+     * QML mendeteksi perubahan dan memperbarui UI.
+     * cursorPosition dihitung dari length array ini.
+     */
     property var typedChars: []
 
-    /** @property typedText @brief Joined string for backward compatibility. */
+    /**
+     * @property typedText
+     * @brief String gabungan untuk backward compatibility.
+     * @type string
+     *
+     * @details Dihitung dari typedChars.join("").
+     */
     property string typedText: typedChars.join("")
 
-    // Current cursor position - ALWAYS equals typedChars.length to prevent desync
+    /**
+     * @property cursorPosition
+     * @brief Posisi kursor saat ini.
+     * @type int
+     *
+     * @details SELALU sama dengan typedChars.length untuk mencegah desync.
+     * Properti ini computed, bukan di-set manual.
+     */
     property int cursorPosition: typedChars.length
 
-    // Time remaining (seconds), -1 for unlimited
+    /**
+     * @property timeRemaining
+     * @brief Waktu tersisa dalam detik, -1 untuk unlimited.
+     * @type int
+     * @default 15
+     */
     property int timeRemaining: 15
 
-    // Time limit (for display)
+    /**
+     * @property timeLimit
+     * @brief Batas waktu untuk tampilan dan logika timer.
+     * @type int
+     * @default 15
+     *
+     * @details Jika <= 0, mode infinity aktif (waktu tidak terbatas).
+     */
     property int timeLimit: 15
 
-    // Is game started?
+    /**
+     * @property gameStarted
+     * @brief Menandakan apakah permainan sudah dimulai.
+     * @type bool
+     * @default false
+     *
+     * @details Menjadi true saat user mengetik karakter pertama.
+     */
     property bool gameStarted: false
 
-    // Is caps lock on?
+    /**
+     * @property capsLockOn
+     * @brief Menandakan apakah CAPS LOCK aktif.
+     * @type bool
+     * @default false
+     *
+     * @details Di-poll setiap 200ms dari GameBackend.
+     */
     property bool capsLockOn: false
 
-    // Game statistics
+    /* ========================================================================
+     * PROPERTI - Statistik Permainan
+     * ======================================================================== */
+
+    /**
+     * @property correctChars
+     * @brief Jumlah karakter yang diketik dengan benar.
+     * @type int
+     * @default 0
+     */
     property int correctChars: 0
+
+    /**
+     * @property incorrectChars
+     * @brief Jumlah karakter yang diketik dengan salah.
+     * @type int
+     * @default 0
+     */
     property int incorrectChars: 0
-    property int totalKeystrokes: 0  // Every keystroke (not backspace)
-    property real startTime: 0  // Timestamp when game started
-    property bool gameEnded: false  // Prevent double gameCompleted signals
-    property int elapsedTime: 0  // Elapsed time in seconds for infinity mode
 
-    // Per-position tracking to prevent double counting (MonkeyType standard)
-    property var correctPositions: ({})  // Track positions already counted as correct
-    property var errorPositions: ({})    // Track positions already counted as error
+    /**
+     * @property totalKeystrokes
+     * @brief Total keystroke (tidak termasuk backspace).
+     * @type int
+     * @default 0
+     */
+    property int totalKeystrokes: 0
 
-    // ========================================================================
-    // SIGNALS
-    // ========================================================================
+    /**
+     * @property startTime
+     * @brief Timestamp saat permainan dimulai.
+     * @type real
+     * @default 0
+     */
+    property real startTime: 0
 
+    /**
+     * @property gameEnded
+     * @brief Mencegah double signal gameCompleted.
+     * @type bool
+     * @default false
+     */
+    property bool gameEnded: false
+
+    /**
+     * @property elapsedTime
+     * @brief Waktu yang berlalu dalam detik (untuk mode infinity).
+     * @type int
+     * @default 0
+     */
+    property int elapsedTime: 0
+
+    /**
+     * @property correctPositions
+     * @brief Tracking posisi yang sudah dihitung benar (standar MonkeyType).
+     * @type var (Object)
+     *
+     * @details Mencegah double counting saat: ketik benar → backspace → ketik benar lagi.
+     */
+    property var correctPositions: ({})
+
+    /**
+     * @property errorPositions
+     * @brief Tracking posisi yang sudah dihitung error.
+     * @type var (Object)
+     *
+     * @details Mencegah double counting saat: ketik salah → backspace → ketik salah lagi.
+     */
+    property var errorPositions: ({})
+
+    /* ========================================================================
+     * SIGNAL
+     * ======================================================================== */
+
+    /**
+     * @signal gameCompleted
+     * @brief Dipancarkan ketika permainan selesai.
+     * @param wpm int Words per minute
+     * @param accuracy real Persentase akurasi
+     * @param errors int Jumlah kesalahan
+     * @param timeElapsed real Waktu yang dihabiskan dalam detik
+     *
+     * @details Signal ini di-emit ketika:
+     * - Semua karakter berhasil diketik
+     * - Waktu habis (mode countdown)
+     */
     signal gameCompleted(int wpm, real accuracy, int errors, real timeElapsed)
+
+    /**
+     * @signal resetClicked
+     * @brief Dipancarkan ketika user menekan TAB untuk reset.
+     */
     signal resetClicked
+
+    /**
+     * @signal exitClicked
+     * @brief Dipancarkan ketika user menekan ESC untuk keluar.
+     */
     signal exitClicked
 
-    // ========================================================================
-    // FUNCTIONS
-    // ========================================================================
+    /* ========================================================================
+     * FUNGSI HELPER
+     * ======================================================================== */
 
-    // Split target text into words for proper wrapping
+    /**
+     * @property words
+     * @brief Array kata-kata dari targetText yang di-split.
+     * @type var (Array)
+     *
+     * @details Digunakan untuk membangun wordInfo untuk rendering
+     * kata per kata sehingga word-wrap berfungsi dengan benar.
+     */
     property var words: targetText.split(" ")
 
-    // Build word info array with start/end indices
+    /**
+     * @brief Membangun array info kata dengan indeks start/end.
+     * @return Array objek dengan properti: word, startIndex, endIndex
+     *
+     * @details Setiap objek dalam array berisi:
+     * - word: string kata itu sendiri
+     * - startIndex: posisi karakter pertama dalam targetText
+     * - endIndex: posisi karakter terakhir dalam targetText
+     */
     function buildWordInfo() {
         var result = [];
         var currentIndex = 0;
@@ -108,11 +287,26 @@ FocusScope {
         return result;
     }
 
+    /**
+     * @property wordInfo
+     * @brief Array hasil dari buildWordInfo().
+     * @type var (Array)
+     */
     property var wordInfo: buildWordInfo()
 
+    /**
+     * @brief Mendapatkan state karakter pada posisi tertentu.
+     * @param index int Posisi karakter dalam targetText.
+     * @return string State: "correct", "incorrect", "current", atau "pending"
+     *
+     * @details State menentukan warna dan styling karakter:
+     * - correct: Sudah diketik dengan benar (warna primer)
+     * - incorrect: Sudah diketik tapi salah (warna merah)
+     * - current: Posisi kursor saat ini (muted + caret)
+     * - pending: Belum diketik (muted)
+     */
     function getCharState(index) {
         if (index < cursorPosition) {
-            // Already typed - check against typed array
             if (index < typedChars.length) {
                 var typedChar = typedChars[index];
                 var targetChar = targetText.charAt(index);
@@ -122,7 +316,7 @@ FocusScope {
                     return "incorrect";
                 }
             } else {
-                return "pending";  // Cursor moved but no char typed (shouldn't happen)
+                return "pending";
             }
         } else if (index === cursorPosition) {
             return "current";
@@ -131,7 +325,12 @@ FocusScope {
         }
     }
 
-    // Find the start of the current word being typed
+    /**
+     * @brief Mencari posisi awal kata yang sedang diketik.
+     * @return int Posisi karakter awal dari kata saat ini.
+     *
+     * @details Digunakan untuk menentukan batas backspace.
+     */
     function findCurrentWordStart() {
         for (var i = 0; i < wordInfo.length; i++) {
             if (cursorPosition >= wordInfo[i].startIndex && cursorPosition <= wordInfo[i].endIndex + 1) {
@@ -141,18 +340,23 @@ FocusScope {
         return cursorPosition;
     }
 
-    // Check if we can delete (can't delete previous correctly completed words)
+    /**
+     * @brief Memeriksa apakah backspace diizinkan pada posisi saat ini.
+     * @return bool True jika boleh hapus, false jika tidak.
+     *
+     * @details Logika penghapusan (matching GameEngine.cpp TUI):
+     * - Tidak bisa menghapus jika kursor di posisi 0
+     * - Tidak bisa menghapus kata yang sudah benar sepenuhnya
+     * - Checkpoint dibuat di setiap spasi yang benar
+     */
     function canDeleteAtPosition() {
         if (cursorPosition <= 0)
             return false;
 
-        // Calculate locked limit (matching TUI logic from GameEngine.cpp)
         var lockedLimit = 0;
 
-        // Find the nearest checkpoint (previous word that's completely correct)
         for (var i = cursorPosition - 1; i >= 0; i--) {
             if (i < targetText.length && targetText.charAt(i) === " ") {
-                // Found a space, check if everything up to this point is correct
                 var allCorrect = true;
                 if (i < typedChars.length) {
                     for (var k = 0; k <= i; k++) {
@@ -169,21 +373,24 @@ FocusScope {
             }
         }
 
-        // Can only delete if above the lock limit
         return cursorPosition > lockedLimit;
     }
 
-    // Calculate game results (matching original TUI logic from Stats.h)
+    /**
+     * @brief Menghitung hasil permainan (WPM, akurasi, waktu).
+     * @return Object dengan properti: wpm, accuracy, timeElapsed
+     *
+     * @details Formula perhitungan (sesuai Stats.h original):
+     * - WPM = (correctChars / 5) / (time in minutes)
+     * - Accuracy = (correctChars / totalKeystrokes) * 100
+     * - 5 karakter = 1 kata (standar industri)
+     */
     function calculateResults() {
         var elapsedSeconds = (Date.now() - startTime) / 1000;
         if (elapsedSeconds <= 0)
-            elapsedSeconds = 1;  // Avoid division by zero
+            elapsedSeconds = 1;
 
-        // WPM = (correctKeystrokes / 5) / (time in minutes)
-        // Standard: 5 characters = 1 word
         var wpm = (correctChars / 5) / (elapsedSeconds / 60);
-
-        // Accuracy = correctKeystrokes / totalKeystrokes * 100 (per original Stats.h)
         var accuracy = totalKeystrokes > 0 ? (correctChars / totalKeystrokes) * 100 : 0;
 
         return {
@@ -193,147 +400,180 @@ FocusScope {
         };
     }
 
+    /**
+     * @brief Memproses keystroke dari user.
+     * @param key int Kode key (tidak digunakan, untuk compatibility).
+     * @param text string Karakter yang diketik.
+     *
+     * @details Alur pemrosesan:
+     * 1. Jika game belum mulai, mulai timer dan catat startTime
+     * 2. Tambahkan karakter ke typedChars
+     * 3. Cek apakah karakter benar atau salah
+     * 4. Update statistik (dengan mencegah double counting)
+     * 5. Play error sound jika salah
+     * 6. Cek apakah game selesai
+     */
     function processKey(key, text) {
         if (!gameStarted && text.length > 0) {
             gameStarted = true;
-            startTime = Date.now();  // Record start time
+            startTime = Date.now();
         }
 
-        // cursorPosition is computed from typedChars.length, so save current position before push
         var positionBeforePush = cursorPosition;
 
         if (text.length > 0 && positionBeforePush < targetText.length) {
-            // Add character to array - this automatically updates cursorPosition
-            var newTypedChars = typedChars.slice();  // Create copy
+            var newTypedChars = typedChars.slice();
             newTypedChars.push(text);
-            typedChars = newTypedChars;  // Trigger property change, cursorPosition now = length
+            typedChars = newTypedChars;
 
-            totalKeystrokes++;  // Count every keystroke (per original logic)
+            totalKeystrokes++;
 
-            // Compare against position BEFORE the push (not the new cursorPosition)
             if (text === targetText.charAt(positionBeforePush)) {
-                // Only count correct if this position hasn't been counted before
-                // Prevents double counting when: type correct → backspace → type correct again
                 if (!correctPositions[positionBeforePush]) {
                     var newCorrectPositions = Object.assign({}, correctPositions);
                     newCorrectPositions[positionBeforePush] = true;
                     correctPositions = newCorrectPositions;
                     correctChars++;
                 }
-                // No sound on correct keystroke (per user request)
             } else {
-                // Only count error if this position hasn't had an error before
-                // Prevents double counting when: type wrong → backspace → type wrong again
                 if (!errorPositions[positionBeforePush]) {
                     var newErrorPositions = Object.assign({}, errorPositions);
                     newErrorPositions[positionBeforePush] = true;
                     errorPositions = newErrorPositions;
                     incorrectChars++;
                 }
-                GameBackend.playErrorSound();    // Play SFX for incorrect keystroke
+                GameBackend.playErrorSound();
             }
-            // NOTE: cursorPosition++ removed - it's now computed from typedChars.length
 
-            // Check if completed (cursorPosition is already updated since we pushed)
             if (cursorPosition >= targetText.length && !gameEnded) {
-                gameEnded = true;  // Prevent double firing
+                gameEnded = true;
                 var results = calculateResults();
                 gameCompleted(results.wpm, results.accuracy, incorrectChars, results.timeElapsed);
             }
         }
     }
 
+    /**
+     * @brief Mereset game ke state awal.
+     *
+     * @details Reset semua state:
+     * - typedChars menjadi array kosong
+     * - Semua counter statistik menjadi 0
+     * - Timer direset
+     * - Game flags direset
+     */
     function resetGame() {
-        typedChars = [];  // Reset array - cursorPosition automatically becomes 0
+        typedChars = [];
         correctChars = 0;
         incorrectChars = 0;
         totalKeystrokes = 0;
-        correctPositions = {};  // Reset per-position tracking
-        errorPositions = {};    // Reset per-position tracking
+        correctPositions = {};
+        errorPositions = {};
         gameStarted = false;
-        gameEnded = false;  // Reset the flag
+        gameEnded = false;
         startTime = 0;
         timeRemaining = timeLimit;
-        elapsedTime = 0;  // Reset elapsed time for infinity mode
+        elapsedTime = 0;
     }
 
-    // ========================================================================
-    // KEY HANDLING
-    // ========================================================================
+    /* ========================================================================
+     * PENANGANAN INPUT
+     * ======================================================================== */
 
-    // Hidden input to capture text and trigger virtual keyboard
+    /**
+     * @brief TextInput tersembunyi untuk menangkap keyboard.
+     *
+     * @details Komponen ini berfungsi sebagai "keyboard trap":
+     * - Visible tapi opacity 0 (harus visible untuk menerima focus)
+     * - Ukuran 0x0 untuk minimize footprint
+     * - Menangkap semua keystroke dan forward ke processKey()
+     * - Menangani tombol khusus (Tab, Escape, Backspace)
+     *
+     * @note Pada mobile, ini juga trigger virtual keyboard.
+     */
     TextInput {
         id: inputHandler
-        visible: true  // Must be visible to receive focus
-        opacity: 0     // Hide visually
+        visible: true
+        opacity: 0
         width: 0
-        height: 0 // Minimize footprint
-        focus: true    // Auto-focus handled by FocusScope delegation!
+        height: 0
+        focus: true
         enabled: true
-        activeFocusOnTab: false // Avoid tab stealing focus accidentally
+        activeFocusOnTab: false
 
-        // Keep focus (Backup)
+        /// @brief Paksa focus kembali jika hilang saat halaman aktif
         onFocusChanged: {
             if (!focus && StackView.status === StackView.Active) {
-                // If we lose focus while active, try to grab it back
                 forceActiveFocus();
             }
         }
 
-        // Handle special keys
+        /**
+         * @brief Handler untuk tombol khusus.
+         *
+         * @details Menangani:
+         * - Tab: Reset game dan emit signal
+         * - Escape: Exit game
+         * - Backspace: Hapus karakter (dengan validasi)
+         */
         Keys.onPressed: function (event) {
             if (event.key === Qt.Key_Tab) {
                 resetGame();
                 resetClicked();
                 event.accepted = true;
             } else if (event.key === Qt.Key_Escape) {
-                // resetGame() removed to prevent UI freeze/lag on exit (destruction handles cleanup)
                 exitClicked();
                 event.accepted = true;
             } else if (event.key === Qt.Key_Backspace) {
                 if (canDeleteAtPosition()) {
-                    // Remove last character from array - cursorPosition automatically decrements
                     var newTypedChars = typedChars.slice(0, -1);
                     typedChars = newTypedChars;
-                    // NOTE: cursorPosition-- removed - it's computed from typedChars.length
                 }
                 event.accepted = true;
             }
-        // Let normal text flow to onTextEdited
         }
 
+        /// @brief Handler saat teks diedit (karakter biasa)
         onTextEdited: {
-            // Processing input character by character
-            // We only care about the last character typed if it's an addition
-            // But since we clear it immediately, 'text' is the new char
-
             if (text.length > 0) {
-                // Iterate over all chars (in case of fast typing/paste)
                 for (var i = 0; i < text.length; i++) {
                     var charCode = text[i];
-                    if (charCode !== '\r' && charCode !== '\n') { // Ignore newlines
+                    if (charCode !== '\r' && charCode !== '\n') {
                         processKey(0, charCode);
                     }
                 }
-                // Clear input to keep it ready for next char
                 text = "";
             }
         }
     }
 
-    // Also try to focus on click
+    /**
+     * @brief MouseArea untuk menangkap klik dan focus input.
+     *
+     * @details Klik di mana saja pada halaman akan memaksa
+     * fokus ke inputHandler untuk memulai mengetik.
+     */
     MouseArea {
         anchors.fill: parent
-        z: -10 // Background click
+        z: -10
         onClicked: {
             inputHandler.forceActiveFocus();
         }
     }
 
-    // ========================================================================
-    // TIMER
-    // ========================================================================
+    /* ========================================================================
+     * TIMER
+     * ======================================================================== */
 
+    /**
+     * @brief Timer countdown untuk mode waktu terbatas.
+     *
+     * @details Timer ini aktif saat:
+     * - gameStarted = true
+     * - timeRemaining > 0
+     *
+     * Saat waktu habis, gameCompleted signal di-emit.
+     */
     Timer {
         id: gameTimer
         interval: 1000
@@ -343,8 +583,7 @@ FocusScope {
             if (gameplayPage.timeRemaining > 0) {
                 gameplayPage.timeRemaining--;
                 if (gameplayPage.timeRemaining === 0 && !gameplayPage.gameEnded) {
-                    // Time's up!
-                    gameplayPage.gameEnded = true;  // Prevent double firing
+                    gameplayPage.gameEnded = true;
                     var results = gameplayPage.calculateResults();
                     gameplayPage.gameCompleted(results.wpm, results.accuracy, gameplayPage.incorrectChars, results.timeElapsed);
                 }
@@ -352,7 +591,12 @@ FocusScope {
         }
     }
 
-    // Elapsed time timer: counts UP for infinity mode (when timeLimit <= 0)
+    /**
+     * @brief Timer elapsed untuk mode infinity (waktu tidak terbatas).
+     *
+     * @details Timer ini hitung naik saat timeLimit <= 0.
+     * Digunakan untuk menampilkan berapa lama user sudah mengetik.
+     */
     Timer {
         id: elapsedTimer
         interval: 1000
@@ -363,11 +607,16 @@ FocusScope {
         }
     }
 
-    // ========================================================================
-    // UI LAYOUT
-    // ========================================================================
+    /* ========================================================================
+     * UI LAYOUT
+     * ======================================================================== */
 
-    // Timer to poll CAPS LOCK state
+    /**
+     * @brief Timer untuk polling state CAPS LOCK.
+     *
+     * @details Memeriksa status CAPS LOCK setiap 200ms.
+     * Jika aktif, warning box akan ditampilkan.
+     */
     Timer {
         id: capsLockTimer
         interval: 200
@@ -376,23 +625,41 @@ FocusScope {
         onTriggered: capsLockOn = GameBackend.isCapsLockOn()
     }
 
+    /**
+     * @brief Container utama untuk konten permainan.
+     *
+     * @details Item ini centered di parent dan berisi:
+     * - Timer display
+     * - Text display area
+     * - CAPS LOCK warning
+     * - Statistics row
+     * - Navigation buttons
+     * - Instruction hint
+     */
     Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.paddingHuge * 2, 1000)
         height: gameCol.implicitHeight
 
+        /// @brief Layout kolom utama
         ColumnLayout {
             id: gameCol
             anchors.fill: parent
             spacing: 0
 
-            // Timer Display Row
+            /**
+             * @brief Baris tampilan timer.
+             *
+             * @details Menampilkan:
+             * - Mode countdown: Waktu tersisa (biru)
+             * - Mode infinity: Ikon infinity atau waktu elapsed (hijau)
+             */
             RowLayout {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 10
                 spacing: Theme.spacingL
 
-                // Countdown mode: show remaining time (blue)
+                /// @brief Waktu tersisa (mode countdown)
                 Text {
                     Layout.leftMargin: 48
                     visible: gameplayPage.timeLimit > 0
@@ -403,7 +670,7 @@ FocusScope {
                     font.weight: Font.DemiBold
                 }
 
-                // Infinity mode: show infinity icon when elapsedTime is 0
+                /// @brief Ikon infinity (mode infinity, elapsed = 0)
                 Item {
                     Layout.leftMargin: 48
                     visible: gameplayPage.timeLimit <= 0 && gameplayPage.elapsedTime === 0
@@ -421,55 +688,72 @@ FocusScope {
                     ColorOverlay {
                         anchors.fill: infinityIcon
                         source: infinityIcon
-                        color: Theme.accentGreen  // Green color for infinity mode
+                        color: Theme.accentGreen
                     }
                 }
 
-                // Infinity mode: show elapsed time when >= 1 (green)
+                /// @brief Waktu elapsed (mode infinity, > 0)
                 Text {
                     Layout.leftMargin: 48
                     visible: gameplayPage.timeLimit <= 0 && gameplayPage.elapsedTime > 0
                     text: gameplayPage.elapsedTime
-                    color: Theme.accentGreen  // Green color for infinity mode
+                    color: Theme.accentGreen
                     font.family: Theme.fontFamily
                     font.pixelSize: 32
                     font.weight: Font.DemiBold
                 }
 
+                /// @brief Spacer
                 Item {
                     Layout.fillWidth: true
-                }  // Spacer
+                }
             }
 
-            // Text Display (borderless for clean monkeytype-like look)
+            /**
+             * @brief Area tampilan teks target.
+             *
+             * @details Menampilkan teks yang harus diketik dengan:
+             * - Warna berbeda untuk correct/incorrect/pending
+             * - Kursor berkedip pada posisi saat ini
+             * - Background merah untuk karakter salah
+             * - Word-wrap yang tepat (tidak memotong kata)
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: textFlow.implicitHeight + 96
                 color: "transparent"
 
+                /**
+                 * @brief Flow container untuk kata-kata.
+                 *
+                 * @details Menggunakan Flow + Repeater untuk word-wrap:
+                 * - Setiap kata adalah Row yang tidak dipotong
+                 * - Spasi ditampilkan secara eksplisit antar kata
+                 */
                 Flow {
                     id: textFlow
                     anchors.fill: parent
                     anchors.margins: 48
-                    spacing: 0 // No horizontal gap, spaces are explicit
+                    spacing: 0
 
                     Repeater {
                         model: gameplayPage.wordInfo.length
 
-                        // Each word is a Row that won't be broken
+                        /// @brief Row untuk setiap kata (tidak dipotong)
                         Row {
                             id: wordRow
                             spacing: 0
-                            height: 48 // Font 28 + 20px vertical gap
+                            height: 48
 
                             property int wordIndex: index
                             property var wordData: gameplayPage.wordInfo[index]
-                            // Space position is right after the word ends
                             property int spaceIndex: wordData.endIndex + 1
 
+                            /// @brief Repeater untuk setiap karakter dalam kata
                             Repeater {
                                 model: wordData.word.length
 
+                                /// @brief Elemen teks untuk satu karakter
                                 Text {
                                     id: charText
 
@@ -496,7 +780,7 @@ FocusScope {
                                         }
                                     }
 
-                                    // Background for incorrect chars - fixed height
+                                    /// @brief Background merah untuk karakter salah
                                     Rectangle {
                                         anchors.left: parent.left
                                         anchors.right: parent.right
@@ -506,7 +790,7 @@ FocusScope {
                                         z: -1
                                     }
 
-                                    // Caret cursor (vertical bar)
+                                    /// @brief Kursor caret (garis vertikal biru)
                                     Rectangle {
                                         visible: charText.charState === "current"
                                         anchors.left: parent.left
@@ -532,17 +816,20 @@ FocusScope {
                                 }
                             }
 
-                            // Space character after word (except for last word)
-                            // Shows actual typed char when incorrect for better UX
+                            /**
+                             * @brief Karakter spasi setelah kata.
+                             *
+                             * @details Spasi ditampilkan eksplisit:
+                             * - Jika salah, tampilkan karakter yang diketik (merah)
+                             * - Memiliki kursor jika pada posisi saat ini
+                             */
                             Text {
                                 id: spaceText
                                 visible: wordRow.wordIndex < gameplayPage.wordInfo.length - 1
 
                                 property int globalIndex: wordRow.spaceIndex
                                 property string charState: gameplayPage.getCharState(globalIndex)
-                                // Get the actual character typed at this position
                                 property string typedChar: globalIndex < gameplayPage.typedChars.length ? gameplayPage.typedChars[globalIndex] : ""
-                                // Show the typed char if incorrect, otherwise show space
                                 property string displayChar: charState === "incorrect" && typedChar.length > 0 ? typedChar : " "
 
                                 text: displayChar
@@ -550,10 +837,9 @@ FocusScope {
                                 font.pixelSize: 28
                                 font.letterSpacing: 0.5
 
-                                // Red color when incorrect
                                 color: charState === "incorrect" ? Theme.accentRed : Theme.textMuted
 
-                                // Background for incorrect space
+                                /// @brief Background merah untuk spasi salah
                                 Rectangle {
                                     visible: spaceText.charState === "incorrect"
                                     anchors.left: parent.left
@@ -564,7 +850,7 @@ FocusScope {
                                     z: -1
                                 }
 
-                                // Caret cursor at space position
+                                /// @brief Kursor pada posisi spasi
                                 Rectangle {
                                     visible: spaceText.charState === "current"
                                     anchors.left: parent.left
@@ -593,7 +879,12 @@ FocusScope {
                 }
             }
 
-            // CAPS LOCK Warning - compact, centered, no animation
+            /**
+             * @brief Warning box saat CAPS LOCK aktif.
+             *
+             * @details Menampilkan box kuning dengan teks "CAPS LOCK ON"
+             * saat capsLockOn = true. Membantu user menyadari masalah.
+             */
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: capsLockOn ? capsLockBox.height + 16 : 0
@@ -622,13 +913,20 @@ FocusScope {
                 }
             }
 
-            // Statistics Row (optional - shows during gameplay)
+            /**
+             * @brief Baris statistik real-time.
+             *
+             * @details Menampilkan counter correct dan errors
+             * saat permainan sedang berlangsung.
+             * Hidden sebelum game dimulai.
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 20
                 spacing: Theme.spacingXL
                 visible: gameplayPage.gameStarted
 
+                /// @brief Counter karakter benar (hijau)
                 Row {
                     spacing: Theme.spacingS
                     Text {
@@ -646,6 +944,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Counter kesalahan (merah)
                 Row {
                     spacing: Theme.spacingS
                     Text {
@@ -664,12 +963,19 @@ FocusScope {
                 }
             }
 
-            // Navigation Buttons
+            /**
+             * @brief Baris tombol navigasi.
+             *
+             * @details Berisi dua tombol:
+             * - Reset (TAB): Reset game dan minta teks baru
+             * - Exit (ESC): Keluar dari permainan
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 40
                 spacing: Theme.spacingM
 
+                /// @brief Tombol Reset
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                     labelText: "Reset (TAB)"
@@ -680,6 +986,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Tombol Exit
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                     labelText: "Exit (ESC)"
@@ -687,7 +994,7 @@ FocusScope {
                 }
             }
 
-            // Instruction hint
+            /// @brief Teks petunjuk di bawah tombol
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 20

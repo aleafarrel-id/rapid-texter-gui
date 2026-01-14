@@ -20,8 +20,8 @@ import Qt5Compat.GraphicalEffects
  * @brief Komponen overlay splash screen.
  * @inherits Rectangle
  *
- * @property bool applicationReady - Set ke true saat aplikasi siap untuk menutup splash
- * @signal finished() - Dikirim saat animasi fade-out splash screen selesai
+ * @details Rectangle layar penuh yang menampilkan logo animasi
+ * dan indikator loading saat aplikasi diinisialisasi.
  */
 Rectangle {
     id: splashRoot
@@ -29,21 +29,72 @@ Rectangle {
     color: Theme.bgPrimary
     opacity: 1.0
 
-    // Properti publik
-    property bool applicationReady: false
-    property int minimumDisplayTime: 2000  // Waktu minimum menampilkan splash (ms)
+    /* ========================================================================
+     * PROPERTI PUBLIK
+     * ======================================================================== */
 
-    // State internal
+    /**
+     * @property applicationReady
+     * @brief Set ke true saat aplikasi siap untuk menutup splash.
+     * @type bool
+     * @default false
+     */
+    property bool applicationReady: false
+
+    /**
+     * @property minimumDisplayTime
+     * @brief Waktu minimum menampilkan splash dalam milidetik.
+     * @type int
+     * @default 2000
+     */
+    property int minimumDisplayTime: 2000
+
+    /* ========================================================================
+     * PROPERTI INTERNAL
+     * ======================================================================== */
+
+    /**
+     * @property canDismiss
+     * @brief Apakah splash sudah bisa ditutup (setelah minimumDisplayTime).
+     * @type bool
+     * @private
+     */
     property bool canDismiss: false
+
+    /**
+     * @property loadingStep
+     * @brief Index pesan loading yang sedang ditampilkan.
+     * @type int
+     * @private
+     */
     property int loadingStep: 0
 
-    // Signal saat splash selesai
+    /* ========================================================================
+     * SIGNAL
+     * ======================================================================== */
+
+    /**
+     * @signal finished
+     * @brief Dipancarkan saat animasi fade-out splash screen selesai.
+     */
     signal finished
 
-    // Pesan loading
+    /**
+     * @property loadingMessages
+     * @brief Array pesan loading yang ditampilkan secara bergantian.
+     * @readonly
+     */
     readonly property var loadingMessages: ["Initializing...", "Loading resources...", "Preparing interface...", "Almost ready..."]
 
-    // Timer tampilan minimum
+    /* ========================================================================
+     * TIMER
+     * ======================================================================== */
+
+    /**
+     * @brief Timer untuk memastikan splash ditampilkan minimum selama minimumDisplayTime.
+     *
+     * @details Setelah timer selesai, splash bisa ditutup jika applicationReady.
+     */
     Timer {
         id: minimumTimer
         interval: splashRoot.minimumDisplayTime
@@ -56,7 +107,11 @@ Rectangle {
         }
     }
 
-    // Timer animasi langkah loading
+    /**
+     * @brief Timer untuk menganimasi pergantian pesan loading.
+     *
+     * @details Mengganti pesan loading setiap 600ms.
+     */
     Timer {
         id: loadingStepTimer
         interval: 600
@@ -67,14 +122,28 @@ Rectangle {
         }
     }
 
-    // Pantau aplikasi siap
+    /* ========================================================================
+     * HANDLER
+     * ======================================================================== */
+
+    /// @brief Handler saat applicationReady berubah - menutup splash jika sudah bisa dismiss
     onApplicationReadyChanged: {
         if (applicationReady && canDismiss) {
             fadeOutAnimation.start();
         }
     }
+    /* ========================================================================
+     * ANIMASI
+     * ======================================================================== */
 
-    // Animasi fade out
+    /**
+     * @brief Animasi fade-out saat splash selesai.
+     *
+     * @details Urutan animasi:
+     * 1. Pause sebentar (300ms)
+     * 2. Fade opacity ke 0 + scale logo ke 1.1 bersamaan (400ms)
+     * 3. Stop timer dan emit signal finished
+     */
     SequentialAnimation {
         id: fadeOutAnimation
 
@@ -107,14 +176,22 @@ Rectangle {
         }
     }
 
-    // Kontainer konten utama
+    /* ========================================================================
+     * UI LAYOUT
+     * ======================================================================== */
+
+    /**
+     * @brief Kontainer konten utama untuk logo dan animasi.
+     *
+     * @details Item centered yang berisi Column dengan teks RAPID dan TEXTER.
+     */
     Item {
         id: logoContainer
         anchors.centerIn: parent
         width: logoColumn.width
         height: logoColumn.height
 
-        // Animasi pulse
+        /// @brief Animasi pulse untuk efek "nafas" pada logo
         SequentialAnimation on scale {
             running: splashRoot.opacity > 0
             loops: Animation.Infinite
@@ -136,9 +213,10 @@ Rectangle {
             id: logoColumn
             spacing: Theme.spacingM
 
-            // Teks RAPID
+            /// @brief Teks "RAPID" dengan efek glow
             Text {
                 id: rapidText
+
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "RAPID"
                 color: Theme.accentBlue

@@ -7,30 +7,111 @@
  * @details Komponen lane balap untuk visualisasi progress pemain dalam mode multiplayer.
  * Menggunakan desain kompak - satu baris per pemain dengan animasi halus.
  *
+ * @par Struktur Visual:
+ * ```
+ * [Nama Pemain] ─────────────[🚗]──────────────────|
+ *                            ↑                     ↑
+ *                          Mobil              Garis Finish
+ * ```
+ *
  * @section features Fitur
  * - Animasi pergerakan mobil berdasarkan progress
  * - Indikator posisi finish
  * - Label WPM di atas mobil
  * - Mode kompak untuk layout dual-column
+ *
+ * @see RaceTrack Komponen parent yang menampilkan banyak lane
  */
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import "."
 
+/**
+ * @brief Komponen lane balap individual untuk satu pemain.
+ * @inherits Item
+ *
+ * @details Item ini merepresentasikan satu lane balap dengan
+ * nama pemain, trek, mobil yang bergerak, dan label WPM.
+ */
 Item {
     id: raceLane
     height: 24
 
-    property string playerName: "Player"
-    property real progress: 0.0  // 0.0 sampai 1.0
-    property int wpm: 0
-    property bool isLocal: false
-    property bool finished: false
-    property int position: 0
-    property bool compactMode: false  // Ukuran lebih kecil untuk layout dual-column
+    /* ========================================================================
+     * PROPERTI
+     * ======================================================================== */
 
-    // Garis trek (background)
+    /**
+     * @property playerName
+     * @brief Nama pemain yang ditampilkan di sisi kiri lane.
+     * @type string
+     * @default "Player"
+     */
+    property string playerName: "Player"
+
+    /**
+     * @property progress
+     * @brief Progress pengetikan pemain (0.0 sampai 1.0).
+     * @type real
+     * @default 0.0
+     *
+     * @details Nilai 0.0 = belum mulai, 1.0 = selesai.
+     * Mobil bergerak berdasarkan nilai ini.
+     */
+    property real progress: 0.0
+
+    /**
+     * @property wpm
+     * @brief Words per minute pemain saat ini.
+     * @type int
+     * @default 0
+     */
+    property int wpm: 0
+
+    /**
+     * @property isLocal
+     * @brief Apakah lane ini milik pemain lokal.
+     * @type bool
+     * @default false
+     *
+     * @details Jika true, nama dan mobil ditampilkan dengan warna biru.
+     */
+    property bool isLocal: false
+
+    /**
+     * @property finished
+     * @brief Apakah pemain sudah selesai mengetik.
+     * @type bool
+     * @default false
+     */
+    property bool finished: false
+
+    /**
+     * @property position
+     * @brief Posisi peringkat pemain (1, 2, 3, dst).
+     * @type int
+     * @default 0
+     *
+     * @details Ditampilkan sebagai prefix "#X" di depan nama jika finished.
+     */
+    property int position: 0
+
+    /**
+     * @property compactMode
+     * @brief Mode kompak untuk layout dual-column.
+     * @type bool
+     * @default false
+     *
+     * @details Jika true, ukuran font dan lebar nama lebih kecil.
+     */
+    property bool compactMode: false
+
+    /* ========================================================================
+     * ELEMEN UI
+     * ======================================================================== */
+
+    /// @brief Garis trek horizontal (background)
     Rectangle {
         anchors.left: nameLabel.right
         anchors.leftMargin: 8
@@ -41,7 +122,7 @@ Item {
         color: Theme.borderSecondary
     }
 
-    // Penanda garis finish
+    /// @brief Penanda garis finish (vertikal hijau di ujung kanan)
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 4
@@ -51,7 +132,12 @@ Item {
         color: Theme.accentGreen
     }
 
-    // Nama pemain (sisi kiri)
+    /**
+     * @brief Label nama pemain di sisi kiri lane.
+     *
+     * @details Menampilkan prefix posisi "#X" jika pemain sudah selesai.
+     * Warna biru untuk pemain lokal.
+     */
     Text {
         id: nameLabel
         anchors.left: parent.left
@@ -71,21 +157,32 @@ Item {
         elide: Text.ElideRight
     }
 
-    // Mobil (animasi menggunakan ikon)
+    /**
+     * @brief Mobil yang bergerak di sepanjang trek.
+     *
+     * @details Rectangle yang bergerak berdasarkan progress.
+     * Warna berubah sesuai state:
+     * - Biru: Pemain lokal
+     * - Hijau: Sudah finish
+     * - Abu: Sedang berlomba
+     */
     Rectangle {
         id: car
         width: 20
         height: 14
         color: isLocal ? Theme.accentBlue : (finished ? Theme.accentGreen : Theme.textSecondary)
 
-        // Perhitungan posisi
+        /// @brief Posisi awal trek (setelah label nama)
         property real trackStart: nameLabel.width + 16
+        /// @brief Posisi akhir trek
         property real trackEnd: parent.width - 8
+        /// @brief Lebar total trek
         property real trackWidth: trackEnd - trackStart
 
         x: trackStart + trackWidth * Math.min(progress, 1.0)
         anchors.verticalCenter: parent.verticalCenter
 
+        /// @brief Animasi pergerakan mobil yang halus
         Behavior on x {
             NumberAnimation {
                 duration: 80
@@ -93,7 +190,7 @@ Item {
             }
         }
 
-        // Ikon panah di dalam mobil (indikator arah)
+        /// @brief Ikon panah di dalam mobil (saat belum selesai)
         Item {
             anchors.centerIn: parent
             width: 10
@@ -114,7 +211,7 @@ Item {
             }
         }
 
-        // Ikon centang saat selesai
+        /// @brief Ikon centang di dalam mobil (saat sudah selesai)
         Item {
             anchors.centerIn: parent
             width: 10
@@ -136,7 +233,7 @@ Item {
         }
     }
 
-    // Label WPM (di atas mobil)
+    /// @brief Label WPM yang muncul di atas mobil
     Text {
         anchors.bottom: car.top
         anchors.bottomMargin: 1

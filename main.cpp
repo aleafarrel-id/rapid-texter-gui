@@ -1,17 +1,21 @@
 /**
  * @file main.cpp
- * @brief Entry point for the RapidTexter GUI typing test application.
- * @author RapidTexter Team (Alea Farrel, Hensa Katelu, Yanuar Adi Candra,
- *         Arif Wibowo P., Aria Mahendra U.)
- * @date 2026
+ * @brief Entry point untuk aplikasi RapidTexter GUI typing test.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * This file initializes the Qt application, sets up the GameBackend
- * singleton for game logic, and loads the main QML interface.
+ * @details File ini menginisialisasi aplikasi Qt dan memuat antarmuka QML utama.
+ * Proses inisialisasi meliputi:
+ * - Membuat instance QGuiApplication untuk event handling
+ * - Mengatur metadata organisasi/aplikasi untuk QStandardPaths
+ * - Membuat singleton GameBackend, NetworkManager, dan MultiplayerHistoryManager
+ * - Mendaftarkan singleton-singleton tersebut ke QML engine
+ * - Memuat modul QML utama dan memulai event loop
  *
- * @see GameBackend For the C++ backend handling game state, history,
- *      word generation, and sound effects.
- * @see NetworkManager For the multiplayer networking backend.
- * @see Main.qml For the main QML application window and UI components.
+ * @see GameBackend Backend C++ untuk game state, history, word generation, dan SFX.
+ * @see NetworkManager Backend networking untuk fitur multiplayer.
+ * @see MultiplayerHistoryManager Manager untuk menyimpan hasil permainan multiplayer.
+ * @see Main.qml Jendela aplikasi QML utama dan komponen UI.
  */
 
 #include "GameBackend.h"
@@ -22,57 +26,57 @@
 #include <QQmlContext>
 
 /**
- * @brief Application entry point.
+ * @brief Entry point aplikasi.
  *
- * Initializes the Qt GUI application with the following steps:
- * 1. Creates QGuiApplication instance for event handling
- * 2. Sets organization/application name for QStandardPaths (used for
- *    persistent storage of game history and settings)
- * 3. Creates GameBackend singleton before QML loads (ensures backend
- *    is ready when QML components request it)
- * 4. Registers GameBackend as a QML singleton accessible via
+ * @details Menginisialisasi aplikasi Qt GUI dengan langkah-langkah berikut:
+ * 1. Membuat instance QGuiApplication untuk event handling
+ * 2. Mengatur nama organisasi/aplikasi untuk QStandardPaths (digunakan untuk
+ *    penyimpanan persistent data history dan settings)
+ * 3. Membuat singleton GameBackend sebelum QML dimuat (memastikan backend
+ *    siap saat komponen QML memintanya)
+ * 4. Mendaftarkan GameBackend sebagai singleton QML yang dapat diakses via
  *    "import rapid_texter 1.0"
- * 5. Loads the main QML module and starts the event loop
+ * 5. Memuat modul QML utama dan memulai event loop
  *
- * @param argc Command-line argument count
- * @param argv Command-line argument values
- * @return Exit code (0 for success, -1 if QML object creation fails)
+ * @param argc Jumlah argumen command-line
+ * @param argv Nilai argumen command-line
+ * @return Exit code (0 untuk sukses, -1 jika pembuatan objek QML gagal)
  */
 int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
 
   /*
-   * Set application metadata for QStandardPaths.
-   * This determines where persistent data (history.json, progress.json)
-   * is stored on the user's system.
+   * Mengatur metadata aplikasi untuk QStandardPaths.
+   * Ini menentukan di mana data persistent (history.json, progress.json)
+   * disimpan pada sistem pengguna.
    */
   app.setOrganizationName("RapidTexter");
   app.setApplicationName("RapidTexter");
 
   /*
-   * Create GameBackend singleton instance BEFORE loading QML.
-   * This ensures the backend is fully initialized when QML components
-   * attempt to access it. The singleton pattern guarantees only one
-   * instance exists throughout the application lifecycle.
+   * Membuat singleton instance GameBackend SEBELUM memuat QML.
+   * Ini memastikan backend sudah terinisialisasi penuh saat komponen QML
+   * mencoba mengaksesnya. Pola singleton menjamin hanya satu instance
+   * yang ada sepanjang siklus hidup aplikasi.
    */
   GameBackend *backend = GameBackend::instance();
 
   /*
-   * Create NetworkManager singleton for multiplayer functionality.
-   * Handles UDP discovery, WebSocket lobby, and UDP multicast gameplay.
+   * Membuat singleton NetworkManager untuk fungsionalitas multiplayer.
+   * Menangani UDP discovery, WebSocket lobby, dan UDP multicast gameplay.
    */
   NetworkManager *networkManager = NetworkManager::instance();
 
   /*
-   * Create MultiplayerHistoryManager singleton.
-   * Manages storage of multiplayer game results.
+   * Membuat singleton MultiplayerHistoryManager.
+   * Mengelola penyimpanan hasil permainan multiplayer.
    */
   MultiplayerHistoryManager *mpHistoryManager =
       new MultiplayerHistoryManager(&app);
 
   /*
-   * Connect NetworkManager to MultiplayerHistoryManager.
-   * When a race finishes, results are automatically saved.
+   * Menghubungkan NetworkManager ke MultiplayerHistoryManager.
+   * Saat race selesai, hasil secara otomatis disimpan.
    */
   QObject::connect(networkManager, &NetworkManager::raceFinished,
                    mpHistoryManager,
@@ -81,39 +85,39 @@ int main(int argc, char *argv[]) {
   QQmlApplicationEngine engine;
 
   /*
-   * Register GameBackend as a QML singleton.
-   * - Module: "rapid_texter"
-   * - Version: 1.0
-   * - QML name: "GameBackend"
-   * After this, QML can access it via: import rapid_texter 1.0
+   * Mendaftarkan GameBackend sebagai singleton QML.
+   * - Modul: "rapid_texter"
+   * - Versi: 1.0
+   * - Nama QML: "GameBackend"
+   * Setelah ini, QML dapat mengaksesnya via: import rapid_texter 1.0
    */
   qmlRegisterSingletonInstance("rapid_texter", 1, 0, "GameBackend", backend);
 
   /*
-   * Register NetworkManager as a QML singleton for multiplayer.
+   * Mendaftarkan NetworkManager sebagai singleton QML untuk multiplayer.
    */
   qmlRegisterSingletonInstance("rapid_texter", 1, 0, "NetworkManager",
                                networkManager);
 
   /*
-   * Register MultiplayerHistoryManager as a QML singleton.
+   * Mendaftarkan MultiplayerHistoryManager sebagai singleton QML.
    */
   qmlRegisterSingletonInstance("rapid_texter", 1, 0,
                                "MultiplayerHistoryManager", mpHistoryManager);
 
   /*
-   * Connect to objectCreationFailed signal to handle QML loading errors.
-   * If the main QML file fails to load, exit with error code -1.
-   * Qt::QueuedConnection ensures the exit happens after the signal
-   * is fully processed.
+   * Menghubungkan ke sinyal objectCreationFailed untuk menangani error loading QML.
+   * Jika file QML utama gagal dimuat, keluar dengan kode error -1.
+   * Qt::QueuedConnection memastikan exit terjadi setelah sinyal
+   * sepenuhnya diproses.
    */
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
       []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 
-  /* Load the main QML module - this triggers the UI creation */
+  /* Memuat modul QML utama - ini memicu pembuatan UI */
   engine.loadFromModule("rapid_texter", "Main");
 
-  /* Start the Qt event loop - blocks until application quits */
+  /* Memulai event loop Qt - memblokir sampai aplikasi di-quit */
   return app.exec();
 }

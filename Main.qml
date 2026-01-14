@@ -1,34 +1,34 @@
 /**
  * @file Main.qml
- * @brief Main application window for the RapidTexter GUI typing test application.
- * @author RapidTexter Team
- * @date 2026
+ * @brief Jendela aplikasi utama untuk aplikasi RapidTexter GUI typing test.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
  *
- * This is the root application window that orchestrates all pages and navigation.
- * Contains the StackView-based navigation system, status bar, and application state.
+ * @details Ini adalah root application window yang mengatur semua halaman dan navigasi.
+ * Berisi sistem navigasi berbasis StackView, status bar, dan state aplikasi.
  *
- * @section dimensions Window Dimensions
- * - Default: 1024x768 pixels
- * - Minimum: 800x600 pixels
+ * @section dimensions Dimensi Jendela
+ * - Default: 1024x768 piksel
+ * - Minimum: 800x600 piksel
  *
- * @section architecture Architecture
- * Uses a StackView for page navigation with push/pop animations:
- * - Push animation: 200ms slide from right
- * - Pop animation: 150ms slide to right
+ * @section architecture Arsitektur
+ * Menggunakan StackView untuk navigasi halaman dengan animasi push/pop:
+ * - Animasi push: 200ms slide dari kanan
+ * - Animasi pop: 150ms slide ke kanan
  *
- * @section state Application State
- * - currentLanguage: Selected language ("ID" or "EN")
- * - currentTime: Display duration string ("15s", "30s", "60s", "∞")
- * - currentMode: Game mode ("Manual" or "Campaign")
- * - currentDifficulty: Campaign level ("easy", "medium", "hard", "programmer")
+ * @section state State Aplikasi
+ * - currentLanguage: Bahasa yang dipilih ("ID" atau "EN")
+ * - currentTime: String durasi tampilan ("15s", "30s", "60s", "∞")
+ * - currentMode: Mode permainan ("Manual" atau "Campaign")
+ * - currentDifficulty: Level campaign ("easy", "medium", "hard", "programmer")
  * - Campaign progress: easyPassed, mediumPassed, hardPassed, programmerCertified
  *
- * @section shortcuts Global Keyboard Shortcuts
- * - Key_S: Toggle SFX (disabled during gameplay)
+ * @section shortcuts Keyboard Shortcut Global
+ * - Key_S: Toggle SFX (dinonaktifkan selama gameplay)
  *
- * @section pages Inline Page Components
- * This file contains inline Component definitions for all pages to enable
- * signal handling within the same file scope. Pages are:
+ * @section pages Komponen Halaman Inline
+ * File ini berisi definisi Component inline untuk semua halaman agar memungkinkan
+ * penanganan signal dalam scope file yang sama. Halaman-halaman:
  * MainMenuPage, LanguageMenuPage, DurationMenuPage, ModeMenuPage,
  * CampaignMenuPage, CustomDurationPage, ManualSetupPage, GameplayPage,
  * ResultsPage, HistoryPage, CreditsPage, ResetHistoryPage, ResetProgressPage
@@ -41,7 +41,7 @@ import "qml/components"
 import "qml/pages"
 
 /**
- * @brief Main application window component.
+ * @brief Komponen jendela aplikasi utama.
  * @inherits ApplicationWindow
  */
 ApplicationWindow {
@@ -55,34 +55,34 @@ ApplicationWindow {
     title: "Rapid Texter"
     color: "#0d1117"
 
-    // Font loader
+    // Loader untuk font
     FontLoader {
         id: jetBrainsMono
         source: "assets/font/JetBrainsMono.ttf"
     }
 
-    // Application ready state for splash screen
+    // State aplikasi siap untuk splash screen
     property bool applicationReady: false
 
-    // Set theme font after font is loaded and mark app ready
+    // Mengatur font tema setelah font dimuat dan menandai aplikasi siap
     Component.onCompleted: {
         Theme.fontFamily = jetBrainsMono.name;
-        // Mark application as ready after a small delay to ensure everything is initialized
+        // Menandai aplikasi siap setelah delay kecil untuk memastikan semua terinisialisasi
         Qt.callLater(function () {
             applicationReady = true;
         });
     }
 
-    // Application state
+    // State aplikasi
     property string currentLanguage: "-"
     property string currentTime: "-"
     property string currentMode: "-"
-    property string currentDifficulty: "easy"  // Default difficulty for TextProvider
-    property int currentTargetWPM: 60          // Target WPM for manual mode
-    property string originalLanguage: ""        // Stores original language for Programmer Mode restoration
+    property string currentDifficulty: "easy"  // Difficulty default untuk TextProvider
+    property int currentTargetWPM: 60          // Target WPM untuk mode manual
+    property string originalLanguage: ""        // Menyimpan bahasa asli untuk restorasi Programmer Mode
     property bool sfxEnabled: GameBackend.sfxEnabled
-    property bool isInGameplay: false            // Track if in gameplay for shortcut control
-    property bool skipNavigationSound: false      // Flag to skip sound during multi-pop transition
+    property bool isInGameplay: false            // Melacak apakah sedang dalam gameplay untuk kontrol shortcut
+    property bool skipNavigationSound: false      // Flag untuk melewati suara saat transisi multi-pop
 
     property int currentDuration: {
         if (currentTime === "∞")
@@ -92,27 +92,27 @@ ApplicationWindow {
         return parseInt(currentTime) || GameBackend.defaultDuration;
     }
 
-    // Reset status bar to default values (Time persists)
+    // Reset status bar ke nilai default (Time tetap dipertahankan)
     function resetStatusBar() {
         currentLanguage = "-";
         currentMode = "-";
     }
 
-    // Campaign progress
+    // Progress campaign
     property bool easyPassed: true
     property bool mediumPassed: false
     property bool hardPassed: false
     property bool programmerCertified: false
 
-    // Last game results (for results page)
+    // Hasil game terakhir (untuk halaman results)
     property real lastWpm: 0
     property real lastAccuracy: 0
     property int lastErrors: 0
     property real lastTimeElapsed: 0
     property bool lastLevelPassed: false
-    property bool isFirstTimeHardCompletion: false  // Tracks first-time hard completion for credits flow
+    property bool isFirstTimeHardCompletion: false  // Melacak penyelesaian hard pertama kali untuk alur credits
 
-    // Global SFX toggle shortcut (disabled during gameplay to avoid conflict)
+    // Shortcut global toggle SFX (dinonaktifkan saat gameplay untuk menghindari konflik)
     Shortcut {
         sequence: "S"
         enabled: !mainWindow.isInGameplay
@@ -141,23 +141,23 @@ ApplicationWindow {
             showShortcutHint: !mainWindow.isInGameplay
             onSfxToggled: {
                 GameBackend.toggleSfx();
-                // Play sound to confirm SFX is now ON
+                // Memutar suara untuk konfirmasi SFX sekarang AKTIF
                 if (GameBackend.sfxEnabled) {
                     GameBackend.playErrorSound();
                 }
             }
             onNameClicked: {
-                // Prevent opening profile page if it's already open
+                // Mencegah membuka halaman profil jika sudah terbuka
                 if (stackView.currentItem && stackView.currentItem.objectName === "profilePage") {
                     return;
                 }
-                // Open name editor in "edit mode"
+                // Membuka editor nama dalam "mode edit"
                 stackView.push(playerNameForEditComponent);
             }
         }
 
         // ====================================================================
-        // MAIN CONTENT
+        // KONTEN UTAMA
         // ====================================================================
         StackView {
             id: stackView
@@ -167,20 +167,20 @@ ApplicationWindow {
             initialItem: mainMenuComponent
 
             onCurrentItemChanged: {
-                // Play navigation sound when page changes
-                // Skip sound if in multi-pop transition (e.g., returning from results)
+                // Memutar suara navigasi saat halaman berubah
+                // Melewati suara jika dalam transisi multi-pop (misal, kembali dari results)
                 if (!mainWindow.skipNavigationSound) {
                     GameBackend.playCorrectSound();
                 }
                 mainWindow.skipNavigationSound = false;  // Reset flag
 
-                // Reset status bar when returning to main menu
+                // Reset status bar saat kembali ke menu utama
                 if (stackView.depth === 1) {
                     mainWindow.resetStatusBar();
                 }
             }
 
-            // Smooth page transitions for polished UI/UX
+            // Transisi halaman yang smooth untuk UI/UX yang lebih baik
             pushEnter: Transition {
                 PropertyAnimation {
                     property: "opacity"
@@ -221,12 +221,12 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // SPLASH SCREEN OVERLAY
+    // OVERLAY SPLASH SCREEN
     // ========================================================================
     SplashScreen {
         id: splashScreen
         anchors.fill: parent
-        z: 1000  // Ensure splash is on top of everything
+        z: 1000  // Memastikan splash di atas semua elemen
         visible: opacity > 0
         applicationReady: mainWindow.applicationReady
 
@@ -236,7 +236,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // MAIN MENU PAGE
+    // HALAMAN MENU UTAMA
     // ========================================================================
     Component {
         id: mainMenuComponent
@@ -356,7 +356,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // MULTIPLAYER MENU PAGE
+    // HALAMAN MENU MULTIPLAYER
     // ========================================================================
     Component {
         id: multiplayerMenuComponent
@@ -528,7 +528,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // LANGUAGE MENU PAGE
+    // HALAMAN MENU BAHASA
     // ========================================================================
     Component {
         id: languageMenuComponent
@@ -622,7 +622,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // DURATION MENU PAGE
+    // HALAMAN MENU DURASI
     // ========================================================================
     Component {
         id: durationMenuComponent
@@ -920,7 +920,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // MODE MENU PAGE
+    // HALAMAN MENU MODE
     // ========================================================================
     Component {
         id: modeMenuComponent
@@ -1014,7 +1014,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // MANUAL SETUP PAGE
+    // HALAMAN SETUP MANUAL
     // ========================================================================
     Component {
         id: manualSetupComponent
@@ -1155,7 +1155,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // GAMEPLAY PAGE
+    // HALAMAN GAMEPLAY
     // ========================================================================
     Component {
         id: gameplayComponent
@@ -1247,7 +1247,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // CAMPAIGN MENU PAGE
+    // HALAMAN MENU CAMPAIGN
     // ========================================================================
     Component {
         id: campaignMenuComponent
@@ -1504,7 +1504,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // RESULTS PAGE
+    // HALAMAN HASIL
     // ========================================================================
     Component {
         id: resultsComponent
@@ -1766,7 +1766,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // HISTORY PAGE
+    // HALAMAN RIWAYAT
     // ========================================================================
     Component {
         id: historyComponent
@@ -2940,7 +2940,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // CREDITS PAGE
+    // HALAMAN CREDITS
     // ========================================================================
     Component {
         id: creditsComponent
@@ -3064,7 +3064,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // MULTIPLAYER HISTORY PAGE
+    // HALAMAN RIWAYAT MULTIPLAYER
     // ========================================================================
     Component {
         id: multiplayerHistoryComponent
@@ -3083,7 +3083,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // RESET MULTIPLAYER HISTORY PAGE
+    // HALAMAN RESET RIWAYAT MULTIPLAYER
     // ========================================================================
     Component {
         id: resetMultiplayerHistoryComponent
@@ -3095,7 +3095,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // RESET HISTORY PAGE
+    // HALAMAN RESET RIWAYAT
     // ========================================================================
     Component {
         id: resetHistoryComponent
@@ -3401,7 +3401,7 @@ ApplicationWindow {
     }
 
     // ========================================================================
-    // RESET PROGRESS PAGE
+    // HALAMAN RESET PROGRESS
     // ========================================================================
     Component {
         id: resetProgressComponent

@@ -1,7 +1,38 @@
 /**
  * @file LobbyPage.qml
- * @brief Waiting room / lobby for multiplayer game.
- * Shows player list, game settings, language selector, and start button for host.
+ * @brief Halaman ruang tunggu/lobby untuk permainan multiplayer.
+ * @author Alea Farrel & Team
+ * @date 2025-2026
+ *
+ * @details Komponen ini menampilkan ruang tunggu sebelum race multiplayer dimulai.
+ * Halaman ini berfungsi sebagai tempat berkumpul pemain sebelum host memulai permainan.
+ *
+ * @par Fitur Utama:
+ * - Daftar pemain yang terhubung (maksimal 8 pemain)
+ * - Pemilihan bahasa teks race (ID/EN/PROG) - hanya host
+ * - Preview teks yang akan digunakan untuk race
+ * - Pemilihan network interface untuk hosting
+ * - Kemampuan kick pemain (hanya host)
+ * - Tombol Start Race (hanya host)
+ *
+ * @par Perbedaan Host vs Guest:
+ * | Fitur | Host | Guest |
+ * |-------|------|-------|
+ * | Pilih bahasa | ✓ | ✗ |
+ * | Refresh teks | ✓ | ✗ |
+ * | Start race | ✓ | ✗ |
+ * | Kick pemain | ✓ | ✗ |
+ * | Lihat IP server | ✓ | ✗ |
+ *
+ * @section shortcuts Pintasan Keyboard
+ * | Tombol | Aksi |
+ * |--------|------|
+ * | Enter/Return | Mulai race (host saja) |
+ * | Escape | Keluar dari lobby |
+ *
+ * @see NetworkManager Untuk logika multiplayer dan networking
+ * @see MultiplayerRacePage Halaman race setelah countdown selesai
+ * @see MultiplayerMenuPage Menu untuk membuat/join room
  */
 import QtQuick
 import QtQuick.Layouts
@@ -9,31 +40,162 @@ import Qt5Compat.GraphicalEffects
 import rapid_texter
 import "../components"
 
+/**
+ * @brief Komponen halaman lobby multiplayer.
+ * @inherits FocusScope
+ *
+ * @details FocusScope ini berfungsi sebagai container utama untuk halaman lobby.
+ * Menggunakan FocusScope (bukan Rectangle) untuk menangani fokus keyboard
+ * dengan benar pada komponen-komponen child seperti dialog.
+ *
+ * @par Alur Penggunaan:
+ * 1. User membuat atau bergabung ke room multiplayer
+ * 2. Halaman lobby ditampilkan dengan daftar pemain
+ * 3. Host mengatur pengaturan permainan (bahasa, teks)
+ * 4. Host menekan Start Race untuk memulai countdown
+ * 5. Semua pemain transisi ke MultiplayerRacePage
+ */
 FocusScope {
     id: lobbyPage
     focus: true
 
+    /* ========================================================================
+     * PROPERTI DATA DARI NETWORK MANAGER
+     * ======================================================================== */
+
+    /**
+     * @property isHost
+     * @brief Menandakan apakah user lokal adalah host room.
+     * @type bool
+     *
+     * @details Properti ini menentukan UI mana yang ditampilkan.
+     * Host memiliki kontrol penuh atas pengaturan permainan.
+     */
     property bool isHost: NetworkManager.isAuthority
+
+    /**
+     * @property players
+     * @brief Daftar pemain yang terhubung ke room.
+     * @type var (QVariantList)
+     *
+     * @details Setiap item dalam list berisi:
+     * - id: UUID pemain
+     * - name: Nama pemain
+     * - isLocal: Apakah ini pemain lokal
+     * - isHost: Apakah pemain ini adalah host
+     */
     property var players: NetworkManager.players
+
+    /**
+     * @property gameText
+     * @brief Teks yang akan digunakan untuk race.
+     * @type string
+     *
+     * @details Teks ini di-generate oleh TextProvider berdasarkan
+     * bahasa yang dipilih. Host dapat me-refresh teks kapan saja.
+     */
     property string gameText: NetworkManager.gameText
+
+    /**
+     * @property gameLanguage
+     * @brief Kode bahasa yang dipilih untuk race.
+     * @type string
+     * @default "id"
+     *
+     * @details Nilai yang valid: "id" (Indonesia), "en" (English), "prog" (Programming)
+     */
     property string gameLanguage: NetworkManager.gameLanguage
+
+    /**
+     * @property selectedInterface
+     * @brief IP address interface jaringan yang dipilih untuk hosting.
+     * @type string
+     *
+     * @details Hanya relevan untuk host. Menentukan IP mana yang
+     * digunakan untuk menerima koneksi dari guest.
+     */
     property string selectedInterface: NetworkManager.selectedInterface
 
+    /* ========================================================================
+     * SIGNAL NAVIGASI
+     * ======================================================================== */
+
+    /**
+     * @signal startGameClicked
+     * @brief Dipancarkan ketika race dimulai (setelah countdown).
+     *
+     * @details Signal ini di-emit oleh Connections handler saat
+     * NetworkManager.onCountdownStarted() dipanggil. Berlaku untuk
+     * host DAN guest karena keduanya harus transisi ke race page.
+     */
     signal startGameClicked
+
+    /**
+     * @signal leaveClicked
+     * @brief Dipancarkan ketika user meninggalkan lobby.
+     *
+     * @details Signal ini di-emit ketika:
+     * - User menekan tombol Escape
+     * - User mengklik tombol Leave
+     * - User di-kick oleh host dan menekan OK
+     *
+     * Parent component harus menangani signal ini untuk navigasi.
+     */
     signal leaveClicked
+
+    /**
+     * @signal textChanged
+     * @brief Dipancarkan ketika teks race berubah.
+     * @param text string Teks baru untuk race.
+     *
+     * @details Signal ini digunakan untuk sinkronisasi teks antar pemain.
+     */
     signal textChanged(string text)
 
+    /**
+     * @brief Background utama halaman lobby.
+     * @details Rectangle dengan z-index rendah untuk memastikan
+     * konten lain tampil di atasnya.
+     */
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
         z: -100
     }
 
-    // Kick confirmation dialog state
+    /* ========================================================================
+     * STATE DIALOG KICK PEMAIN
+     * ======================================================================== */
+
+    /**
+     * @property pendingKickUuid
+     * @brief UUID pemain yang akan di-kick (menunggu konfirmasi).
+     * @type string
+     *
+     * @details Jika tidak kosong, dialog konfirmasi kick akan ditampilkan.
+     * Dikosongkan saat user membatalkan atau mengkonfirmasi kick.
+     */
     property string pendingKickUuid: ""
+
+    /**
+     * @property pendingKickName
+     * @brief Nama pemain yang akan di-kick (untuk tampilan dialog).
+     * @type string
+     */
     property string pendingKickName: ""
 
-    // Kick confirmation dialog
+    /**
+     * @brief Dialog konfirmasi untuk kick pemain.
+     *
+     * @details Dialog modal yang muncul saat host mengklik tombol kick
+     * pada salah satu pemain. Menampilkan konfirmasi sebelum benar-benar
+     * mengeluarkan pemain dari room.
+     *
+     * @par Visual Elements:
+     * - Overlay gelap semi-transparan
+     * - Dialog box dengan judul, pesan, dan tombol Cancel/Kick
+     * - Tombol Kick berwarna merah untuk emphasis
+     */
     Rectangle {
         id: kickConfirmDialog
         anchors.fill: parent
@@ -41,6 +203,7 @@ FocusScope {
         visible: pendingKickUuid !== ""
         z: 1000
 
+        /// @brief Klik di luar dialog untuk menutup
         MouseArea {
             anchors.fill: parent
             onClicked: {
@@ -49,6 +212,7 @@ FocusScope {
             }
         }
 
+        /// @brief Kotak dialog utama
         Rectangle {
             anchors.centerIn: parent
             width: 300
@@ -57,6 +221,7 @@ FocusScope {
             border.color: Theme.borderPrimary
             border.width: 1
 
+            /// @brief Mencegah klik menutup dialog saat klik di dalam kotak
             MouseArea {
                 anchors.fill: parent
                 // Prevent clicks from closing dialog
@@ -67,6 +232,7 @@ FocusScope {
                 anchors.margins: 20
                 spacing: 16
 
+                /// @brief Judul dialog
                 Text {
                     Layout.fillWidth: true
                     text: "Kick Player"
@@ -77,6 +243,7 @@ FocusScope {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
+                /// @brief Pesan konfirmasi dengan nama pemain
                 Text {
                     Layout.fillWidth: true
                     text: "Remove " + pendingKickName + " from room?"
@@ -87,10 +254,12 @@ FocusScope {
                     wrapMode: Text.WordWrap
                 }
 
+                /// @brief Baris tombol aksi
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 12
 
+                    /// @brief Tombol Cancel
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
@@ -115,6 +284,7 @@ FocusScope {
                         }
                     }
 
+                    /// @brief Tombol Kick (merah)
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
@@ -144,7 +314,18 @@ FocusScope {
         }
     }
 
-    // Solo play confirmation dialog (Host only)
+    /**
+     * @brief Dialog konfirmasi untuk bermain solo (hanya host).
+     *
+     * @details Dialog ini muncul saat host mencoba memulai race dengan
+     * hanya satu pemain (diri sendiri). Memberikan konfirmasi karena
+     * multiplayer dengan satu pemain tidak umum.
+     *
+     * @par Visual Elements:
+     * - Overlay gelap semi-transparan
+     * - Dialog box dengan judul, pesan, dan tombol Cancel/Start
+     * - Tombol Start berwarna biru
+     */
     Rectangle {
         id: soloPlayConfirmDialog
         anchors.fill: parent
@@ -152,11 +333,13 @@ FocusScope {
         visible: false
         z: 1000
 
+        /// @brief Klik di luar dialog untuk menutup
         MouseArea {
             anchors.fill: parent
             onClicked: soloPlayConfirmDialog.visible = false
         }
 
+        /// @brief Kotak dialog utama
         Rectangle {
             anchors.centerIn: parent
             width: 320
@@ -165,6 +348,7 @@ FocusScope {
             border.color: Theme.borderPrimary
             border.width: 1
 
+            /// @brief Mencegah klik menutup dialog
             MouseArea {
                 anchors.fill: parent
                 // Prevent clicks from closing dialog
@@ -175,6 +359,7 @@ FocusScope {
                 anchors.margins: 20
                 spacing: 16
 
+                /// @brief Judul dialog
                 Text {
                     Layout.fillWidth: true
                     text: "Start Solo Race?"
@@ -185,6 +370,7 @@ FocusScope {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
+                /// @brief Pesan konfirmasi
                 Text {
                     Layout.fillWidth: true
                     text: "There's only you in the race, continue?"
@@ -195,11 +381,12 @@ FocusScope {
                     wrapMode: Text.WordWrap
                 }
 
+                /// @brief Baris tombol aksi
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 12
 
-                    // Cancel Button
+                    /// @brief Tombol Cancel
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
@@ -221,7 +408,7 @@ FocusScope {
                         }
                     }
 
-                    // Start Button
+                    /// @brief Tombol Start (biru)
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 36
@@ -313,9 +500,7 @@ FocusScope {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.bottomMargin: 20
-                Layout.preferredHeight: NetworkManager.availableInterfaces.length === 0 
-                    ? 80 
-                    : Math.min(NetworkManager.availableInterfaces.length * 40 + 36, 130)
+                Layout.preferredHeight: NetworkManager.availableInterfaces.length === 0 ? 80 : Math.min(NetworkManager.availableInterfaces.length * 40 + 36, 130)
                 color: "transparent"
                 border.color: NetworkManager.availableInterfaces.length === 0 ? Theme.accentRed : Theme.borderPrimary
                 border.width: 1
@@ -512,7 +697,19 @@ FocusScope {
                 }
             }
 
-            // Players list
+            /**
+             * @brief Container daftar pemain yang terhubung.
+             *
+             * @details Menampilkan semua pemain yang ada di room dengan
+             * informasi nama, status host, dan tombol kick (untuk host).
+             * Maksimal 8 pemain dapat terhubung.
+             *
+             * @par Visual Elements:
+             * - Header dengan judul "PLAYERS (X/8)"
+             * - ListView dengan delegate untuk setiap pemain
+             * - Highlight biru untuk pemain lokal
+             * - Tombol kick merah untuk host
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(players.length * 44 + 44, 220)
@@ -520,7 +717,7 @@ FocusScope {
                 border.color: Theme.borderPrimary
                 border.width: 1
 
-                // Header
+                /// @brief Header daftar pemain
                 Rectangle {
                     id: playersHeader
                     anchors.top: parent.top
@@ -561,7 +758,15 @@ FocusScope {
                     }
                 }
 
-                // Player list
+                /**
+                 * @brief ListView untuk daftar pemain.
+                 *
+                 * @details Setiap item menampilkan:
+                 * - Ikon user (biru untuk lokal, abu-abu untuk remote)
+                 * - Nama pemain dengan suffix "(You)" dan/atau "- Host"
+                 * - Ikon check hijau (ready indicator)
+                 * - Tombol kick merah (hanya visible untuk host)
+                 */
                 ListView {
                     anchors.top: playersHeader.bottom
                     anchors.left: parent.left
@@ -572,6 +777,7 @@ FocusScope {
 
                     model: players
 
+                    /// @brief Delegate untuk setiap pemain
                     delegate: Rectangle {
                         width: parent.width
                         height: 40
@@ -668,7 +874,16 @@ FocusScope {
                 }
             }
 
-            // Language selector (host only)
+            /**
+             * @brief Pemilih bahasa (hanya untuk host).
+             *
+             * @details Host dapat memilih bahasa teks race dari tiga opsi:
+             * - ID: Bahasa Indonesia
+             * - EN: Bahasa Inggris
+             * - PROG: Kode pemrograman
+             *
+             * Perubahan bahasa akan otomatis di-sync ke semua guest.
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
@@ -748,7 +963,12 @@ FocusScope {
                 }
             }
 
-            // Language indicator (non-host)
+            /**
+             * @brief Indikator bahasa (untuk guest/non-host).
+             *
+             * @details Guest tidak dapat mengubah bahasa, hanya melihat
+             * bahasa yang dipilih oleh host. Ditampilkan sebagai read-only.
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
@@ -779,7 +999,17 @@ FocusScope {
                 }
             }
 
-            // Text preview (host can change)
+            /**
+             * @brief Preview teks yang akan digunakan untuk race.
+             *
+             * @details Menampilkan preview 80 karakter pertama dari teks race.
+             * Host memiliki tombol "Refresh Text" untuk generate teks baru.
+             * Guest hanya bisa melihat preview tanpa mengubah.
+             *
+             * @par States:
+             * - Ada teks: Menampilkan preview dengan warna textPrimary
+             * - Belum ada teks: Menampilkan "No text set yet..." dengan warna muted
+             */
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
@@ -844,12 +1074,20 @@ FocusScope {
                 }
             }
 
-            // Action buttons
+            /**
+             * @brief Baris tombol aksi.
+             *
+             * @details Berisi tombol navigasi:
+             * - Leave: Keluar dari room (semua user)
+             * - Start Race: Mulai countdown (hanya host)
+             * - Teks waiting: Ditampilkan untuk guest
+             */
             Row {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 24
                 spacing: Theme.spacingM
 
+                /// @brief Tombol Leave untuk keluar dari room
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
                     labelText: "Leave"
@@ -859,6 +1097,14 @@ FocusScope {
                     }
                 }
 
+                /**
+                 * @brief Tombol Start Race (hanya host).
+                 *
+                 * @details Memulai race multiplayer dengan countdown.
+                 * - Enabled: Minimal 1 pemain DAN teks sudah tersedia
+                 * - Solo: Menampilkan dialog konfirmasi jika hanya 1 pemain
+                 * - Multi: Langsung mulai countdown
+                 */
                 NavBtn {
                     visible: isHost
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/play.svg"
@@ -874,6 +1120,7 @@ FocusScope {
                     }
                 }
 
+                /// @brief Teks waiting untuk guest saat menunggu host
                 Text {
                     visible: !isHost
                     anchors.verticalCenter: parent.verticalCenter
@@ -886,30 +1133,62 @@ FocusScope {
         }
     }
 
-    // Auto-generate text when authority creates room
+    /**
+     * @brief Handler inisialisasi saat komponen selesai dimuat.
+     *
+     * @details Jika user adalah host dan belum ada teks race,
+     * otomatis generate teks baru menggunakan NetworkManager.
+     */
     Component.onCompleted: {
         if (isHost && gameText.length === 0) {
             NetworkManager.refreshGameText();
         }
     }
 
-    // Listen for countdown signal from host - this triggers transition for guests
+    /**
+     * @brief Connections untuk signal dari NetworkManager.
+     *
+     * @details Menangani event networking:
+     * - onCountdownStarted: Transisi ke halaman race (host & guest)
+     * - onKicked: Menampilkan notifikasi bahwa user di-kick
+     */
     Connections {
         target: NetworkManager
 
+        /**
+         * @brief Handler saat countdown dimulai oleh host.
+         * @param seconds int Durasi countdown dalam detik.
+         *
+         * @details Signal ini diterima oleh SEMUA pemain (host dan guest).
+         * Memicu transisi ke MultiplayerRacePage.
+         */
         function onCountdownStarted(seconds) {
-            // When countdown starts, transition to race gameplay page
-            // This is triggered for BOTH host and guests
             lobbyPage.startGameClicked();
         }
 
+        /**
+         * @brief Handler saat user di-kick oleh host.
+         *
+         * @details Menampilkan dialog notifikasi yang menginformasikan
+         * bahwa user telah dikeluarkan dari room oleh host.
+         */
         function onKicked() {
-            // Show kicked notification and navigate to menu
             kickedNotification.visible = true;
         }
     }
 
-    // Kicked notification overlay
+    /**
+     * @brief Overlay notifikasi saat user di-kick dari room.
+     *
+     * @details Dialog ini muncul saat host mengeluarkan user dari room.
+     * User harus menekan OK untuk kembali ke menu multiplayer.
+     * Menggunakan z-index tinggi (2000) untuk memastikan tampil di atas segalanya.
+     *
+     * @par Visual Elements:
+     * - Overlay gelap 70% opacity
+     * - Dialog dengan judul merah "Kicked from Room"
+     * - Tombol OK biru untuk navigasi kembali
+     */
     Rectangle {
         id: kickedNotification
         anchors.fill: parent
@@ -917,6 +1196,7 @@ FocusScope {
         visible: false
         z: 2000
 
+        /// @brief Dialog box utama
         Rectangle {
             anchors.centerIn: parent
             width: 320
@@ -977,6 +1257,18 @@ FocusScope {
         }
     }
 
+    /**
+     * @brief Handler untuk input keyboard.
+     *
+     * @details Menangani pintasan keyboard global untuk halaman lobby:
+     * - Escape: Keluar dari room dan navigasi kembali
+     * - Enter/Return (host saja): Mulai race jika kondisi terpenuhi
+     *
+     * @param event KeyEvent yang berisi informasi tombol yang ditekan.
+     *
+     * @note Tombol Enter/Return hanya berfungsi untuk host dan
+     * hanya jika minimal ada 1 pemain dan teks sudah tersedia.
+     */
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
             NetworkManager.leaveRoom();

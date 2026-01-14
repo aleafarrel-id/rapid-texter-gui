@@ -55,16 +55,29 @@ ApplicationWindow {
     title: "Rapid Texter"
     color: "#0d1117"
 
-    // Loader untuk font
+    /* ========================================================================
+     * FONT LOADER
+     * ======================================================================== */
+
+    /// @brief Loader untuk font JetBrains Mono
     FontLoader {
         id: jetBrainsMono
         source: "assets/font/JetBrainsMono.ttf"
     }
 
-    // State aplikasi siap untuk splash screen
+    /* ========================================================================
+     * PROPERTI APLIKASI
+     * ======================================================================== */
+
+    /**
+     * @property applicationReady
+     * @brief State aplikasi siap untuk splash screen.
+     * @type bool
+     * @default false
+     */
     property bool applicationReady: false
 
-    // Mengatur font tema setelah font dimuat dan menandai aplikasi siap
+    /// @brief Mengatur font tema setelah font dimuat dan menandai aplikasi siap
     Component.onCompleted: {
         Theme.fontFamily = jetBrainsMono.name;
         // Menandai aplikasi siap setelah delay kecil untuk memastikan semua terinisialisasi
@@ -73,17 +86,79 @@ ApplicationWindow {
         });
     }
 
-    // State aplikasi
-    property string currentLanguage: "-"
-    property string currentTime: "-"
-    property string currentMode: "-"
-    property string currentDifficulty: "easy"  // Difficulty default untuk TextProvider
-    property int currentTargetWPM: 60          // Target WPM untuk mode manual
-    property string originalLanguage: ""        // Menyimpan bahasa asli untuk restorasi Programmer Mode
-    property bool sfxEnabled: GameBackend.sfxEnabled
-    property bool isInGameplay: false            // Melacak apakah sedang dalam gameplay untuk kontrol shortcut
-    property bool skipNavigationSound: false      // Flag untuk melewati suara saat transisi multi-pop
+    /* ========================================================================
+     * STATE APLIKASI
+     * ======================================================================== */
 
+    /**
+     * @property currentLanguage
+     * @brief Bahasa yang dipilih ("ID", "EN", atau "-" untuk tidak ada).
+     * @type string
+     */
+    property string currentLanguage: "-"
+
+    /**
+     * @property currentTime
+     * @brief String durasi tampilan ("15s", "30s", "60s", "∞", atau "-").
+     * @type string
+     */
+    property string currentTime: "-"
+
+    /**
+     * @property currentMode
+     * @brief Mode permainan ("Manual", "Campaign", atau "-").
+     * @type string
+     */
+    property string currentMode: "-"
+
+    /**
+     * @property currentDifficulty
+     * @brief Level campaign ("easy", "medium", "hard", "programmer").
+     * @type string
+     * @default "easy"
+     */
+    property string currentDifficulty: "easy"
+
+    /**
+     * @property currentTargetWPM
+     * @brief Target WPM untuk mode manual.
+     * @type int
+     * @default 60
+     */
+    property int currentTargetWPM: 60
+
+    /**
+     * @property originalLanguage
+     * @brief Menyimpan bahasa asli untuk restorasi setelah Programmer Mode.
+     * @type string
+     */
+    property string originalLanguage: ""
+
+    /// @brief Binding ke state SFX dari GameBackend
+    property bool sfxEnabled: GameBackend.sfxEnabled
+
+    /**
+     * @property isInGameplay
+     * @brief Melacak apakah sedang dalam gameplay untuk kontrol shortcut.
+     * @type bool
+     */
+    property bool isInGameplay: false
+
+    /**
+     * @property skipNavigationSound
+     * @brief Flag untuk melewati suara saat transisi multi-pop.
+     * @type bool
+     */
+    property bool skipNavigationSound: false
+
+    /**
+     * @property currentDuration
+     * @brief Durasi yang dihitung dari currentTime.
+     * @type int
+     * @readonly
+     *
+     * @details Mengembalikan -1 untuk infinity, atau nilai dalam detik.
+     */
     property int currentDuration: {
         if (currentTime === "∞")
             return -1;
@@ -92,27 +167,61 @@ ApplicationWindow {
         return parseInt(currentTime) || GameBackend.defaultDuration;
     }
 
-    // Reset status bar ke nilai default (Time tetap dipertahankan)
+    /* ========================================================================
+     * FUNGSI
+     * ======================================================================== */
+
+    /**
+     * @brief Reset status bar ke nilai default.
+     *
+     * @details Mengatur currentLanguage dan currentMode ke "-".
+     * Properti Time tetap dipertahankan.
+     */
     function resetStatusBar() {
         currentLanguage = "-";
         currentMode = "-";
     }
 
-    // Progress campaign
+    /* ========================================================================
+     * PROGRESS CAMPAIGN
+     * ======================================================================== */
+
+    /// @brief Apakah level Easy sudah dilewati (selalu true, level pembuka)
     property bool easyPassed: true
+    /// @brief Apakah level Medium sudah dilewati
     property bool mediumPassed: false
+    /// @brief Apakah level Hard sudah dilewati
     property bool hardPassed: false
+    /// @brief Apakah Programmer Mode sudah disertifikasi
     property bool programmerCertified: false
 
-    // Hasil game terakhir (untuk halaman results)
-    property real lastWpm: 0
-    property real lastAccuracy: 0
-    property int lastErrors: 0
-    property real lastTimeElapsed: 0
-    property bool lastLevelPassed: false
-    property bool isFirstTimeHardCompletion: false  // Melacak penyelesaian hard pertama kali untuk alur credits
+    /* ========================================================================
+     * HASIL GAME TERAKHIR
+     * ======================================================================== */
 
-    // Shortcut global toggle SFX (dinonaktifkan saat gameplay untuk menghindari konflik)
+    /// @brief WPM terakhir untuk halaman results
+    property real lastWpm: 0
+    /// @brief Akurasi terakhir (persentase)
+    property real lastAccuracy: 0
+    /// @brief Jumlah error terakhir
+    property int lastErrors: 0
+    /// @brief Waktu yang berlalu pada game terakhir (detik)
+    property real lastTimeElapsed: 0
+    /// @brief Apakah level terakhir berhasil dilewati
+    property bool lastLevelPassed: false
+    /// @brief Melacak penyelesaian Hard pertama kali untuk alur credits
+    property bool isFirstTimeHardCompletion: false
+
+    /* ========================================================================
+     * SHORTCUT GLOBAL
+     * ======================================================================== */
+
+    /**
+     * @brief Shortcut global toggle SFX.
+     *
+     * @details Dinonaktifkan saat gameplay untuk menghindari konflik dengan
+     * tombol "S" yang mungkin ada dalam teks.
+     */
     Shortcut {
         sequence: "S"
         enabled: !mainWindow.isInGameplay
@@ -123,14 +232,24 @@ ApplicationWindow {
             }
         }
     }
+    /* ========================================================================
+     * LAYOUT UTAMA
+     * ======================================================================== */
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // ====================================================================
-        // STATUS BAR
-        // ====================================================================
+        /* ====================================================================
+         * STATUS BAR
+         * ==================================================================== */
+
+        /**
+         * @brief Status bar di bagian atas aplikasi.
+         *
+         * @details Menampilkan info bahasa, durasi, mode, dan toggle SFX.
+         * Juga menampilkan nama player jika sudah diset.
+         */
         StatusBar {
             Layout.fillWidth: true
             currentLanguage: mainWindow.currentLanguage
@@ -156,9 +275,16 @@ ApplicationWindow {
             }
         }
 
-        // ====================================================================
-        // KONTEN UTAMA
-        // ====================================================================
+        /* ====================================================================
+         * KONTEN UTAMA - STACKVIEW
+         * ==================================================================== */
+
+        /**
+         * @brief StackView untuk navigasi halaman.
+         *
+         * @details Mengelola stack halaman dengan animasi push/pop.
+         * Setiap halaman didefinisikan sebagai Component inline.
+         */
         StackView {
             id: stackView
             Layout.fillWidth: true
@@ -166,6 +292,7 @@ ApplicationWindow {
             focus: true
             initialItem: mainMenuComponent
 
+            /// @brief Handler saat halaman berubah - memutar suara navigasi
             onCurrentItemChanged: {
                 // Memutar suara navigasi saat halaman berubah
                 // Melewati suara jika dalam transisi multi-pop (misal, kembali dari results)
@@ -219,10 +346,16 @@ ApplicationWindow {
             }
         }
     }
+    /* ========================================================================
+     * OVERLAY SPLASH SCREEN
+     * ======================================================================== */
 
-    // ========================================================================
-    // OVERLAY SPLASH SCREEN
-    // ========================================================================
+    /**
+     * @brief Splash screen yang ditampilkan saat aplikasi dimuat.
+     *
+     * @details Overlay layar penuh dengan logo animasi dan indikator loading.
+     * Otomatis menghilang setelah applicationReady menjadi true.
+     */
     SplashScreen {
         id: splashScreen
         anchors.fill: parent
@@ -235,9 +368,26 @@ ApplicationWindow {
         }
     }
 
-    // ========================================================================
-    // HALAMAN MENU UTAMA
-    // ========================================================================
+    /* ========================================================================
+     * KOMPONEN HALAMAN INLINE
+     *
+     * Semua halaman didefinisikan sebagai Component inline untuk memungkinkan
+     * penanganan signal dalam scope file yang sama.
+     * ======================================================================== */
+
+    /* ========================================================================
+     * HALAMAN MENU UTAMA
+     * ======================================================================== */
+
+    /**
+     * @brief Komponen halaman menu utama.
+     *
+     * @details Menampilkan logo RAPID TEXTER dan menu opsi:
+     * - [1] Start Game → languageMenuComponent
+     * - [2] Multiplayer → multiplayerMenuComponent
+     * - [3] Show History → historyComponent
+     * - [Q] Quit → Qt.quit()
+     */
     Component {
         id: mainMenuComponent
 

@@ -1,8 +1,30 @@
 /**
  * @file MultiplayerHistoryPage.qml
- * @brief Page for displaying multiplayer game history.
- * @author RapidTexter Team
+ * @brief Halaman untuk menampilkan riwayat pertandingan multiplayer.
+ * @author Alea Farrel & Team
  * @date 2026
+ *
+ * @details MultiplayerHistoryPage menampilkan daftar semua pertandingan
+ * multiplayer yang telah dimainkan oleh pengguna. Halaman ini menyediakan
+ * fitur-fitur berikut:
+ *
+ * @par Fitur Utama:
+ * - Daftar riwayat dengan sorting berdasarkan tanggal, WPM, atau rank
+ * - Tampilan expandable untuk melihat detail semua pemain
+ * - Indikator visual untuk peringkat (warna berdasarkan posisi)
+ * - Empty state saat belum ada riwayat
+ * - Opsi untuk menghapus semua riwayat
+ *
+ * @par Integrasi Data:
+ * Data riwayat diambil dari MultiplayerHistoryManager singleton yang
+ * menyimpan data dalam format JSON di disk.
+ *
+ * @par Keyboard Shortcuts:
+ * - ESC: Kembali ke menu sebelumnya
+ * - C: Hapus semua riwayat
+ *
+ * @see MultiplayerHistoryManager
+ * @see MainWindow.qml
  */
 import QtQuick
 import QtQuick.Controls
@@ -11,17 +33,72 @@ import Qt5Compat.GraphicalEffects
 import rapid_texter
 import "../components"
 
+/**
+ * @brief Komponen utama halaman riwayat multiplayer.
+ *
+ * @details Rectangle digunakan sebagai root untuk menyediakan
+ * background color dan mengaktifkan keyboard focus.
+ */
 Rectangle {
     id: mpHistoryPage
-    color: Theme.bgPrimary
-    focus: true
+    color: Theme.bgPrimary  ///< Warna background utama dari tema
+    focus: true  ///< Mengaktifkan focus untuk keyboard handling
 
+    //=========================================================================
+    // DATA PROPERTIES - Properti data dari MultiplayerHistoryManager
+    //=========================================================================
+
+    /**
+     * @property historyData
+     * @brief Data riwayat dari MultiplayerHistoryManager dalam format QVariantList.
+     *
+     * @details Data berisi array objek dengan struktur:
+     * - timestamp: Waktu pertandingan
+     * - hostName: Nama host room
+     * - localWpm: WPM pemain lokal
+     * - localRank: Peringkat pemain lokal
+     * - players: Array detail semua pemain
+     */
     property var historyData: MultiplayerHistoryManager.historyData
+
+    /**
+     * @property totalEntries
+     * @brief Total jumlah entry riwayat.
+     *
+     * @details Digunakan untuk menampilkan jumlah pertandingan
+     * dan menentukan apakah empty state harus ditampilkan.
+     */
     property int totalEntries: MultiplayerHistoryManager.totalEntries
 
+    //=========================================================================
+    // SIGNALS - Sinyal untuk komunikasi dengan parent
+    //=========================================================================
+
+    /**
+     * @brief Dipancarkan saat user memilih untuk kembali ke menu sebelumnya.
+     * @note Ditrigger oleh klik tombol Back atau shortcut keyboard (ESC).
+     */
     signal backClicked
+
+    /**
+     * @brief Dipancarkan saat user memilih untuk menghapus semua riwayat.
+     * @note Ditrigger oleh klik tombol Clear History atau shortcut keyboard (C).
+     */
     signal clearHistoryClicked
 
+    //=========================================================================
+    // KEYBOARD SHORTCUTS - Handler untuk shortcut keyboard
+    //=========================================================================
+
+    /**
+     * @brief Handler untuk keyboard shortcuts.
+     *
+     * @details Mapping keyboard:
+     * - Key_Escape: Trigger backClicked (Kembali)
+     * - Key_C: Trigger clearHistoryClicked (Hapus Riwayat)
+     *
+     * @param event Event keyboard yang diterima
+     */
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) {
             backClicked();
@@ -32,37 +109,81 @@ Rectangle {
         }
     }
 
+    //=========================================================================
+    // MAIN LAYOUT - Tata letak utama halaman
+    //=========================================================================
+
+    /**
+     * @brief ColumnLayout utama yang mengatur tata letak vertikal halaman.
+     *
+     * @details Struktur layout:
+     * 1. Header (judul dan subtitle)
+     * 2. List Header (kolom header tabel)
+     * 3. List View / Empty State (konten utama)
+     * 4. Footer Nav (tombol navigasi)
+     */
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.paddingHuge
         spacing: 0
 
-        // Header
+        //=====================================================================
+        // HEADER SECTION - Bagian judul halaman
+        //=====================================================================
+
+        /**
+         * @brief Column untuk header halaman.
+         *
+         * @details Berisi ikon, judul "MULTIPLAYER HISTORY",
+         * dan subtitle yang menunjukkan jumlah pertandingan.
+         */
         Column {
             Layout.fillWidth: true
             Layout.bottomMargin: 20
             spacing: Theme.spacingM
 
+            /**
+             * @brief Row untuk ikon dan judul yang di-center.
+             */
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: Theme.spacingM
+
+                /**
+                 * @brief Container untuk ikon header.
+                 *
+                 * @details Menggunakan ColorOverlay untuk mewarnai
+                 * ikon SVG dengan warna aksen biru.
+                 */
                 Item {
                     width: 28
                     height: 28
                     anchors.verticalCenter: parent.verticalCenter
+
+                    /**
+                     * @brief Image ikon users (hidden, digunakan sebagai source overlay).
+                     */
                     Image {
                         id: titleIcon
                         source: "qrc:/qt/qml/rapid_texter/assets/icons/users.svg"
                         anchors.fill: parent
                         sourceSize: Qt.size(28, 28)
-                        visible: false
+                        visible: false  ///< Hidden karena menggunakan ColorOverlay
                     }
+
+                    /**
+                     * @brief ColorOverlay untuk mewarnai ikon dengan warna aksen.
+                     */
                     ColorOverlay {
                         anchors.fill: titleIcon
                         source: titleIcon
                         color: Theme.accentBlue
                     }
                 }
+
+                /**
+                 * @brief Teks judul halaman "MULTIPLAYER HISTORY".
+                 */
                 Text {
                     text: "MULTIPLAYER HISTORY"
                     color: Theme.textPrimary
@@ -72,6 +193,12 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
+
+            /**
+             * @brief Subtitle yang menampilkan jumlah pertandingan.
+             *
+             * @details Format: "X matches played" dimana X adalah totalEntries.
+             */
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: mpHistoryPage.totalEntries + " matches played"
@@ -81,12 +208,27 @@ Rectangle {
             }
         }
 
-        // List Header
+        //=====================================================================
+        // LIST HEADER SECTION - Header kolom tabel
+        //=====================================================================
+
+        /**
+         * @brief Rectangle header untuk kolom tabel.
+         *
+         * @details Menampilkan label kolom yang dapat diklik untuk sorting:
+         * - DATE/TIME (sortable by "date")
+         * - HOST (tidak sortable)
+         * - YOUR RANK (sortable by "rank")
+         * - YOUR WPM (sortable by "wpm")
+         */
         Rectangle {
             Layout.fillWidth: true
             height: 40
             color: Theme.bgSecondary
 
+            /**
+             * @brief Garis pembatas di bagian bawah header.
+             */
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
@@ -94,22 +236,41 @@ Rectangle {
                 color: Theme.borderPrimary
             }
 
+            /**
+             * @brief RowLayout untuk mengatur kolom header.
+             */
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Theme.paddingHuge
                 anchors.rightMargin: Theme.paddingHuge
                 spacing: 0
 
-                // DATE/TIME Header
+                //=============================================================
+                // DATE/TIME COLUMN HEADER - Header kolom tanggal/waktu
+                //=============================================================
+
+                /**
+                 * @brief Header kolom DATE/TIME yang dapat diklik untuk sorting.
+                 *
+                 * @details Ketika diklik:
+                 * - Jika sudah aktif: Toggle arah sorting (asc/desc)
+                 * - Jika belum aktif: Set sebagai sort field dengan default descending
+                 */
                 Item {
                     Layout.preferredWidth: 200
                     Layout.fillHeight: true
 
+                    /**
+                     * @brief Row untuk label dan ikon chevron sorting.
+                     */
                     RowLayout {
                         anchors.centerIn: parent
                         width: parent.width
                         spacing: 5
 
+                        /**
+                         * @brief Label "DATE/TIME" dengan highlight jika aktif.
+                         */
                         Text {
                             text: "DATE/TIME"
                             color: MultiplayerHistoryManager.sortBy === "date" ? Theme.accentBlue : Theme.textSecondary
@@ -118,6 +279,11 @@ Rectangle {
                             font.bold: true
                         }
 
+                        /**
+                         * @brief Ikon chevron menunjukkan arah sorting.
+                         *
+                         * @details Hanya terlihat jika kolom ini aktif untuk sorting.
+                         */
                         Image {
                             source: MultiplayerHistoryManager.sortAscending ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
                             sourceSize.width: 14
@@ -133,22 +299,33 @@ Rectangle {
                         }
                     }
 
+                    /**
+                     * @brief MouseArea untuk menangani klik pada header kolom.
+                     */
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (MultiplayerHistoryManager.sortBy === "date") {
+                                // Toggle arah sorting jika sudah aktif
                                 MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
                             } else {
+                                // Set sebagai sort field dengan default descending (terbaru pertama)
                                 MultiplayerHistoryManager.sortBy = "date";
-                                MultiplayerHistoryManager.sortAscending = false; // Default new sort to descending (newest first)
+                                MultiplayerHistoryManager.sortAscending = false;
                             }
                         }
                     }
                 }
 
-                // HOST Header (Not sortable)
+                //=============================================================
+                // HOST COLUMN HEADER - Header kolom host (tidak sortable)
+                //=============================================================
+
+                /**
+                 * @brief Header kolom HOST (tidak dapat diurutkan).
+                 */
                 Text {
                     Layout.fillWidth: true
                     text: "HOST"
@@ -158,7 +335,18 @@ Rectangle {
                     font.bold: true
                 }
 
-                // YOUR RANK Header
+                //=============================================================
+                // YOUR RANK COLUMN HEADER - Header kolom peringkat
+                //=============================================================
+
+                /**
+                 * @brief Header kolom YOUR RANK yang dapat diklik untuk sorting.
+                 *
+                 * @details Ketika diklik:
+                 * - Jika sudah aktif: Toggle arah sorting
+                 * - Jika belum aktif: Set sebagai sort field dengan default ascending
+                 *   (peringkat 1 adalah yang terbaik, jadi angka kecil dulu)
+                 */
                 Item {
                     Layout.preferredWidth: 100
                     Layout.fillHeight: true
@@ -200,13 +388,24 @@ Rectangle {
                                 MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
                             } else {
                                 MultiplayerHistoryManager.sortBy = "rank";
-                                MultiplayerHistoryManager.sortAscending = true; // Default rank sort: Ascending (1st is best, so small number first)
+                                MultiplayerHistoryManager.sortAscending = true; // Ascending: 1st is best
                             }
                         }
                     }
                 }
 
-                // YOUR WPM Header
+                //=============================================================
+                // YOUR WPM COLUMN HEADER - Header kolom WPM
+                //=============================================================
+
+                /**
+                 * @brief Header kolom YOUR WPM yang dapat diklik untuk sorting.
+                 *
+                 * @details Ketika diklik:
+                 * - Jika sudah aktif: Toggle arah sorting
+                 * - Jika belum aktif: Set sebagai sort field dengan default descending
+                 *   (WPM tinggi adalah yang terbaik)
+                 */
                 Item {
                     Layout.preferredWidth: 100
                     Layout.fillHeight: true
@@ -248,7 +447,7 @@ Rectangle {
                                 MultiplayerHistoryManager.sortAscending = !MultiplayerHistoryManager.sortAscending;
                             } else {
                                 MultiplayerHistoryManager.sortBy = "wpm";
-                                MultiplayerHistoryManager.sortAscending = false; // Default WPM sort: Descending (Higher is better)
+                                MultiplayerHistoryManager.sortAscending = false; // Descending: Higher is better
                             }
                         }
                     }
@@ -256,25 +455,58 @@ Rectangle {
             }
         }
 
-        // List View and Empty State
-        Item { // Use an Item as a container to hold both the ListView and the empty state, allowing them to fill the remaining space
+        //=====================================================================
+        // LIST VIEW AND EMPTY STATE - Konten utama
+        //=====================================================================
+
+        /**
+         * @brief Container untuk ListView dan empty state.
+         *
+         * @details Menggunakan Item sebagai container untuk memungkinkan
+         * kedua child (ListView dan empty state) mengisi ruang yang sama
+         * dengan visibility yang saling eksklusif.
+         */
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            //=================================================================
+            // LIST VIEW - Daftar riwayat pertandingan
+            //=================================================================
+
+            /**
+             * @brief ListView untuk menampilkan daftar riwayat pertandingan.
+             *
+             * @details Hanya terlihat jika ada data riwayat (totalEntries > 0).
+             * Setiap item dapat di-expand untuk melihat detail semua pemain.
+             */
             ListView {
                 id: historyList
                 width: parent.width
                 height: parent.height
-                clip: true
+                clip: true  ///< Memotong konten yang melewati batas
                 model: mpHistoryPage.historyData
                 spacing: 5
                 visible: mpHistoryPage.totalEntries > 0
 
+                /**
+                 * @brief Delegate untuk setiap item riwayat.
+                 *
+                 * @details Setiap delegate berisi:
+                 * - Main row dengan info ringkas (timestamp, host, rank, WPM)
+                 * - Expandable details dengan daftar semua pemain
+                 * - Indikator warna berdasarkan peringkat
+                 * - Animasi expand/collapse
+                 */
                 delegate: Rectangle {
                     id: delegateItem
                     width: ListView.view.width
-                    height: isExpanded ? (40 + playersList.height + 20) : 40
+                    height: isExpanded ? (40 + playersList.height + 20) : 40  ///< Tinggi dinamis berdasarkan state
                     color: isExpanded ? Theme.bgSecondary : (mouseArea.containsMouse ? Theme.bgHover : "transparent")
+
+                    /**
+                     * @brief Animasi untuk perubahan tinggi saat expand/collapse.
+                     */
                     Behavior on height {
                         NumberAnimation {
                             duration: 200
@@ -282,8 +514,17 @@ Rectangle {
                         }
                     }
 
+                    /**
+                     * @property isExpanded
+                     * @brief State apakah detail pemain sedang ditampilkan.
+                     */
                     property bool isExpanded: false
 
+                    /**
+                     * @brief Garis pembatas di bagian bawah item.
+                     *
+                     * @details Hanya terlihat saat item tidak di-expand.
+                     */
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
@@ -293,14 +534,37 @@ Rectangle {
                         opacity: 0.5
                     }
 
-                    // Rank indicator line
+                    //=========================================================
+                    // RANK INDICATOR - Indikator warna peringkat
+                    //=========================================================
+
+                    /**
+                     * @brief Indikator warna vertikal berdasarkan peringkat pemain lokal.
+                     *
+                     * @details Warna berdasarkan peringkat:
+                     * - Peringkat 1: Kuning (accentYellow) - Juara
+                     * - Peringkat 2-3: Hijau (accentGreen) - Podium
+                     * - Peringkat lainnya: Abu-abu (textMuted)
+                     */
                     Rectangle {
                         width: 3
                         height: 40
                         color: (modelData.localRank === 1) ? Theme.accentYellow : ((modelData.localRank <= 3) ? Theme.accentGreen : Theme.textMuted)
                     }
 
-                    // Main Row
+                    //=========================================================
+                    // MAIN ROW - Baris utama dengan info ringkas
+                    //=========================================================
+
+                    /**
+                     * @brief RowLayout untuk menampilkan informasi ringkas pertandingan.
+                     *
+                     * @details Kolom:
+                     * 1. Timestamp (tanggal dan waktu)
+                     * 2. Host name (nama pembuat room)
+                     * 3. Local rank (peringkat pemain lokal)
+                     * 4. Local WPM (kecepatan mengetik pemain lokal)
+                     */
                     RowLayout {
                         id: mainRow
                         height: 40
@@ -312,6 +576,9 @@ Rectangle {
                         anchors.rightMargin: Theme.paddingHuge
                         spacing: 0
 
+                        /**
+                         * @brief Kolom timestamp (tanggal/waktu pertandingan).
+                         */
                         Text {
                             Layout.preferredWidth: 200
                             text: modelData.timestamp
@@ -319,14 +586,25 @@ Rectangle {
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
                         }
+
+                        /**
+                         * @brief Kolom host name dengan warna aksen biru.
+                         */
                         Text {
                             Layout.fillWidth: true
                             text: modelData.hostName
                             color: Theme.accentBlue
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
-                            elide: Text.ElideRight
+                            elide: Text.ElideRight  ///< Potong teks panjang dengan ...
                         }
+
+                        /**
+                         * @brief Kolom peringkat pemain lokal.
+                         *
+                         * @details Format: "#X" dimana X adalah posisi.
+                         * Warna kuning untuk peringkat 1.
+                         */
                         Text {
                             Layout.preferredWidth: 100
                             text: "#" + modelData.localRank
@@ -336,6 +614,10 @@ Rectangle {
                             horizontalAlignment: Text.AlignHCenter
                             font.bold: true
                         }
+
+                        /**
+                         * @brief Kolom WPM pemain lokal dengan warna hijau.
+                         */
                         Text {
                             Layout.preferredWidth: 100
                             text: modelData.localWpm
@@ -347,6 +629,9 @@ Rectangle {
                         }
                     }
 
+                    /**
+                     * @brief MouseArea untuk menangani klik expand/collapse.
+                     */
                     MouseArea {
                         id: mouseArea
                         anchors.fill: mainRow
@@ -355,7 +640,16 @@ Rectangle {
                         onClicked: delegateItem.isExpanded = !delegateItem.isExpanded
                     }
 
-                    // Expanded Details (Player List)
+                    //=========================================================
+                    // EXPANDED DETAILS - Detail pemain yang dapat di-expand
+                    //=========================================================
+
+                    /**
+                     * @brief Rectangle container untuk detail pemain yang di-expand.
+                     *
+                     * @details Menampilkan daftar semua pemain dalam pertandingan
+                     * dengan informasi lengkap: posisi, nama, WPM, akurasi, dan error.
+                     */
                     Rectangle {
                         id: detailsRect
                         anchors.top: mainRow.bottom
@@ -366,7 +660,9 @@ Rectangle {
                         visible: delegateItem.isExpanded
                         opacity: delegateItem.isExpanded ? 1 : 0
 
-                        // Divider line separating main row from details
+                        /**
+                         * @brief Garis pembatas di bagian atas details.
+                         */
                         Rectangle {
                             anchors.top: parent.top
                             anchors.left: parent.left
@@ -376,6 +672,14 @@ Rectangle {
                             opacity: 0.5
                         }
 
+                        /**
+                         * @brief ColumnLayout untuk daftar pemain.
+                         *
+                         * @details Struktur:
+                         * 1. Header row (label kolom)
+                         * 2. Separator
+                         * 3. Repeater untuk setiap pemain
+                         */
                         ColumnLayout {
                             id: playersList
                             anchors.top: parent.top
@@ -384,12 +688,21 @@ Rectangle {
                             anchors.margins: 10
                             spacing: 12
 
-                            // Header for Player Results
+                            //=================================================
+                            // PLAYER RESULTS HEADER - Header tabel pemain
+                            //=================================================
+
+                            /**
+                             * @brief Row header untuk kolom detail pemain.
+                             */
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 10
                                 opacity: 0.7
 
+                                /**
+                                 * @brief Label kolom posisi/peringkat.
+                                 */
                                 Text {
                                     Layout.preferredWidth: 30
                                     text: "#"
@@ -398,6 +711,10 @@ Rectangle {
                                     font.pixelSize: Theme.fontSizeS
                                     font.bold: true
                                 }
+
+                                /**
+                                 * @brief Label kolom nama pemain.
+                                 */
                                 Text {
                                     Layout.fillWidth: true
                                     text: "PLAYER"
@@ -406,6 +723,10 @@ Rectangle {
                                     font.pixelSize: Theme.fontSizeS
                                     font.bold: true
                                 }
+
+                                /**
+                                 * @brief Label kolom WPM.
+                                 */
                                 Text {
                                     Layout.preferredWidth: 80
                                     text: "WPM"
@@ -415,6 +736,10 @@ Rectangle {
                                     horizontalAlignment: Text.AlignRight
                                     font.bold: true
                                 }
+
+                                /**
+                                 * @brief Label kolom akurasi.
+                                 */
                                 Text {
                                     Layout.preferredWidth: 60
                                     text: "ACCURACY"
@@ -424,6 +749,10 @@ Rectangle {
                                     horizontalAlignment: Text.AlignRight
                                     font.bold: true
                                 }
+
+                                /**
+                                 * @brief Label kolom error.
+                                 */
                                 Text {
                                     Layout.preferredWidth: 80
                                     text: "ERROR"
@@ -435,7 +764,9 @@ Rectangle {
                                 }
                             }
 
-                            // Separator
+                            /**
+                             * @brief Garis pemisah antara header dan data pemain.
+                             */
                             Rectangle {
                                 Layout.fillWidth: true
                                 height: 1
@@ -443,18 +774,48 @@ Rectangle {
                                 opacity: 0.5
                             }
 
+                            //=================================================
+                            // PLAYER LIST - Daftar pemain
+                            //=================================================
+
+                            /**
+                             * @brief Repeater untuk menampilkan setiap pemain.
+                             *
+                             * @details Setiap row menampilkan:
+                             * - Posisi (dengan warna kuning untuk juara)
+                             * - Nama (dengan tag "(You)" untuk pemain lokal, "[Left]" jika disconnect)
+                             * - WPM
+                             * - Akurasi (dalam persen)
+                             * - Jumlah error (warna merah jika > 0)
+                             */
                             Repeater {
                                 model: modelData.players
                                 delegate: RowLayout {
                                     Layout.fillWidth: true
                                     spacing: 10
 
+                                    /**
+                                     * @brief Kolom posisi pemain.
+                                     *
+                                     * @details Warna kuning untuk posisi 1 (juara).
+                                     */
                                     Text {
                                         Layout.preferredWidth: 30
                                         text: modelData.position
                                         color: (modelData.position === 1) ? Theme.accentYellow : Theme.textSecondary
                                         font.family: Theme.fontFamily
                                     }
+
+                                    /**
+                                     * @brief Kolom nama pemain dengan indikator status.
+                                     *
+                                     * @details Menampilkan:
+                                     * - Nama pemain
+                                     * - "(You)" jika pemain lokal
+                                     * - "[Left]" jika pemain disconnect sebelum selesai
+                                     *
+                                     * Warna biru dan bold untuk pemain lokal.
+                                     */
                                     Text {
                                         Layout.fillWidth: true
                                         text: modelData.name + (modelData.isLocal ? " (You)" : "") + (modelData.hasLeft ? " [Left]" : "")
@@ -462,6 +823,10 @@ Rectangle {
                                         font.family: Theme.fontFamily
                                         font.bold: modelData.isLocal
                                     }
+
+                                    /**
+                                     * @brief Kolom WPM pemain dengan satuan.
+                                     */
                                     Text {
                                         Layout.preferredWidth: 80
                                         text: modelData.wpm + " WPM"
@@ -469,6 +834,10 @@ Rectangle {
                                         font.family: Theme.fontFamily
                                         horizontalAlignment: Text.AlignRight
                                     }
+
+                                    /**
+                                     * @brief Kolom akurasi pemain dalam persen.
+                                     */
                                     Text {
                                         Layout.preferredWidth: 60
                                         text: modelData.accuracy.toFixed(1) + "%"
@@ -476,6 +845,12 @@ Rectangle {
                                         font.family: Theme.fontFamily
                                         horizontalAlignment: Text.AlignRight
                                     }
+
+                                    /**
+                                     * @brief Kolom jumlah error pemain.
+                                     *
+                                     * @details Warna merah jika ada error (> 0).
+                                     */
                                     Text {
                                         Layout.preferredWidth: 80
                                         text: modelData.errors + " err"
@@ -490,17 +865,32 @@ Rectangle {
                 }
             }
 
-            // Empty State Placeholder
+            //=================================================================
+            // EMPTY STATE - Tampilan saat tidak ada riwayat
+            //=================================================================
+
+            /**
+             * @brief Column untuk empty state placeholder.
+             *
+             * @details Ditampilkan saat totalEntries === 0.
+             * Berisi ikon, judul, dan subtitle informatif.
+             */
             Column {
                 anchors.centerIn: parent
                 spacing: Theme.spacingM
                 visible: mpHistoryPage.totalEntries === 0
 
+                /**
+                 * @brief Container untuk ikon empty state.
+                 */
                 Item {
                     width: 64
                     height: 64
                     anchors.horizontalCenter: parent.horizontalCenter
 
+                    /**
+                     * @brief Image ikon history (hidden, digunakan sebagai source overlay).
+                     */
                     Image {
                         id: emptyIcon
                         source: "qrc:/qt/qml/rapid_texter/assets/icons/history.svg"
@@ -508,6 +898,10 @@ Rectangle {
                         sourceSize: Qt.size(64, 64)
                         visible: false
                     }
+
+                    /**
+                     * @brief ColorOverlay untuk mewarnai ikon dengan warna muted.
+                     */
                     ColorOverlay {
                         anchors.fill: emptyIcon
                         source: emptyIcon
@@ -516,6 +910,9 @@ Rectangle {
                     }
                 }
 
+                /**
+                 * @brief Judul empty state.
+                 */
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "No multiplayer matches yet"
@@ -524,6 +921,9 @@ Rectangle {
                     font.pixelSize: Theme.fontSizeL
                 }
 
+                /**
+                 * @brief Subtitle empty state dengan instruksi.
+                 */
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Play a match to see your history here"
@@ -535,20 +935,41 @@ Rectangle {
             }
         }
 
-        // Footer nav
+        //=====================================================================
+        // FOOTER NAVIGATION - Tombol navigasi di bagian bawah
+        //=====================================================================
+
+        /**
+         * @brief Row untuk tombol navigasi footer.
+         *
+         * @details Berisi dua tombol:
+         * 1. Back: Kembali ke menu sebelumnya (shortcut: ESC)
+         * 2. Clear History: Menghapus semua riwayat (shortcut: C)
+         */
         Row {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 20
             spacing: Theme.spacingM
+
+            /**
+             * @brief Tombol Back untuk kembali ke menu sebelumnya.
+             */
             NavBtn {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
                 labelText: "Back (ESC)"
                 onClicked: mpHistoryPage.backClicked()
             }
+
+            /**
+             * @brief Tombol Clear History untuk menghapus semua riwayat.
+             *
+             * @details Menggunakan variant "danger" untuk menandakan
+             * aksi destruktif yang tidak dapat di-undo.
+             */
             NavBtn {
                 iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/trash.svg"
                 labelText: "Clear History (C)"
-                variant: "danger"
+                variant: "danger"  ///< Variant merah untuk aksi berbahaya
                 onClicked: {
                     mpHistoryPage.clearHistoryClicked();
                 }

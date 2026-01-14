@@ -227,8 +227,7 @@ FocusScope {
                     delegate: Rectangle {
                         width: parent.width
                         height: 40
-                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : 
-                               (modelData.hasLeft ? Qt.rgba(1, 0.8, 0.3, 0.1) : "transparent") // Yellow tint for left players
+                        color: modelData.isLocal ? Qt.rgba(0.34, 0.65, 1, 0.1) : (modelData.hasLeft ? Qt.rgba(1, 0.8, 0.3, 0.1) : "transparent") // Yellow tint for left players
 
                         RowLayout {
                             anchors.left: parent.left
@@ -311,7 +310,8 @@ FocusScope {
                                 Layout.preferredWidth: 50
                                 horizontalAlignment: Text.AlignRight
                                 text: {
-                                    if (modelData.hasLeft) return "Left";
+                                    if (modelData.hasLeft)
+                                        return "Left";
                                     var duration = modelData.duration !== undefined ? modelData.duration : 0;
                                     return duration + "s";
                                 }
@@ -498,7 +498,7 @@ FocusScope {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: 40
                         height: 40
-                        
+
                         Image {
                             id: clockIcon
                             anchors.fill: parent
@@ -509,24 +509,24 @@ FocusScope {
                         ColorOverlay {
                             anchors.fill: clockIcon
                             source: clockIcon
-                            color: Theme.accentRed 
+                            color: Theme.accentRed
                         }
                         // Fallback circle if icon missing (play again popup used refresh)
                         Rectangle {
-                           anchors.fill: parent 
-                           radius: 20
-                           color: "transparent"
-                           border.color: Theme.accentRed
-                           border.width: 2
-                           visible: clockIcon.status !== Image.Ready
-                           
-                           Text {
-                               anchors.centerIn: parent
-                               text: "!"
-                               color: Theme.accentRed
-                               font.bold: true
-                               font.pixelSize: 24
-                           }
+                            anchors.fill: parent
+                            radius: 20
+                            color: "transparent"
+                            border.color: Theme.accentRed
+                            border.width: 2
+                            visible: clockIcon.status !== Image.Ready
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "!"
+                                color: Theme.accentRed
+                                font.bold: true
+                                font.pixelSize: 24
+                            }
                         }
                     }
 

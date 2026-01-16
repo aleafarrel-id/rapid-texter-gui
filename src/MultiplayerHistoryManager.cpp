@@ -131,6 +131,7 @@ bool MultiplayerHistoryManager::loadHistory() {
     MultiplayerHistoryEntry entry;
     entry.timestamp = obj["timestamp"].toString();
     entry.hostName = obj["hostName"].toString();
+    entry.language = obj["language"].toString("en");  // Default "en" untuk backward compatibility
 
     QJsonArray playersArr = obj["players"].toArray();
     for (const QJsonValue &pVal : playersArr) {
@@ -178,6 +179,7 @@ bool MultiplayerHistoryManager::saveHistory() {
     QJsonObject obj;
     obj["timestamp"] = entry.timestamp;
     obj["hostName"] = entry.hostName;
+    obj["language"] = entry.language;
 
     QJsonArray playersArr;
     for (const auto &player : entry.players) {
@@ -250,6 +252,10 @@ void MultiplayerHistoryManager::addEntry(const QVariantList &rankings,
   MultiplayerHistoryEntry entry;
   entry.timestamp = captureTimestamp();
   entry.hostName = hostName;
+  
+  // Ambil language dari NetworkManager
+  NetworkManager *nm = NetworkManager::instance();
+  entry.language = nm ? nm->gameLanguage() : "en";
 
   for (const QVariant &r : rankings) {
     QVariantMap map = r.toMap();
@@ -301,9 +307,15 @@ void MultiplayerHistoryManager::clearHistory() {
 QVariantList MultiplayerHistoryManager::getHistoryData() const {
   QVariantList list;
   for (const auto &entry : m_entries) {
+    // Filter by language if filter is set
+    if (!m_filterLanguage.isEmpty() && m_filterLanguage != "all" && entry.language != m_filterLanguage) {
+      continue;
+    }
+    
     QVariantMap map;
     map["timestamp"] = entry.timestamp;
     map["hostName"] = entry.hostName;
+    map["language"] = entry.language;
     map["localWpm"] = entry.localWpm;
     map["localRank"] = entry.localRank;
 
@@ -379,6 +391,28 @@ void MultiplayerHistoryManager::setSortAscending(bool ascending) {
     sortHistory();
     emit historyChanged();
     emit sortAscendingChanged();
+  }
+}
+
+/**
+ * @brief Mendapatkan filter bahasa saat ini.
+ * @return QString filter ("all", "id", "en", "prog").
+ */
+QString MultiplayerHistoryManager::filterLanguage() const {
+  return m_filterLanguage;
+}
+
+/**
+ * @brief Mengatur filter bahasa.
+ * @param language Bahasa untuk filter.
+ *
+ * @details Mengubah filter akan menyebabkan data yang ditampilkan berubah.
+ */
+void MultiplayerHistoryManager::setFilterLanguage(const QString &language) {
+  if (m_filterLanguage != language) {
+    m_filterLanguage = language;
+    emit filterLanguageChanged();
+    emit historyChanged();  // Re-emit karena data yang ditampilkan berubah
   }
 }
 

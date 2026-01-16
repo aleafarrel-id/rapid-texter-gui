@@ -58,6 +58,7 @@ struct MultiplayerPlayerResult {
 struct MultiplayerHistoryEntry {
     QString timestamp;   ///< Waktu pertandingan (format: dd/MM/yyyy HH:mm:ss)
     QString hostName;    ///< Nama pembuat room (host)
+    QString language;    ///< Bahasa game ("id", "en", "prog")
     std::vector<MultiplayerPlayerResult> players;  ///< Daftar hasil semua pemain
     
     // Derived local stats untuk quick display
@@ -119,6 +120,12 @@ class MultiplayerHistoryManager : public QObject {
      * @brief Arah sorting (true = ascending, false = descending).
      */
     Q_PROPERTY(bool sortAscending READ sortAscending WRITE setSortAscending NOTIFY sortAscendingChanged)
+    
+    /**
+     * @property filterLanguage
+     * @brief Filter bahasa untuk riwayat ("all", "id", "en", "prog").
+     */
+    Q_PROPERTY(QString filterLanguage READ filterLanguage WRITE setFilterLanguage NOTIFY filterLanguageChanged)
 
 public:
     /**
@@ -194,6 +201,18 @@ public:
      */
     void setSortAscending(bool ascending);
 
+    /**
+     * @brief Mendapatkan filter bahasa saat ini.
+     * @return QString filter bahasa ("all", "id", "en", "prog").
+     */
+    QString filterLanguage() const;
+    
+    /**
+     * @brief Mengatur filter bahasa.
+     * @param language Bahasa untuk filter.
+     */
+    void setFilterLanguage(const QString &language);
+
 public slots:
     /**
      * @brief Slot untuk menerima hasil race dari NetworkManager.
@@ -210,10 +229,14 @@ signals:
     
     /** @brief Dipancarkan saat arah sorting berubah. */
     void sortAscendingChanged();
+    
+    /** @brief Dipancarkan saat filter bahasa berubah. */
+    void filterLanguageChanged();
 
 private:
     static MultiplayerHistoryManager *s_instance;  ///< Singleton instance
     std::vector<MultiplayerHistoryEntry> m_entries; ///< Daftar entry riwayat
+    QString m_filterLanguage = "all";  ///< Filter bahasa aktif
     std::string m_filename;  ///< Path file riwayat
     
     /**

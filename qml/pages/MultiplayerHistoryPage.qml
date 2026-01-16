@@ -70,6 +70,26 @@ Rectangle {
      */
     property int totalEntries: MultiplayerHistoryManager.totalEntries
 
+    /**
+     * @brief Properti untuk mengontrol popup filter bahasa.
+     */
+    property bool langFilterPopupVisible: false
+    property real langHeaderGlobalX: 0
+    property real langHeaderGlobalY: 0
+
+    /**
+     * @brief Helper function untuk mendapatkan label bahasa.
+     */
+    function getLanguageLabel(lang) {
+        if (lang === "id")
+            return "ID";
+        if (lang === "en")
+            return "EN";
+        if (lang === "prog")
+            return "PROG";
+        return "ALL";
+    }
+
     //=========================================================================
     // SIGNALS - Sinyal untuk komunikasi dengan parent
     //=========================================================================
@@ -336,6 +356,63 @@ Rectangle {
                 }
 
                 //=============================================================
+                // LANG COLUMN HEADER - Header kolom bahasa (clickable filter)
+                //=============================================================
+
+                /**
+                 * @brief Header kolom LANG dengan dropdown filter.
+                 *
+                 * @details Klik untuk membuka dropdown filter bahasa.
+                 * Menampilkan filter aktif: ALL, ID, EN, atau PROG.
+                 */
+                Item {
+                    id: langHeaderItem
+                    Layout.preferredWidth: 60
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            text: mpHistoryPage.getLanguageLabel(MultiplayerHistoryManager.filterLanguage)
+                            color: MultiplayerHistoryManager.filterLanguage !== "all" ? Theme.accentBlue : Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeS
+                            font.bold: true
+                        }
+
+                        Image {
+                            id: langFilterIcon
+                            source: mpHistoryPage.langFilterPopupVisible ? "qrc:/qt/qml/rapid_texter/assets/icons/chevron-up.svg" : "qrc:/qt/qml/rapid_texter/assets/icons/chevron-down.svg"
+                            sourceSize.width: 14
+                            sourceSize.height: 14
+                            opacity: 0.7
+                            visible: true
+
+                            ColorOverlay {
+                                anchors.fill: parent
+                                source: parent
+                                color: MultiplayerHistoryManager.filterLanguage !== "all" ? Theme.accentBlue : Theme.textSecondary
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            // Update global position before showing popup
+                            var globalPos = langHeaderItem.mapToItem(mpHistoryPage, 0, langHeaderItem.height);
+                            mpHistoryPage.langHeaderGlobalX = globalPos.x;
+                            mpHistoryPage.langHeaderGlobalY = globalPos.y;
+                            mpHistoryPage.langFilterPopupVisible = !mpHistoryPage.langFilterPopupVisible;
+                        }
+                    }
+                }
+
+                //=============================================================
                 // YOUR RANK COLUMN HEADER - Header kolom peringkat
                 //=============================================================
 
@@ -597,6 +674,18 @@ Rectangle {
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
                             elide: Text.ElideRight  ///< Potong teks panjang dengan ...
+                        }
+
+                        /**
+                         * @brief Kolom bahasa game.
+                         */
+                        Text {
+                            Layout.preferredWidth: 60
+                            text: modelData.language ? modelData.language.toUpperCase() : "—"
+                            color: Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeM
+                            horizontalAlignment: Text.AlignHCenter
                         }
 
                         /**
@@ -974,6 +1063,80 @@ Rectangle {
                     mpHistoryPage.clearHistoryClicked();
                 }
             }
+        }
+    }
+
+    /**
+     * @brief Language filter popup overlay.
+     *
+     * @details Popup ditampilkan di level halaman dengan z-index tinggi
+     * untuk memastikan tampil di atas semua elemen termasuk ListView.
+     */
+    Rectangle {
+        id: langFilterPopup
+        visible: mpHistoryPage.langFilterPopupVisible
+        x: mpHistoryPage.langHeaderGlobalX
+        y: mpHistoryPage.langHeaderGlobalY + 4
+        width: 70
+        height: langFilterColumn.height + 8
+        color: Theme.bgSecondary
+        border.color: Theme.borderPrimary
+        border.width: 1
+        radius: 4
+        z: 1000
+
+        // MouseArea untuk memblok hover events ke elemen di belakang popup
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            // Hanya untuk memblok propagation, tidak melakukan apa-apa
+        }
+
+        Column {
+            id: langFilterColumn
+            anchors.centerIn: parent
+            width: parent.width - 8
+            spacing: 2
+
+            Repeater {
+                model: ["all", "id", "en", "prog"]
+                delegate: Rectangle {
+                    width: langFilterColumn.width
+                    height: 26
+                    color: langOptionMouseArea.containsMouse ? Theme.bgHover : "transparent"
+                    radius: 3
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: mpHistoryPage.getLanguageLabel(modelData)
+                        color: MultiplayerHistoryManager.filterLanguage === modelData ? Theme.accentBlue : Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeS
+                        font.bold: MultiplayerHistoryManager.filterLanguage === modelData
+                    }
+
+                    MouseArea {
+                        id: langOptionMouseArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onClicked: {
+                            MultiplayerHistoryManager.filterLanguage = modelData;
+                            mpHistoryPage.langFilterPopupVisible = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Click-away handler untuk menutup popup
+    MouseArea {
+        anchors.fill: parent
+        visible: mpHistoryPage.langFilterPopupVisible
+        z: 999
+        onClicked: {
+            mpHistoryPage.langFilterPopupVisible = false;
         }
     }
 }

@@ -242,7 +242,7 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: sfxRow.implicitWidth + Theme.paddingL * 2
             Layout.preferredHeight: parent.height - Theme.spacingM
-            color: sfxMouse.containsMouse ? Theme.bgTertiary : "transparent"
+            color: sfxHoverHandler.hovered ? Theme.bgTertiary : "transparent"
             radius: 4
 
             Row {
@@ -290,10 +290,14 @@ Rectangle {
                 }
             }
 
+            HoverHandler {
+                id: sfxHoverHandler
+                cursorShape: Qt.PointingHandCursor
+            }
+
             MouseArea {
                 id: sfxMouse
                 anchors.fill: parent
-                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: statusBar.sfxToggled()
             }
@@ -308,7 +312,7 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: nameRow.implicitWidth + Theme.paddingL * 2
             Layout.preferredHeight: parent.height - Theme.spacingM
-            color: nameMouse.containsMouse ? Theme.bgTertiary : "transparent"
+            color: nameHoverHandler.hovered ? Theme.bgTertiary : "transparent"
             radius: 4
             visible: statusBar.playerName !== ""
 
@@ -342,10 +346,15 @@ Rectangle {
                 }
             }
 
+            HoverHandler {
+                id: nameHoverHandler
+                enabled: statusBar.showShortcutHint  // Nonaktifkan interaksi saat gameplay
+                cursorShape: Qt.PointingHandCursor
+            }
+
             MouseArea {
                 id: nameMouse
                 anchors.fill: parent
-                hoverEnabled: true
                 enabled: statusBar.showShortcutHint  // Nonaktifkan interaksi saat gameplay
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
@@ -356,7 +365,7 @@ Rectangle {
                     statusBar.nameClicked();
                 }
 
-                ToolTip.visible: containsMouse
+                ToolTip.visible: nameHoverHandler.hovered
                 ToolTip.delay: 500
                 ToolTip.text: "Klik untuk mengubah nama"
             }

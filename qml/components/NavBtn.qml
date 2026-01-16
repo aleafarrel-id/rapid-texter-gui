@@ -107,8 +107,11 @@ Rectangle {
      * @property isHovered
      * @brief True saat mouse berada di atas tombol.
      * @readonly
+     * @details Menggunakan HoverHandler untuk deteksi hover yang immediate,
+     *          sehingga efek hover langsung muncul saat halaman baru dimuat
+     *          dan cursor sudah berada di atas tombol.
      */
-    readonly property bool isHovered: navMouse.containsMouse
+    readonly property bool isHovered: hoverHandler.hovered
 
     /**
      * @property variantColor
@@ -255,13 +258,23 @@ Rectangle {
      * ======================================================================== */
 
     /**
-     * @brief Area mouse untuk deteksi klik dan hover.
+     * @brief HoverHandler untuk deteksi hover yang immediate.
+     * @details Menggunakan HoverHandler sebagai pengganti MouseArea.containsMouse
+     *          karena HoverHandler secara continuous memeriksa posisi cursor,
+     *          memungkinkan efek hover langsung muncul saat halaman baru dimuat.
+     */
+    HoverHandler {
+        id: hoverHandler
+        cursorShape: Qt.PointingHandCursor  /* Tampilkan kursor pointer saat hover */
+    }
+
+    /**
+     * @brief Area mouse untuk deteksi klik.
      */
     MouseArea {
         id: navMouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor  /* Tampilkan kursor pointer saat hover */
+        cursorShape: Qt.PointingHandCursor
         onClicked: navBtn.clicked()
     }
 }

@@ -73,6 +73,11 @@ Rectangle {
      * @brief Warna aksen computed berdasarkan accentType dan state locked.
      * @readonly
      */
+    /**
+     * @property hoverColor
+     * @brief Warna aksen computed berdasarkan accentType dan state locked.
+     * @readonly
+     */
     readonly property color hoverColor: {
         if (locked)
             return Theme.borderSecondary;
@@ -87,7 +92,14 @@ Rectangle {
             return Theme.accentBlue;
         }
     }
-    readonly property bool isHovered: itemMouse.containsMouse && !locked && !busy
+    /**
+     * @property isHovered
+     * @brief True saat mouse berada di atas menu item dan tidak dikunci/busy.
+     * @readonly
+     * @details Menggunakan HoverHandler untuk deteksi hover yang immediate,
+     *          sehingga efek hover langsung muncul saat halaman baru dimuat.
+     */
+    readonly property bool isHovered: hoverHandler.hovered && !locked && !busy
 
     // Layout
     Layout.fillWidth: true
@@ -246,10 +258,22 @@ Rectangle {
         }
     }
 
+    /**
+     * @brief HoverHandler untuk deteksi hover yang immediate.
+     * @details Menggunakan HoverHandler sebagai pengganti MouseArea.containsMouse
+     *          karena HoverHandler secara continuous memeriksa posisi cursor.
+     */
+    HoverHandler {
+        id: hoverHandler
+        cursorShape: locked ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+    }
+
+    /**
+     * @brief Area mouse untuk deteksi klik.
+     */
     MouseArea {
         id: itemMouse
         anchors.fill: parent
-        hoverEnabled: true
         cursorShape: locked ? Qt.ForbiddenCursor : Qt.PointingHandCursor
         onClicked: if (!menuItem.locked)
             menuItem.clicked()

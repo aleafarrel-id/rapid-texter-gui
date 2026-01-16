@@ -576,7 +576,7 @@ FocusScope {
                     visible: resultsPage.isHost
                     onClicked: {
                         NetworkManager.sendPlayAgainInvite();
-                        resultsPage.returnToLobbyClicked();
+                        // Navigation handled by onReturnedToLobby signal
                     }
                 }
 

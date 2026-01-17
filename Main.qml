@@ -313,7 +313,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: 80
                     easing.type: Easing.OutQuart
                 }
             }
@@ -322,7 +322,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: 60
                     easing.type: Easing.InQuart
                 }
             }
@@ -331,7 +331,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: 80
                     easing.type: Easing.OutQuart
                 }
             }
@@ -340,7 +340,7 @@ ApplicationWindow {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: 60
                     easing.type: Easing.InQuart
                 }
             }
@@ -2536,6 +2536,26 @@ ApplicationWindow {
                             height: parent.height - 40
                             clip: true
                             model: historyData
+
+                            ScrollBar.vertical: ScrollBar {
+                                id: creditsHistoryScrollBar
+                                policy: ScrollBar.AsNeeded
+                                width: 8
+                                hoverEnabled: true
+                                background: Rectangle {
+                                    color: "transparent"
+                                }
+                                contentItem: Rectangle {
+                                    implicitWidth: 6
+                                    radius: 3
+                                    color: creditsHistoryScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                                    opacity: creditsHistoryScrollBar.hovered || creditsHistoryScrollBar.pressed ? 1.0 : 0.6
+
+                                    HoverHandler {
+                                        cursorShape: Qt.PointingHandCursor
+                                    }
+                                }
+                            }
 
                             // Empty state when no history
                             Rectangle {

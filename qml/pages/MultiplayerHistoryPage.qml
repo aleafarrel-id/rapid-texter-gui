@@ -566,6 +566,26 @@ Rectangle {
                 spacing: 5
                 visible: mpHistoryPage.totalEntries > 0
 
+                ScrollBar.vertical: ScrollBar {
+                    id: mpHistoryScrollBar
+                    policy: ScrollBar.AsNeeded
+                    width: 8
+                    hoverEnabled: true
+                    background: Rectangle {
+                        color: "transparent"
+                    }
+                    contentItem: Rectangle {
+                        implicitWidth: 6
+                        radius: 3
+                        color: mpHistoryScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                        opacity: mpHistoryScrollBar.hovered || mpHistoryScrollBar.pressed ? 1.0 : 0.6
+
+                        HoverHandler {
+                            cursorShape: Qt.PointingHandCursor
+                        }
+                    }
+                }
+
                 /**
                  * @brief Delegate untuk setiap item riwayat.
                  *
@@ -775,6 +795,7 @@ Rectangle {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.margins: 10
+                            anchors.rightMargin: 20
                             spacing: 12
 
                             //=================================================

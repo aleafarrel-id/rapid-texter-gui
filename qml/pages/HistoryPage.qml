@@ -351,6 +351,26 @@ Rectangle {
                     clip: true
                     model: historyPage.historyData
 
+                    ScrollBar.vertical: ScrollBar {
+                        id: historyScrollBar
+                        policy: ScrollBar.AsNeeded
+                        width: 8
+                        hoverEnabled: true
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+                        contentItem: Rectangle {
+                            implicitWidth: 6
+                            radius: 3
+                            color: historyScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                            opacity: historyScrollBar.hovered || historyScrollBar.pressed ? 1.0 : 0.6
+
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                        }
+                    }
+
                     /// @brief Delegate untuk setiap entri riwayat
                     delegate: Rectangle {
                         width: ListView.view.width

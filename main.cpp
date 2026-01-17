@@ -24,6 +24,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickStyle>
 
 /**
  * @brief Entry point aplikasi.
@@ -83,6 +84,13 @@ int main(int argc, char *argv[]) {
                    &MultiplayerHistoryManager::onRaceFinished);
 
   QQmlApplicationEngine engine;
+
+  /*
+   * Mengatur style Qt Quick Controls ke "Basic" agar ScrollBar
+   * dan kontrol lainnya dapat dikustomisasi sepenuhnya.
+   * Windows native style tidak mendukung kustomisasi.
+   */
+  QQuickStyle::setStyle("Basic");
 
   /*
    * Mendaftarkan GameBackend sebagai singleton QML.

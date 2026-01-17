@@ -35,6 +35,7 @@
  * @see MultiplayerMenuPage Menu untuk membuat/join room
  */
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import rapid_texter
@@ -593,6 +594,26 @@ FocusScope {
 
                     model: NetworkManager.availableInterfaces
 
+                    ScrollBar.vertical: ScrollBar {
+                        id: ipListScrollBar
+                        policy: ScrollBar.AsNeeded
+                        width: 8
+                        hoverEnabled: true
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+                        contentItem: Rectangle {
+                            implicitWidth: 6
+                            radius: 3
+                            color: ipListScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                            opacity: ipListScrollBar.hovered || ipListScrollBar.pressed ? 1.0 : 0.6
+
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                        }
+                    }
+
                     delegate: Rectangle {
                         id: interfaceDelegate
                         width: parent ? parent.width : 0
@@ -776,6 +797,26 @@ FocusScope {
                     clip: true
 
                     model: players
+
+                    ScrollBar.vertical: ScrollBar {
+                        id: playerListScrollBar
+                        policy: ScrollBar.AsNeeded
+                        width: 8
+                        hoverEnabled: true
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+                        contentItem: Rectangle {
+                            implicitWidth: 6
+                            radius: 3
+                            color: playerListScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                            opacity: playerListScrollBar.hovered || playerListScrollBar.pressed ? 1.0 : 0.6
+
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                        }
+                    }
 
                     /// @brief Delegate untuk setiap pemain
                     delegate: Rectangle {

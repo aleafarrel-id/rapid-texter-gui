@@ -32,6 +32,7 @@
  * @see MultiplayerMenuPage Menu multiplayer utama
  */
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import rapid_texter
@@ -340,6 +341,26 @@ FocusScope {
                     clip: true
 
                     model: discoveredGames
+
+                    ScrollBar.vertical: ScrollBar {
+                        id: gamesScrollBar
+                        policy: ScrollBar.AsNeeded
+                        width: 8
+                        hoverEnabled: true
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+                        contentItem: Rectangle {
+                            implicitWidth: 6
+                            radius: 3
+                            color: gamesScrollBar.pressed ? "#6A6A6A" : "#4A4A4A"
+                            opacity: gamesScrollBar.hovered || gamesScrollBar.pressed ? 1.0 : 0.6
+
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                        }
+                    }
 
                     /// @brief Delegate untuk setiap game
                     delegate: Rectangle {

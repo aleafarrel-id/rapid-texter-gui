@@ -592,7 +592,7 @@ FocusScope {
                  */
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
-                    labelText: "Play Again"
+                    labelText: "Play Again (Enter)"
                     variant: "primary"
                     visible: resultsPage.isHost
                     onClicked: {
@@ -606,7 +606,7 @@ FocusScope {
                  */
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
-                    labelText: "Exit"
+                    labelText: "Exit (ESC)"
                     onClicked: {
                         NetworkManager.leaveRoom();
                         resultsPage.exitClicked();
@@ -632,6 +632,20 @@ FocusScope {
         color: Qt.rgba(0, 0, 0, 0.75)
         visible: showInvitePopup && !resultsPage.isHost
         z: 100
+        focus: visible
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                resultsPage.showInvitePopup = false;
+                NetworkManager.acceptPlayAgain();
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Escape) {
+                resultsPage.showInvitePopup = false;
+                NetworkManager.declinePlayAgain();
+                resultsPage.exitClicked();
+                event.accepted = true;
+            }
+        }
 
         /**
          * @brief MouseArea untuk memblokir klik pada background.
@@ -721,7 +735,7 @@ FocusScope {
                      * @brief Tombol Accept invitation.
                      */
                     NavBtn {
-                        labelText: "Accept"
+                        labelText: "Accept (Enter)"
                         variant: "primary"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/check.svg"
                         onClicked: {
@@ -735,7 +749,7 @@ FocusScope {
                      * @brief Tombol Decline invitation.
                      */
                     NavBtn {
-                        labelText: "Decline"
+                        labelText: "Decline (ESC)"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/close.svg"
                         onClicked: {
                             resultsPage.showInvitePopup = false;
@@ -763,6 +777,17 @@ FocusScope {
         color: Qt.rgba(0, 0, 0, 0.75)
         visible: showGameInProgressPopup
         z: 110
+        focus: visible
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Escape) {
+                resultsPage.showGameInProgressPopup = false;
+                resultsPage.showInvitePopup = false;
+                NetworkManager.declinePlayAgain();
+                resultsPage.exitClicked();
+                event.accepted = true;
+            }
+        }
 
         MouseArea {
             anchors.fill: parent
@@ -866,7 +891,7 @@ FocusScope {
                  */
                 NavBtn {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    labelText: "OK"
+                    labelText: "OK (Enter)"
                     variant: "primary"
                     onClicked: {
                         resultsPage.showGameInProgressPopup = false;
@@ -927,31 +952,22 @@ FocusScope {
      * - P: Play Again (host) atau Accept (guest dengan popup)
      */
     Keys.onPressed: function (event) {
-        // ESC key: exit atau decline invite
+        // Skip jika ada popup yang visible - biarkan popup handle sendiri
+        if (showInvitePopup || showGameInProgressPopup) {
+            return;
+        }
+
+        // ESC key: exit
         if (event.key === Qt.Key_Escape) {
-            if (resultsPage.showInvitePopup) {
-                // Decline invite
-                resultsPage.showInvitePopup = false;
-                NetworkManager.declinePlayAgain();
-            }
             NetworkManager.leaveRoom();
             resultsPage.exitClicked();
             event.accepted = true;
             return;
         }
 
-        // P untuk Play Again (host) atau Accept (guest dengan popup)
-        if (event.key === Qt.Key_P) {
-            if (showInvitePopup && !resultsPage.isHost) {
-                // Guest accepts invite
-                showInvitePopup = false;
-                NetworkManager.acceptPlayAgain();
-                // Navigation handled by onReturnedToLobby
-            } else if (resultsPage.isHost) {
-                // Host starts play again
-                NetworkManager.sendPlayAgainInvite();
-                // Navigation handled by onReturnedToLobby
-            }
+        // Enter untuk Play Again (host only)
+        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && resultsPage.isHost) {
+            NetworkManager.sendPlayAgainInvite();
             event.accepted = true;
         }
     }

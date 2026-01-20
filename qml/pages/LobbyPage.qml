@@ -153,6 +153,44 @@ FocusScope {
      */
     signal textChanged(string text)
 
+    /* ========================================================================
+     * HELPER FUNCTIONS FOR KEYBOARD SHORTCUTS
+     * ======================================================================== */
+
+    /**
+     * @brief Cycle ke interface berikutnya dalam daftar.
+     * @details Digunakan oleh shortcut [I] untuk host.
+     */
+    function cycleInterface() {
+        var interfaces = NetworkManager.availableInterfaces;
+        if (interfaces.length === 0)
+            return;
+
+        var currentIndex = 0;
+        for (var i = 0; i < interfaces.length; i++) {
+            if (interfaces[i].ip === selectedInterface) {
+                currentIndex = i;
+                break;
+            }
+        }
+        var nextIndex = (currentIndex + 1) % interfaces.length;
+        NetworkManager.setSelectedInterface(interfaces[nextIndex].ip);
+    }
+
+    /**
+     * @brief Cycle bahasa ke pilihan berikutnya.
+     * @details Digunakan oleh shortcut [L] untuk host.
+     * Urutan: id -> en -> prog -> id
+     */
+    function cycleLanguage() {
+        var langs = ["id", "en", "prog"];
+        var currentIndex = langs.indexOf(gameLanguage);
+        if (currentIndex === -1)
+            currentIndex = 0;
+        var nextIndex = (currentIndex + 1) % langs.length;
+        NetworkManager.setGameLanguage(langs[nextIndex]);
+    }
+
     /**
      * @brief Background utama halaman lobby.
      * @details Rectangle dengan z-index rendah untuk memastikan
@@ -203,6 +241,20 @@ FocusScope {
         color: Qt.rgba(0, 0, 0, 0.6)
         visible: pendingKickUuid !== ""
         z: 1000
+        focus: visible
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                NetworkManager.kickPlayer(pendingKickUuid);
+                pendingKickUuid = "";
+                pendingKickName = "";
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Escape) {
+                pendingKickUuid = "";
+                pendingKickName = "";
+                event.accepted = true;
+            }
+        }
 
         /// @brief Klik di luar dialog untuk menutup
         MouseArea {
@@ -269,7 +321,7 @@ FocusScope {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Cancel"
+                            text: "Cancel (ESC)"
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
@@ -293,7 +345,7 @@ FocusScope {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Kick"
+                            text: "Kick (Enter)"
                             color: "white"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
@@ -333,6 +385,18 @@ FocusScope {
         color: Qt.rgba(0, 0, 0, 0.6)
         visible: false
         z: 1000
+        focus: visible
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                soloPlayConfirmDialog.visible = false;
+                NetworkManager.startCountdown();
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Escape) {
+                soloPlayConfirmDialog.visible = false;
+                event.accepted = true;
+            }
+        }
 
         /// @brief Klik di luar dialog untuk menutup
         MouseArea {
@@ -396,7 +460,7 @@ FocusScope {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Cancel"
+                            text: "Cancel (ESC)"
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
@@ -417,7 +481,7 @@ FocusScope {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "Start"
+                            text: "Start (Enter)"
                             color: "white"
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeM
@@ -578,6 +642,14 @@ FocusScope {
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeSM
                             font.bold: true
+                        }
+
+                        Text {
+                            text: "[I]"
+                            color: Theme.accentBlue
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeSM
+                            visible: isHost
                         }
                     }
                 }
@@ -947,6 +1019,13 @@ FocusScope {
                         font.bold: true
                     }
 
+                    Text {
+                        text: "[L]"
+                        color: Theme.accentBlue
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeSM
+                    }
+
                     Row {
                         spacing: 8
 
@@ -997,7 +1076,7 @@ FocusScope {
 
                     Text {
                         text: "Current: " + gameLanguage.toUpperCase()
-                        color: Theme.textMuted
+                        color: Theme.accentBlue
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSizeSM
                     }
@@ -1108,7 +1187,7 @@ FocusScope {
 
                     NavBtn {
                         visible: isHost
-                        labelText: "Refresh Text"
+                        labelText: "Refresh Text [R]"
                         iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/refresh.svg"
                         onClicked: NetworkManager.refreshGameText()
                     }
@@ -1131,7 +1210,7 @@ FocusScope {
                 /// @brief Tombol Leave untuk keluar dari room
                 NavBtn {
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/arrow-left.svg"
-                    labelText: "Leave"
+                    labelText: "Leave (ESC)"
                     onClicked: {
                         NetworkManager.leaveRoom();
                         lobbyPage.leaveClicked();
@@ -1149,7 +1228,7 @@ FocusScope {
                 NavBtn {
                     visible: isHost
                     iconSource: "qrc:/qt/qml/rapid_texter/assets/icons/play.svg"
-                    labelText: "Start Race"
+                    labelText: "Start Race (Enter)"
                     variant: "primary"
                     enabled: players.length >= 1 && gameText.length > 0
                     onClicked: {
@@ -1236,6 +1315,15 @@ FocusScope {
         color: Qt.rgba(0, 0, 0, 0.7)
         visible: false
         z: 2000
+        focus: visible
+
+        Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Escape) {
+                kickedNotification.visible = false;
+                lobbyPage.leaveClicked();
+                event.accepted = true;
+            }
+        }
 
         /// @brief Dialog box utama
         Rectangle {
@@ -1278,7 +1366,7 @@ FocusScope {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "OK"
+                        text: "OK (Enter)"
                         color: "white"
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSizeM
@@ -1311,6 +1399,11 @@ FocusScope {
      * hanya jika minimal ada 1 pemain dan teks sudah tersedia.
      */
     Keys.onPressed: function (event) {
+        // Skip jika ada dialog yang visible - biarkan dialog handle sendiri
+        if (kickConfirmDialog.visible || soloPlayConfirmDialog.visible || kickedNotification.visible) {
+            return;
+        }
+
         if (event.key === Qt.Key_Escape) {
             NetworkManager.leaveRoom();
             lobbyPage.leaveClicked();
@@ -1324,6 +1417,18 @@ FocusScope {
                 }
                 event.accepted = true;
             }
+        } else if (event.key === Qt.Key_I && isHost) {
+            // [I] Cycle interface
+            cycleInterface();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_L && isHost) {
+            // [L] Cycle language
+            cycleLanguage();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_R && isHost) {
+            // [R] Refresh text
+            NetworkManager.refreshGameText();
+            event.accepted = true;
         }
     }
 }

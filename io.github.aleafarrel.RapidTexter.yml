@@ -16,7 +16,7 @@ finish-args:
   - --socket=pulseaudio
   - --filesystem=xdg-run/pipewire-0
   # For storing user data (history, progress, settings)
-  - --filesystem=xdg-config/rapidtexter:create
+  - --filesystem=xdg-data/RapidTexter:create
 
 modules:
   - name: rapidtexter

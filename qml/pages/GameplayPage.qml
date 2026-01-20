@@ -430,16 +430,12 @@ FocusScope {
 
             if (text === targetText.charAt(positionBeforePush)) {
                 if (!correctPositions[positionBeforePush]) {
-                    var newCorrectPositions = Object.assign({}, correctPositions);
-                    newCorrectPositions[positionBeforePush] = true;
-                    correctPositions = newCorrectPositions;
+                    correctPositions[positionBeforePush] = true;
                     correctChars++;
                 }
             } else {
                 if (!errorPositions[positionBeforePush]) {
-                    var newErrorPositions = Object.assign({}, errorPositions);
-                    newErrorPositions[positionBeforePush] = true;
-                    errorPositions = newErrorPositions;
+                    errorPositions[positionBeforePush] = true;
                     incorrectChars++;
                 }
                 GameBackend.playErrorSound();
@@ -758,8 +754,17 @@ FocusScope {
                                     id: charText
 
                                     property int globalIndex: wordData.startIndex + index
-                                    property string charState: gameplayPage.getCharState(globalIndex)
                                     property string character: wordData.word[index]
+                                    // Optimized inline charState - avoids O(n) re-evaluation
+                                    property string charState: {
+                                        var typedLen = gameplayPage.typedChars.length;
+                                        if (globalIndex < typedLen) {
+                                            return gameplayPage.typedChars[globalIndex] === character ? "correct" : "incorrect";
+                                        } else if (globalIndex === typedLen) {
+                                            return "current";
+                                        }
+                                        return "pending";
+                                    }
 
                                     text: character
                                     font.family: Theme.fontFamily
@@ -828,7 +833,16 @@ FocusScope {
                                 visible: wordRow.wordIndex < gameplayPage.wordInfo.length - 1
 
                                 property int globalIndex: wordRow.spaceIndex
-                                property string charState: gameplayPage.getCharState(globalIndex)
+                                // Optimized inline charState for space character
+                                property string charState: {
+                                    var typedLen = gameplayPage.typedChars.length;
+                                    if (globalIndex < typedLen) {
+                                        return gameplayPage.typedChars[globalIndex] === " " ? "correct" : "incorrect";
+                                    } else if (globalIndex === typedLen) {
+                                        return "current";
+                                    }
+                                    return "pending";
+                                }
                                 property string typedChar: globalIndex < gameplayPage.typedChars.length ? gameplayPage.typedChars[globalIndex] : ""
                                 property string displayChar: charState === "incorrect" && typedChar.length > 0 ? typedChar : " "
 

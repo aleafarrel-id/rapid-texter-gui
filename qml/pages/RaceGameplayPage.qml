@@ -181,6 +181,12 @@ FocusScope {
      */
     property bool capsLockOn: false
 
+    /**
+     * @property progressUpdatePending
+     * @brief Flag untuk throttling network progress updates via Qt.callLater.
+     */
+    property bool progressUpdatePending: false
+
     //=========================================================================
     // SIGNALS - Sinyal untuk komunikasi dengan parent
     //=========================================================================
@@ -273,6 +279,16 @@ FocusScope {
             return "current";
         }
         return "pending";
+    }
+
+    /**
+     * @brief Mengirim progress update yang di-throttle ke network.
+     * @details Dipanggil via Qt.callLater untuk menghindari
+     * pengiriman update pada setiap keystroke.
+     */
+    function sendThrottledProgress() {
+        NetworkManager.updateProgress(typedChars.length, targetText.length, currentWpm, currentAccuracy, incorrectChars);
+        progressUpdatePending = false;
     }
 
     /**
@@ -404,8 +420,11 @@ FocusScope {
             // Update stats
             updateStats();
 
-            // Update network progress
-            NetworkManager.updateProgress(typedChars.length, targetText.length, currentWpm, currentAccuracy, incorrectChars);
+            // Throttled network progress update - uses Qt.callLater to batch updates
+            if (!progressUpdatePending) {
+                progressUpdatePending = true;
+                Qt.callLater(sendThrottledProgress);
+            }
 
             // Force refresh players list to update race track
             playerUpdateCounter++;
@@ -701,9 +720,19 @@ FocusScope {
                                      */
                                     Text {
                                         property int charIndex: wordInfo[parent.wordIndex].startIndex + index
-                                        property string charState: cursorPosition >= 0 ? getCharState(charIndex) : "pending"
+                                        property string character: targetText.charAt(charIndex)
+                                        // Optimized inline charState - avoids O(n) re-evaluation
+                                        property string charState: {
+                                            var typedLen = raceGameplayPage.typedChars.length;
+                                            if (charIndex < typedLen) {
+                                                return raceGameplayPage.typedChars[charIndex] === character ? "correct" : "incorrect";
+                                            } else if (charIndex === typedLen) {
+                                                return "current";
+                                            }
+                                            return "pending";
+                                        }
 
-                                        text: targetText.charAt(charIndex)
+                                        text: character
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 28
                                         font.letterSpacing: 0.5
@@ -771,7 +800,16 @@ FocusScope {
                                     id: spaceText
                                     visible: wordIndex < wordInfo.length - 1
                                     property int spaceIndex: wordInfo[wordIndex].endIndex + 1
-                                    property string charState: cursorPosition >= 0 ? getCharState(spaceIndex) : "pending"
+                                    // Optimized inline charState for space character
+                                    property string charState: {
+                                        var typedLen = raceGameplayPage.typedChars.length;
+                                        if (spaceIndex < typedLen) {
+                                            return raceGameplayPage.typedChars[spaceIndex] === " " ? "correct" : "incorrect";
+                                        } else if (spaceIndex === typedLen) {
+                                            return "current";
+                                        }
+                                        return "pending";
+                                    }
                                     property string typedChar: spaceIndex < typedChars.length ? typedChars[spaceIndex] : ""
                                     property string displayChar: charState === "incorrect" && typedChar.length > 0 ? typedChar : " "
 

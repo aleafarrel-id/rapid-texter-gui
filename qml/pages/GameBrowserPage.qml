@@ -478,12 +478,12 @@ FocusScope {
                             }
                         }
 
-                        /// @brief Mouse area untuk double-click join
+                        /// @brief Mouse area untuk single-click join
                         MouseArea {
                             id: mouseArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            onDoubleClicked: {
+                            onClicked: {
                                 if (modelData.status === "waiting") {
                                     gameBrowserPage.gameSelected(modelData.hostIp, modelData.port);
                                 }

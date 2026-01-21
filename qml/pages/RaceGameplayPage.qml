@@ -773,19 +773,6 @@ FocusScope {
                                             width: 2
                                             height: parent.font.pixelSize + 6
                                             color: Theme.accentBlue
-
-                                            SequentialAnimation on opacity {
-                                                running: parent.charState === "current" && !gameStarted
-                                                loops: Animation.Infinite
-                                                NumberAnimation {
-                                                    to: 0
-                                                    duration: 500
-                                                }
-                                                NumberAnimation {
-                                                    to: 1
-                                                    duration: 500
-                                                }
-                                            }
                                         }
                                     }
                                 }
@@ -843,19 +830,6 @@ FocusScope {
                                         width: 2
                                         height: 34
                                         color: Theme.accentBlue
-
-                                        SequentialAnimation on opacity {
-                                            running: parent.charState === "current" && !gameStarted
-                                            loops: Animation.Infinite
-                                            NumberAnimation {
-                                                to: 0
-                                                duration: 500
-                                            }
-                                            NumberAnimation {
-                                                to: 1
-                                                duration: 500
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -1075,6 +1049,7 @@ FocusScope {
 
     /**
      * @brief Timer untuk memeriksa status CAPS LOCK secara periodik.
+     * @details Interval 200ms untuk responsivitas yang baik.
      */
     Timer {
         id: capsLockTimer

@@ -699,6 +699,32 @@ FocusScope {
                     font.weight: Font.DemiBold
                 }
 
+                /**
+                 * @brief Warning box saat CAPS LOCK aktif.
+                 * @details Menampilkan box kuning dengan teks "CAPS LOCK ON".
+                 */
+                Rectangle {
+                    id: capsLockBox
+                    visible: gameplayPage.capsLockOn
+                    color: "#3D2800"
+                    border.color: Theme.accentYellow
+                    border.width: 1
+                    radius: 4
+                    width: capsLockContent.implicitWidth + 20
+                    height: capsLockContent.implicitHeight + 8
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        id: capsLockContent
+                        anchors.centerIn: parent
+                        text: "CAPS LOCK ON"
+                        color: Theme.accentYellow
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeM
+                        font.bold: true
+                    }
+                }
+
                 /// @brief Spacer
                 Item {
                     Layout.fillWidth: true
@@ -804,19 +830,6 @@ FocusScope {
                                         width: 2
                                         height: charText.font.pixelSize + 6
                                         color: Theme.accentBlue
-
-                                        SequentialAnimation on opacity {
-                                            running: charText.charState === "current" && !gameplayPage.gameStarted
-                                            loops: Animation.Infinite
-                                            NumberAnimation {
-                                                to: 0
-                                                duration: 500
-                                            }
-                                            NumberAnimation {
-                                                to: 1
-                                                duration: 500
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -873,56 +886,9 @@ FocusScope {
                                     width: 2
                                     height: 28 + 6
                                     color: Theme.accentBlue
-
-                                    SequentialAnimation on opacity {
-                                        running: spaceText.charState === "current" && !gameplayPage.gameStarted
-                                        loops: Animation.Infinite
-                                        NumberAnimation {
-                                            to: 0
-                                            duration: 500
-                                        }
-                                        NumberAnimation {
-                                            to: 1
-                                            duration: 500
-                                        }
-                                    }
                                 }
                             }
                         }
-                    }
-                }
-            }
-
-            /**
-             * @brief Warning box saat CAPS LOCK aktif.
-             *
-             * @details Menampilkan box kuning dengan teks "CAPS LOCK ON"
-             * saat capsLockOn = true. Membantu user menyadari masalah.
-             */
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: capsLockOn ? capsLockBox.height + 16 : 0
-                Layout.topMargin: capsLockOn ? 12 : 0
-                visible: gameplayPage.capsLockOn
-
-                Rectangle {
-                    id: capsLockBox
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "#3D2800"
-                    border.color: Theme.accentYellow
-                    border.width: 1
-                    radius: 4
-                    width: capsLockContent.implicitWidth + 20
-                    height: capsLockContent.implicitHeight + 8
-
-                    Text {
-                        id: capsLockContent
-                        anchors.centerIn: parent
-                        text: "CAPS LOCK ON"
-                        color: Theme.accentYellow
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeM
-                        font.bold: true
                     }
                 }
             }

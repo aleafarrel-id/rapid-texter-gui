@@ -86,6 +86,7 @@ CMakeLists.txt.user*
 /rpm-build-root/*
 /staging/*
 /rapid-texter-gui.wiki/
+/web/
 
 # AppImage build artifacts
 /tools/
